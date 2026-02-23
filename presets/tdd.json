@@ -1,0 +1,5 @@
+{
+  "name": "tdd",
+  "description": "TDD 중심 — core + tdd + quality + ship",
+  "modules": ["core", "tdd", "quality", "ship"]
+}

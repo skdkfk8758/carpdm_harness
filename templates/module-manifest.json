@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "modules": {
+    "core": {
+      "name": "core",
+      "description": "Plan-First + SPARC + External Memory 핵심 워크플로우",
+      "dependencies": [],
+      "commands": [
+        { "source": "core/commands/plan-gate.md", "destination": ".claude/commands/plan-gate.md" },
+        { "source": "core/commands/read-domain-context.md", "destination": ".claude/commands/read-domain-context.md" },
+        { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" }
+      ],
+      "hooks": [
+        { "source": "core/hooks/pre-task.sh", "destination": ".claude/hooks/pre-task.sh", "executable": true },
+        { "source": "core/hooks/plan-guard.sh", "destination": ".claude/hooks/plan-guard.sh", "executable": true },
+        { "source": "core/hooks/post-task.sh", "destination": ".claude/hooks/post-task.sh", "executable": true }
+      ],
+      "docs": [
+        { "source": "core/docs/plan-template.md", "destination": "docs/templates/plan-template.md" },
+        { "source": "core/docs/todo-template.md", "destination": "docs/templates/todo-template.md" },
+        { "source": "core/docs/context-template.md", "destination": "docs/templates/context-template.md" },
+        { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" }
+      ]
+    },
+    "tdd": {
+      "name": "tdd",
+      "description": "Red-Green-Refactor TDD 사이클 + 자동 차단",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "tdd/commands/tdd-cycle.md", "destination": ".claude/commands/tdd-cycle.md" }
+      ],
+      "hooks": [
+        { "source": "tdd/hooks/tdd-guard.sh", "destination": ".claude/hooks/tdd-guard.sh", "executable": true }
+      ],
+      "docs": []
+    },
+    "quality": {
+      "name": "quality",
+      "description": "품질 게이트 + 교차 검증 + 변경 추적",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "quality/commands/quality-guard.md", "destination": ".claude/commands/quality-guard.md" },
+        { "source": "quality/commands/post-task-check.md", "destination": ".claude/commands/post-task-check.md" },
+        { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" }
+      ],
+      "hooks": [
+        { "source": "quality/hooks/code-change.sh", "destination": ".claude/hooks/code-change.sh", "executable": true }
+      ],
+      "docs": []
+    },
+    "ship": {
+      "name": "ship",
+      "description": "논리 커밋 + PR 생성 자동화",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
+        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" }
+      ],
+      "hooks": [],
+      "docs": []
+    },
+    "maintenance": {
+      "name": "maintenance",
+      "description": "환경 업데이트 자동화",
+      "dependencies": [],
+      "commands": [
+        { "source": "maintenance/commands/update-all.md", "destination": ".claude/commands/update-all.md" }
+      ],
+      "hooks": [],
+      "docs": []
+    },
+    "patterns": {
+      "name": "patterns",
+      "description": "패턴 클로닝 — 기존 도메인 패턴 복제",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" }
+      ],
+      "hooks": [],
+      "docs": []
+    }
+  }
+}

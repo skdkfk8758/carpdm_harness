@@ -1,0 +1,5 @@
+{
+  "name": "full",
+  "description": "전체 6개 모듈 — 완전한 AI 협업 워크플로우",
+  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns"]
+}

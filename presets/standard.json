@@ -1,0 +1,5 @@
+{
+  "name": "standard",
+  "description": "추천 구성 — core + quality + ship",
+  "modules": ["core", "quality", "ship"]
+}
