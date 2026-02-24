@@ -4,6 +4,7 @@ import { loadConfig } from '../core/config.js';
 import { getModule } from '../core/module-registry.js';
 import { computeFileHash } from '../core/file-ops.js';
 import { isGitRepo } from '../utils/git.js';
+import { getOntologyStatus } from '../core/ontology/index.js';
 import { logger } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -92,6 +93,67 @@ export async function doctorCommand(): Promise<void> {
   } else {
     console.log(`  ${chalk.yellow('!')} 에이전트 디렉토리 없음: ${config.options.agentDir}`);
     warnings++;
+  }
+
+  // 7. 온톨로지 진단
+  const ontologyConfig = config.ontology;
+  if (!ontologyConfig || !ontologyConfig.enabled) {
+    console.log(`  ${chalk.dim('─')} 온톨로지: 비활성화`);
+  } else {
+    console.log(`  ${chalk.green('✓')} 온톨로지: 활성화`);
+
+    // 출력 파일 존재 여부
+    const outputDir = join(projectRoot, ontologyConfig.outputDir);
+    const ontologyFiles = [
+      'ONTOLOGY-STRUCTURE.md',
+      'ONTOLOGY-SEMANTICS.md',
+      'ONTOLOGY-DOMAIN.md',
+    ];
+    for (const fname of ontologyFiles) {
+      const fpath = join(outputDir, fname);
+      if (existsSync(fpath)) {
+        console.log(`  ${chalk.green('✓')} 온톨로지 파일: ${fname}`);
+      } else {
+        console.log(`  ${chalk.yellow('!')} 온톨로지 파일 없음: ${fname} (--generate로 생성)`);
+        warnings++;
+      }
+    }
+
+    // 마지막 빌드 시간 (staleness 감지)
+    const status = getOntologyStatus(projectRoot, ontologyConfig);
+    if (status) {
+      const builtAt = new Date(status.generatedAt);
+      const ageMs = Date.now() - builtAt.getTime();
+      const ageDays = Math.floor(ageMs / 86_400_000);
+      if (ageDays > 7) {
+        console.log(`  ${chalk.yellow('!')} 온톨로지가 ${ageDays}일 전에 빌드됨 (갱신 권장)`);
+        warnings++;
+      } else {
+        console.log(`  ${chalk.green('✓')} 온톨로지 최신 (${ageDays}일 전)`);
+      }
+    }
+
+    // AI 설정 시 API 키 환경변수 존재 여부
+    if (ontologyConfig.ai) {
+      const envKey = ontologyConfig.ai.apiKeyEnv;
+      if (process.env[envKey]) {
+        console.log(`  ${chalk.green('✓')} AI API 키 환경변수: ${envKey}`);
+      } else {
+        console.log(`  ${chalk.red('✗')} AI API 키 환경변수 없음: ${envKey}`);
+        issues++;
+      }
+    }
+
+    // 플러그인 의존성 확인 (typescript 플러그인)
+    if (ontologyConfig.plugins.includes('typescript')) {
+      try {
+        await import('typescript');
+        console.log(`  ${chalk.green('✓')} typescript 패키지`);
+      } catch {
+        console.log(`  ${chalk.yellow('!')} typescript 패키지 미설치 (semantics 분석에 필요)`);
+        warnings++;
+      }
+    }
   }
 
   // 결과

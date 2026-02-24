@@ -6,6 +6,7 @@ import { migrateCommand } from './cli/migrate.js';
 import { listCommand } from './cli/list.js';
 import { infoCommand } from './cli/info.js';
 import { doctorCommand } from './cli/doctor.js';
+import { ontologyCommand } from './cli/ontology.js';
 
 const program = new Command();
 
@@ -23,6 +24,8 @@ program
   .option('--skip-hooks', '훅 등록 건너뛰기')
   .option('--dry-run', '미리보기만')
   .option('--yes', '비대화형 (기본값 수락)')
+  .option('--ontology', '온톨로지 강제 활성화')
+  .option('--skip-ontology', '온톨로지 설정 건너뛰기')
   .action(initCommand);
 
 program
@@ -33,6 +36,8 @@ program
   .option('--global', '글로벌 커맨드도 업데이트')
   .option('--dry-run', 'diff만 표시')
   .option('--accept-all', '모든 변경 수락')
+  .option('--refresh-ontology', '온톨로지 갱신')
+  .option('--skip-ontology', '온톨로지 갱신 건너뛰기')
   .action(updateCommand);
 
 program
@@ -59,5 +64,15 @@ program
   .command('doctor')
   .description('설치 건강 진단')
   .action(doctorCommand);
+
+program
+  .command('ontology')
+  .description('프로젝트 온톨로지 생성/관리')
+  .option('--generate', '온톨로지 전체 재생성')
+  .option('--refresh', '변경된 파일만 점진적 갱신')
+  .option('--status', '온톨로지 상태 표시')
+  .option('--layer <name>', '특정 계층만 (structure|semantics|domain)')
+  .option('--dry-run', '미리보기만')
+  .action(ontologyCommand);
 
 program.parse();

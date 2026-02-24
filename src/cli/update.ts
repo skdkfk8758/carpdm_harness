@@ -1,10 +1,12 @@
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
 import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
-import { getModule, getAllModules } from '../core/module-registry.js';
+import { getAllModules } from '../core/module-registry.js';
 import { safeCopyFile, computeFileHash, backupFile } from '../core/file-ops.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { getPackageVersion } from '../utils/version.js';
 import { logger } from '../utils/logger.js';
+import { refreshOntology } from '../core/ontology/index.js';
+import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import chalk from 'chalk';
 import { join } from 'node:path';
 
@@ -14,6 +16,8 @@ interface UpdateOptions {
   global?: boolean;
   dryRun?: boolean;
   acceptAll?: boolean;
+  refreshOntology?: boolean;
+  skipOntology?: boolean;
 }
 
 export async function updateCommand(options: UpdateOptions): Promise<void> {
@@ -57,11 +61,12 @@ export async function updateCommand(options: UpdateOptions): Promise<void> {
     const modFile = allFiles.find(f => f.destination === change.relativePath);
     if (!modFile) continue;
 
-    const statusColor = {
+    const statusColorMap: Record<string, typeof chalk.yellow> = {
       UPSTREAM_CHANGED: chalk.yellow,
       USER_MODIFIED: chalk.blue,
       CONFLICT: chalk.red,
-    }[change.status] || chalk.dim;
+    };
+    const statusColor = statusColorMap[change.status] ?? chalk.dim;
 
     console.log(`  ${statusColor(`[${change.status}]`)} ${change.relativePath}`);
 
@@ -148,6 +153,22 @@ export async function updateCommand(options: UpdateOptions): Promise<void> {
           skipped++;
         }
       }
+    }
+  }
+
+  // 온톨로지 점진적 갱신
+  if (!options.skipOntology && options.refreshOntology) {
+    logger.info('온톨로지 점진적 갱신 중...');
+    const ontologyConfig = config.ontology ?? DEFAULT_ONTOLOGY_CONFIG;
+    if (ontologyConfig.enabled && !options.dryRun) {
+      try {
+        const report = await refreshOntology(projectRoot, ontologyConfig);
+        logger.ok(`온톨로지 갱신 완료 (${report.totalDuration}ms)`);
+      } catch (err) {
+        logger.warn(`온톨로지 갱신 실패 (무시하고 계속): ${String(err)}`);
+      }
+    } else if (!ontologyConfig.enabled) {
+      logger.info('온톨로지가 비활성화 상태입니다. (설정에서 enabled: true로 변경 필요)');
     }
   }
 

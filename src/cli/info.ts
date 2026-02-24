@@ -1,4 +1,5 @@
 import { loadConfig } from '../core/config.js';
+import { getOntologyStatus } from '../core/ontology/index.js';
 import { logger } from '../utils/logger.js';
 import { getPackageVersion } from '../utils/version.js';
 import chalk from 'chalk';
@@ -45,5 +46,43 @@ export async function infoCommand(): Promise<void> {
         console.log(`    ${chalk.dim(f)}`);
       }
     }
+  }
+
+  // 온톨로지 섹션
+  console.log('');
+  logger.header('온톨로지');
+
+  const ontologyConfig = config.ontology;
+  if (!ontologyConfig || !ontologyConfig.enabled) {
+    logger.info('온톨로지: 비활성화 (carpdm-harness ontology --generate로 활성화)');
+    return;
+  }
+
+  logger.table([
+    ['활성화', '예'],
+    ['출력 디렉토리', ontologyConfig.outputDir],
+    ['플러그인', ontologyConfig.plugins.join(', ') || '없음'],
+    ['자동 갱신', ontologyConfig.autoUpdate.enabled ? `예 (${ontologyConfig.autoUpdate.gitHook})` : '아니오'],
+    ['AI 제공자', ontologyConfig.ai ? ontologyConfig.ai.provider : '없음'],
+  ]);
+
+  // 각 계층 상태
+  const layers: Array<'structure' | 'semantics' | 'domain'> = ['structure', 'semantics', 'domain'];
+  console.log('');
+  logger.info('계층별 상태:');
+
+  for (const layer of layers) {
+    const layerCfg = ontologyConfig.layers[layer];
+    const enabled = layerCfg.enabled;
+    const status = getOntologyStatus(projectRoot, ontologyConfig);
+    const layerStatus = status?.layerStatus[layer];
+    const lastBuilt = layerStatus?.lastBuilt ?? '미빌드';
+    const fileCount = layerStatus?.fileCount ?? 0;
+
+    logger.table([
+      [layer, enabled ? '활성' : '비활성'],
+      ['마지막 빌드', lastBuilt],
+      ['파일 수', `${fileCount}개`],
+    ]);
   }
 }

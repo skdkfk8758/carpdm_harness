@@ -1,16 +1,17 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadPreset, resolveModules, getModule, getModuleNames, getPresetNames, getPresetModules } from '../core/module-registry.js';
+import { resolveModules, getModule, getModuleNames, getPresetNames, getPresetModules } from '../core/module-registry.js';
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
 import { ensureDir } from '../core/file-ops.js';
 import { getGlobalCommandsDir, getTemplatesDir } from '../utils/paths.js';
-import { safeCopyFile, computeFileHash } from '../core/file-ops.js';
-import { updateFileRecord } from '../core/config.js';
-import { getPackageVersion } from '../utils/version.js';
+import { safeCopyFile } from '../core/file-ops.js';
 import { logger } from '../utils/logger.js';
 import { runInitPrompts } from '../prompts/init-prompts.js';
+import { promptOntologySetup } from '../prompts/ontology-prompts.js';
+import { buildOntology } from '../core/ontology/index.js';
+import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
 import chalk from 'chalk';
 
@@ -21,6 +22,8 @@ interface InitOptions {
   skipHooks?: boolean;
   dryRun?: boolean;
   yes?: boolean;
+  ontology?: boolean;
+  skipOntology?: boolean;
 }
 
 export async function initCommand(options: InitOptions): Promise<void> {
@@ -129,6 +132,26 @@ export async function initCommand(options: InitOptions): Promise<void> {
     ensureDir(join(projectRoot, agentDir));
   }
 
+  // 온톨로지 설정
+  if (!options.skipOntology) {
+    logger.info('온톨로지 설정 중...');
+    const ontologyConfig = (options.yes || options.ontology)
+      ? { ...DEFAULT_ONTOLOGY_CONFIG, enabled: !!options.ontology }
+      : await promptOntologySetup();
+
+    config.ontology = ontologyConfig;
+
+    if (ontologyConfig.enabled && !options.dryRun) {
+      logger.info('온톨로지 초기 생성 중...');
+      try {
+        const report = await buildOntology(projectRoot, ontologyConfig);
+        logger.ok(`온톨로지 생성 완료 (${report.totalDuration}ms)`);
+      } catch (err) {
+        logger.warn(`온톨로지 생성 실패 (무시하고 계속): ${String(err)}`);
+      }
+    }
+  }
+
   // 설정 저장
   if (!options.dryRun) {
     saveConfig(projectRoot, config);
@@ -146,7 +169,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
   console.log('');
 }
 
-function installGlobalCommands(config: any): void {
+function installGlobalCommands(_config: any): void {
   const globalDir = getGlobalCommandsDir();
   const templatesDir = getTemplatesDir();
   const globalTemplates = join(templatesDir, 'global');
