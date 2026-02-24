@@ -1,12 +1,16 @@
 import { join, relative } from 'node:path';
 import { existsSync } from 'node:fs';
-import type { ModuleDefinition } from '../types/module.js';
+import type { ModuleDefinition, ModuleFile } from '../types/module.js';
 import type { HarnessConfig } from '../types/config.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { safeCopyFile, computeFileHash } from './file-ops.js';
 import { updateFileRecord } from './config.js';
 import { getPackageVersion } from '../utils/version.js';
 import { logger } from '../utils/logger.js';
+
+export function getAllModuleFiles(mod: ModuleDefinition): ModuleFile[] {
+  return [...mod.commands, ...mod.hooks, ...mod.docs, ...(mod.rules ?? []), ...(mod.agents ?? [])];
+}
 
 export interface InstallResult {
   installed: string[];
@@ -24,7 +28,7 @@ export function installModuleFiles(
   const templatesDir = getTemplatesDir();
   const version = getPackageVersion();
 
-  const allFiles = [...mod.commands, ...mod.hooks, ...mod.docs];
+  const allFiles = getAllModuleFiles(mod);
 
   for (const file of allFiles) {
     const srcPath = join(templatesDir, file.source);

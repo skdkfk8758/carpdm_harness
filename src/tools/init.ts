@@ -9,7 +9,7 @@ import { registerHooks } from '../core/hook-registrar.js';
 import { ensureDir, safeCopyFile } from '../core/file-ops.js';
 import { getGlobalCommandsDir, getTemplatesDir } from '../utils/paths.js';
 import { buildOntology } from '../core/ontology/index.js';
-import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
+import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
@@ -22,12 +22,16 @@ export function registerInitTool(server: McpServer): void {
       projectRoot: z.string().describe('프로젝트 루트 경로'),
       preset: z.string().optional().describe('프리셋 (full|standard|minimal|tdd|secure)'),
       modules: z.string().optional().describe('모듈 직접 지정 (쉼표 구분)'),
-      installGlobal: z.boolean().optional().describe('글로벌 커맨드 설치'),
+      installGlobal: z.boolean().optional().default(true).describe('글로벌 커맨드 설치 (기본값: true)'),
       skipHooks: z.boolean().optional().describe('훅 등록 건너뛰기'),
       dryRun: z.boolean().optional().describe('미리보기만'),
       enableOntology: z.boolean().optional().describe('온톨로지 활성화'),
+      ontologyLanguages: z.string().optional()
+        .describe('온톨로지 분석 대상 언어 (typescript,python 또는 프리셋: frontend|backend|fullstack)'),
+      ontologyAiApiKeyEnv: z.string().optional()
+        .describe('AI Domain 레이어용 API 키 환경변수명 (예: ANTHROPIC_API_KEY)'),
     },
-    async ({ projectRoot, preset, modules: modulesStr, installGlobal, skipHooks, dryRun, enableOntology }) => {
+    async ({ projectRoot, preset, modules: modulesStr, installGlobal, skipHooks, dryRun, enableOntology, ontologyLanguages, ontologyAiApiKeyEnv }) => {
       try {
         logger.clear();
         const res = new McpResponseBuilder();
@@ -91,6 +95,9 @@ export function registerInitTool(server: McpServer): void {
           res.info('훅 등록 중...');
           const hookResult = registerHooks(resolvedModules, pRoot, pDryRun);
           res.ok(`훅 ${hookResult.registered}/${hookResult.total}개 등록`);
+          for (const w of hookResult.warnings) {
+            res.warn(w);
+          }
           config.options.hooksRegistered = true;
         }
 
@@ -109,11 +116,73 @@ export function registerInitTool(server: McpServer): void {
 
         if (!pDryRun) {
           ensureDir(join(pRoot, '.agent'));
+          ensureDir(join(pRoot, '.harness', 'state'));
+
+          // .gitignore에 .harness/ 추가
+          const gitignorePath = join(pRoot, '.gitignore');
+          if (existsSync(gitignorePath)) {
+            const content = readFileSync(gitignorePath, 'utf-8');
+            if (!content.includes('.harness/')) {
+              writeFileSync(gitignorePath, content.trimEnd() + '\n.harness/\n');
+              res.info('.gitignore에 .harness/ 추가');
+            }
+          } else {
+            writeFileSync(gitignorePath, '.harness/\n');
+            res.info('.gitignore 생성 (.harness/)');
+          }
         }
 
-        const ontologyConfig = pEnableOntology
-          ? { ...DEFAULT_ONTOLOGY_CONFIG, enabled: true }
-          : { ...DEFAULT_ONTOLOGY_CONFIG, enabled: false };
+        let ontologyConfig;
+        if (pEnableOntology) {
+          const langInput = ontologyLanguages || 'typescript';
+          const languages = ONTOLOGY_LANGUAGE_PRESETS[langInput]
+            || langInput.split(',').map((l: string) => l.trim());
+
+          const availablePlugins = languages.filter((l: string) => ['typescript', 'javascript'].includes(l));
+          if (availablePlugins.length === 0) {
+            res.warn('선택한 언어에 대한 semantics 플러그인이 아직 없습니다. Structure 레이어만 생성됩니다.');
+          }
+
+          let aiConfig: import('../types/ontology.js').AIProviderConfig | null = null;
+          let domainEnabled = false;
+          if (ontologyAiApiKeyEnv) {
+            aiConfig = {
+              provider: 'anthropic',
+              apiKeyEnv: ontologyAiApiKeyEnv,
+              model: 'claude-sonnet-4-20250514',
+              maxTokensPerRequest: 4096,
+              rateLimitMs: 1000,
+            };
+            domainEnabled = true;
+            if (!process.env[ontologyAiApiKeyEnv]) {
+              res.warn(`환경변수 ${ontologyAiApiKeyEnv}가 설정되지 않았습니다. Domain 레이어는 API 키 설정 후 동작합니다.`);
+            }
+          } else {
+            // claude-code provider: API 키 없이 Claude Code가 직접 domain 분석
+            aiConfig = {
+              provider: 'claude-code',
+              apiKeyEnv: '',
+              model: '',
+              maxTokensPerRequest: 0,
+              rateLimitMs: 0,
+            };
+            domainEnabled = true;
+          }
+
+          ontologyConfig = {
+            ...DEFAULT_ONTOLOGY_CONFIG,
+            enabled: true,
+            layers: {
+              ...DEFAULT_ONTOLOGY_CONFIG.layers,
+              semantics: { ...DEFAULT_ONTOLOGY_CONFIG.layers.semantics, languages },
+              domain: { ...DEFAULT_ONTOLOGY_CONFIG.layers.domain, enabled: domainEnabled },
+            },
+            plugins: availablePlugins.length > 0 ? availablePlugins : [],
+            ai: aiConfig,
+          };
+        } else {
+          ontologyConfig = { ...DEFAULT_ONTOLOGY_CONFIG, enabled: false };
+        }
 
         config.ontology = ontologyConfig;
 
@@ -122,6 +191,31 @@ export function registerInitTool(server: McpServer): void {
           try {
             const report = await buildOntology(pRoot, ontologyConfig);
             res.ok(`온톨로지 생성 완료 (${report.totalDuration}ms)`);
+
+            if (report.domainContext) {
+              res.blank();
+              res.header('Domain 레이어 분석 요청');
+              res.line('아래 context를 분석하여 harness_ontology_domain_write 도구로 domain 레이어를 생성하세요.');
+              res.blank();
+              res.info('디렉토리 구조:');
+              res.line(report.domainContext.directoryTree);
+              res.blank();
+              res.info('package.json:');
+              res.line(report.domainContext.packageJson);
+              if (report.domainContext.symbolSamples) {
+                res.blank();
+                res.info('심볼 샘플:');
+                res.line(report.domainContext.symbolSamples);
+              }
+              if (report.domainContext.entryPoints.length > 0) {
+                res.blank();
+                res.info(`진입점: ${report.domainContext.entryPoints.join(', ')}`);
+              }
+              if (report.domainContext.externalDeps.length > 0) {
+                res.blank();
+                res.info(`외부 의존성: ${report.domainContext.externalDeps.join(', ')}`);
+              }
+            }
           } catch (err) {
             res.warn(`온톨로지 생성 실패 (무시하고 계속): ${String(err)}`);
           }
@@ -244,7 +338,7 @@ function installGlobalCommands(): void {
 
   ensureDir(globalDir);
 
-  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'workflow-guide.md'];
+  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'workflow-guide.md', 'dashboard.md'];
   for (const file of globalFiles) {
     const src = join(globalTemplates, file);
     const dest = join(globalDir, file);

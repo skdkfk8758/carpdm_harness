@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import type { HookRegistration } from '../types/module.js';
 import { logger } from '../utils/logger.js';
 
@@ -32,6 +33,9 @@ const HOOK_MAP: Record<string, HookRegistration[]> = {
     { event: 'PreToolUse', command: 'bash .claude/hooks/db-guard.sh', pattern: 'mcp__*' },
     { event: 'PostToolUse', command: 'bash .claude/hooks/security-trigger.sh', pattern: 'Edit|Write' },
   ],
+  ontology: [
+    { event: 'PostToolUse', command: 'bash .claude/hooks/ontology-update.sh' },
+  ],
 };
 
 export function getModuleHooks(moduleName: string): HookRegistration[] {
@@ -42,7 +46,7 @@ export function registerHooks(
   modules: string[],
   projectRoot: string,
   dryRun = false,
-): { registered: number; total: number } {
+): { registered: number; total: number; warnings: string[] } {
   const settingsPath = join(projectRoot, '.claude', 'settings.local.json');
   let settings: SettingsLocalJson = {};
 
@@ -57,6 +61,12 @@ export function registerHooks(
   if (!settings.hooks) {
     settings.hooks = {};
   }
+
+  const warnings: string[] = [];
+  const omcConfigPath = join(homedir(), '.claude', '.omc-config.json');
+  const omcDetected = existsSync(omcConfigPath);
+
+  const OMC_EVENTS = new Set(['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop']);
 
   let registered = 0;
   let total = 0;
@@ -86,6 +96,12 @@ export function registerHooks(
           logger.fileAction('create', `훅 등록: ${eventKey} → ${hook.command}`);
         }
       }
+
+      if (omcDetected && OMC_EVENTS.has(hook.event)) {
+        warnings.push(
+          `OMC 감지: ${eventKey} 이벤트에 OMC 훅과 harness 훅이 공존합니다. harness 훅은 OMC 모드 활성 시 자동 조율됩니다.`
+        );
+      }
     }
   }
 
@@ -94,5 +110,5 @@ export function registerHooks(
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
   }
 
-  return { registered, total };
+  return { registered, total, warnings };
 }

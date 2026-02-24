@@ -6,6 +6,7 @@ import type { HarnessConfig } from '../types/config.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { computeFileHash } from './file-ops.js';
 import { getAllModules } from './module-registry.js';
+import { getAllModuleFiles } from './template-engine.js';
 
 export function analyzeChanges(
   config: HarnessConfig,
@@ -20,8 +21,8 @@ export function analyzeChanges(
     const mod = modules[fileRecord.module];
     if (!mod) continue;
 
-    // 모든 파일 (commands + hooks + docs) 중 해당 destination 찾기
-    const allFiles = [...mod.commands, ...mod.hooks, ...mod.docs];
+    // 모든 파일 (commands + hooks + docs + rules + agents) 중 해당 destination 찾기
+    const allFiles = getAllModuleFiles(mod);
     const modFile = allFiles.find(f => f.destination === relativePath);
     if (!modFile) continue;
 

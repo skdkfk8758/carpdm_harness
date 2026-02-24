@@ -5,6 +5,8 @@ export interface ModuleDefinition {
   commands: ModuleFile[];
   hooks: ModuleFile[];
   docs: ModuleFile[];
+  rules?: ModuleFile[];
+  agents?: ModuleFile[];
 }
 
 export interface ModuleFile {
