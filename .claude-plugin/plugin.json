@@ -1,0 +1,6 @@
+{
+  "name": "carpdm-harness",
+  "version": "2.0.0",
+  "description": "AI 협업 워크플로우 MCP 플러그인 — Plan-First + DDD + SPARC",
+  "mcpServers": "../.mcp.json"
+}
