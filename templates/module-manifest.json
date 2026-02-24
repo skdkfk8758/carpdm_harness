@@ -59,11 +59,12 @@
     },
     "ship": {
       "name": "ship",
-      "description": "논리 커밋 + PR 생성 자동화",
+      "description": "논리 커밋 + PR 생성 + 릴리스 자동화",
       "dependencies": ["core"],
       "commands": [
         { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
-        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" }
+        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" },
+        { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" }
       ],
       "hooks": [],
       "docs": []
