@@ -284,8 +284,38 @@ if [ "$TOTAL_SIGNIFICANT" -gt 0 ]; then
         OUTPUT="${OUTPUT}
 
 [VERIFY] 코드/훅 변경이 감지되었으나 실행 기반 검증이 없습니다.
-  /verify를 실행하여 변경사항을 실제 실행으로 검증하세요.
+  /verify-loop을 실행하여 자동 검증하세요 (실패 시 최대 3회 자동 수정 재시도).
+  또는 /verify로 1회 검증만 실행할 수 있습니다.
   (패턴 매칭 ≠ 검증. 실행 결과가 증거입니다)"
+    fi
+
+    # verify-loop-result도 확인
+    VERIFY_LOOP_RESULT=".omc/state/verify-loop-result"
+    if [ -f "$VERIFY_LOOP_RESULT" ]; then
+        LOOP_STATUS=$(grep -oE 'Final Status: (PASS|FAIL)' "$VERIFY_LOOP_RESULT" 2>/dev/null | head -1)
+        LOOP_ATTEMPTS=$(grep -oE 'Total Attempts: [0-9]+/3' "$VERIFY_LOOP_RESULT" 2>/dev/null | head -1)
+        if echo "$LOOP_STATUS" | grep -q "FAIL"; then
+            OUTPUT="${OUTPUT}
+
+[VERIFY-LOOP] 자동 검증 실패: ${LOOP_ATTEMPTS:-알 수 없음}. 수동으로 문제를 확인하세요."
+        elif echo "$LOOP_STATUS" | grep -q "PASS"; then
+            OUTPUT="${OUTPUT}
+
+[VERIFY-LOOP] 자동 검증 통과 ✓ (${LOOP_ATTEMPTS:-1/3})"
+        fi
+    fi
+fi
+
+# === 보안 변경 감지 시 security-audit 권장 ===
+SECURITY_MARKER_DIR="/tmp/security-suggest"
+if [ -d "$SECURITY_MARKER_DIR" ]; then
+    SECURITY_FILE_COUNT=$(ls -1 "$SECURITY_MARKER_DIR" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "${SECURITY_FILE_COUNT:-0}" -ge 3 ]; then
+        OUTPUT="${OUTPUT}
+
+[SECURITY] 보안 관련 파일 ${SECURITY_FILE_COUNT}개 수정 감지.
+  /security-audit를 실행하여 보안 취약점을 점검하세요.
+  커밋 전 보안 감사를 권장합니다."
     fi
 fi
 
