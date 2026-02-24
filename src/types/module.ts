@@ -7,6 +7,7 @@ export interface ModuleDefinition {
   docs: ModuleFile[];
   rules?: ModuleFile[];
   agents?: ModuleFile[];
+  agentFiles?: ModuleFile[];
 }
 
 export interface ModuleFile {

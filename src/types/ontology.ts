@@ -292,3 +292,21 @@ export const DEFAULT_ONTOLOGY_CONFIG: OntologyConfig = {
   plugins: [],
   ai: null,
 };
+
+// === .agent/ 인덱스 ===
+
+export type AgentFileStatus = 'exists' | 'missing' | 'auto-generated';
+
+export interface AgentFileInfo {
+  path: string;
+  status: AgentFileStatus;
+  description: string;
+  managed: 'auto' | 'manual' | 'semi-auto';
+}
+
+export interface OntologyIndexData {
+  generatedAt: string;
+  harnessVersion: string;
+  agentFiles: AgentFileInfo[];
+  ontologyFiles: AgentFileInfo[];
+}

@@ -9,7 +9,7 @@ import { getPackageVersion } from '../utils/version.js';
 import { logger } from '../utils/logger.js';
 
 export function getAllModuleFiles(mod: ModuleDefinition): ModuleFile[] {
-  return [...mod.commands, ...mod.hooks, ...mod.docs, ...(mod.rules ?? []), ...(mod.agents ?? [])];
+  return [...mod.commands, ...mod.hooks, ...mod.docs, ...(mod.rules ?? []), ...(mod.agents ?? []), ...(mod.agentFiles ?? [])];
 }
 
 export interface InstallResult {
