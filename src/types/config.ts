@@ -1,4 +1,5 @@
 import type { FileHash } from './common.js';
+import type { OntologyConfig } from './ontology.js';
 
 export interface HarnessConfig {
   version: string;
@@ -9,6 +10,7 @@ export interface HarnessConfig {
   globalCommandsInstalled: boolean;
   options: ConfigOptions;
   files: Record<string, FileHash>;
+  ontology?: OntologyConfig;
 }
 
 export interface ConfigOptions {
