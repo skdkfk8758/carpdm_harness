@@ -68,6 +68,12 @@ claude plugin install claude-octopus@nyldn-plugins
 ```
 설치 후: `/octo:setup` 실행
 
+**carpdm-harness (워크플로우 엔진):**
+```bash
+claude mcp add -s user carpdm-harness -- node /Users/carpdm/Workspace/Github/carpdm_harness/dist/server.js
+```
+이미 설치된 경우 스킵. (참고용 — 플러그인을 통해 자동 설정된 경우 불필요)
+
 ### Phase 2: MCP 서버 + 교차 검증 CLI 설치
 
 #### 2-1. 공통 MCP (항상 설치)
@@ -361,32 +367,28 @@ npx skilladd nicepkg/error-handling-patterns
 `.gitignore`에 `.agent/` 추가 (에이전트 작업 문서는 로컬 전용).
 docs/templates/는 원본 템플릿으로 git-tracked 유지.
 
-#### 5-4. .claude/commands/ (커스텀 스킬)
+#### 5-4. carpdm-harness 워크플로우 설치
 
-**프로젝트 레벨** (`.claude/commands/`에 생성):
-- `plan-gate.md`: Plan-First 워크플로우
-- `read-domain-context.md`: 도메인 컨텍스트 로딩
-- `quality-guard.md`: 품질 게이트 체크리스트
-- `memory-manager.md`: 외부 기억장치 관리
-- `pattern-cloner.md`: 패턴 복제 가이드
-- `post-task-check.md`: Post-task 검증
-- `logical-commit.md`: 논리 단위 커밋
-- `ship-pr.md`: 논리 커밋 + PR 원스톱 실행
-- `update-all.md`: 환경 전체 업데이트
-- `verify.md`: 실행 기반 검증
+커맨드, 훅, 문서 템플릿을 한 번에 설치한다:
 
-**글로벌 설치** (`~/.claude/commands/`에 복사 — 모든 프로젝트에서 사용):
-- `ship-pr.md`, `update-all.md` → 프로젝트 무관 범용 스킬이므로 글로벌에도 설치
+```
+harness_init(
+  projectRoot: PROJECT_ROOT,
+  preset: "full",
+  installGlobal: true,
+  enableOntology: false
+)
+```
 
-#### 5-5. .claude/hooks/ (자동 훅 + 모드 감지 + Worktree-aware)
-- 모든 훅은 `CLAUDE_CWD` → `git rev-parse --show-toplevel` → `pwd` 순서로 루트 감지 (worktree-safe)
-- `pre-task.sh`: UserPromptSubmit → **Task Mode 자동 감지** (Speed/Safety/Standard) + TDD 상태 표시 + task-mode 기록 + SPARC 리마인더
-- `plan-guard.sh`: PreToolUse(Edit|Write) → plan 없으면 경고
-- `tdd-guard.sh`: PreToolUse(Edit|Write) → **TDD 활성 시 테스트 파일 없으면 Block** (Speed Mode: Warn)
-- `code-change.sh`: PostToolUse(Edit|Write) → todo 갱신 리마인더 + DDD 확인 + **TDD 수정 순서 추적**
-- `post-task.sh`: Stop → 미완료 확인 + **TDD 사이클 완료 확인** + **교차 검증 자동 트리거** (Codex MCP → fallback: 서브에이전트) + Self-Evolution 트리거
+이 도구가 아래 항목을 자동 생성한다:
+- `.claude/commands/` — 프로젝트 커맨드 (plan-gate, quality-guard, memory-manager 등)
+- `.claude/hooks/` — 자동 훅 (pre-task, plan-guard, tdd-guard, code-change, post-task)
+- `docs/templates/` — External Memory 템플릿 (plan, todo, context, lessons)
+- `~/.claude/commands/` — 글로벌 커맨드 (project-setup, project-init, harness-init, harness-update 등)
 
-#### 5-6. .claude/settings.local.json (훅 등록)
+**주의:** CLAUDE.md, docs/conventions.md, .agent/, .omc/project-memory.json, .claude/settings.local.json, .gitignore는 프로젝트별 커스터마이즈가 필요하므로 harness_init이 아닌 별도 단계에서 생성한다 (5-1 ~ 5-3, 5-5 ~ 5-9 유지).
+
+#### 5-5. .claude/settings.local.json (훅 등록)
 hooks 섹션에 5개 훅 등록 (`.gitignore`에 추가 — 로컬 전용).
 TDD 활성 시 PreToolUse에 `tdd-guard.sh` 추가:
 ```json
@@ -405,7 +407,7 @@ TDD 활성 시 PreToolUse에 `tdd-guard.sh` 추가:
 }
 ```
 
-#### 5-7. .omc/hud-config.json (Statusline HUD 설정)
+#### 5-6. .omc/hud-config.json (Statusline HUD 설정)
 프로젝트별 HUD 표시 항목을 설정한다:
 ```json
 {
@@ -426,7 +428,7 @@ TDD 활성 시 PreToolUse에 `tdd-guard.sh` 추가:
 - `showCostPerHour`: 장시간 작업 시 활성화 권장
 - `staleTaskThresholdMinutes`: 이 시간 초과 시 작업을 stale로 표시
 
-#### 5-8. .omc/project-memory.json (프로젝트 메모리)
+#### 5-7. .omc/project-memory.json (프로젝트 메모리)
 인터뷰 결과 기반으로 techStack, conventions, build, userDirectives 설정.
 인터뷰 3-5의 TDD 강제 수준 답변을 반영하여 tdd 설정 추가:
 ```json
@@ -444,12 +446,12 @@ TDD 활성 시 PreToolUse에 `tdd-guard.sh` 추가:
 - `speedModeWarn`: Block 모드에서 Speed Mode일 때 Warn으로 완화 (기본 `true`)
 - `framework`: `"auto"` (자동 감지) 또는 인터뷰에서 지정한 프레임워크
 
-#### 5-9. .gitignore 업데이트
+#### 5-8. .gitignore 업데이트
 - `.claude/settings.local.json` 추가 (머신별 권한 설정이므로 공유 불가)
 - `.agent/` 추가 (에이전트 작업 문서는 로컬 전용 — plan, todo, context, lessons)
 - `.claude/commands/`와 `.claude/hooks/`는 git-tracked (worktree에서 사용 가능하도록)
 
-#### 5-10. Git Tracking 설정
+#### 5-9. Git Tracking 설정
 ```bash
 # commands와 hooks는 git-tracked → 모든 worktree에서 사용 가능
 git add .claude/commands/ .claude/hooks/ .gitignore

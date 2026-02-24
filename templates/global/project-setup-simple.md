@@ -118,51 +118,17 @@ mkdir -p docs/templates
 - [x] 완료된 항목
 ```
 
-#### 3-4. .claude/hooks/plan-guard.sh (최소 버전)
+#### 3-4. carpdm-harness 최소 워크플로우 설치
 
-```bash
-mkdir -p .claude/hooks
+```
+harness_init(
+  projectRoot: PROJECT_ROOT,
+  preset: "minimal",
+  installGlobal: true
+)
 ```
 
-```bash
-#!/bin/bash
-# Hook: PreToolUse (Edit|Write) - plan.md 존재 확인
-INPUT=$(cat)
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
-
-TOOL_NAME=$(echo "$INPUT" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print(data.get('tool_name', ''))
-except:
-    print('')
-" 2>/dev/null)
-
-case "$TOOL_NAME" in
-    Edit|Write)
-        FILE_PATH=$(echo "$INPUT" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    inp = data.get('tool_input', {})
-    print(inp.get('file_path', inp.get('path', '')))
-except:
-    print('')
-" 2>/dev/null)
-
-        case "$FILE_PATH" in
-            *.py|*.ts|*.tsx|*.js|*.jsx)
-                if [ ! -f ".agent/plan.md" ] && [ ! -f "plan.md" ]; then
-                    echo "[알림] plan.md가 없습니다. 코드 수정 전에 계획을 먼저 작성하세요."
-                    echo "  docs/templates/plan-template.md를 참고하여 plan.md를 만드세요."
-                fi
-                ;;
-        esac
-        ;;
-esac
-```
+이 도구가 기본 커맨드와 훅을 자동 생성한다.
 
 #### 3-5. .claude/settings.local.json
 
