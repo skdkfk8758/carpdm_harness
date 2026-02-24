@@ -32,6 +32,106 @@ harness_info(projectRoot: "/path/to/project")
 harness_doctor(projectRoot: "/path/to/project")
 ```
 
+## 워크플로우
+
+### 전체 라이프사이클
+
+```mermaid
+flowchart TD
+    Start([새 프로젝트]) --> Migrate{기존 agent_harness<br/>파일 있음?}
+    Migrate -->|Yes| MIG[harness_migrate<br/>파일 감지 + 모듈 매핑]
+    Migrate -->|No| INIT
+
+    MIG --> INIT[harness_init<br/>프리셋 선택 + 모듈 설치]
+    INIT --> FILES[/.claude/commands/ + hooks/<br/>+ docs/templates/ 생성/]
+
+    FILES --> WORK([일상 개발 작업])
+
+    WORK --> INFO[harness_info<br/>설치 상태 확인]
+    WORK --> DOCTOR[harness_doctor<br/>건강 진단]
+    WORK --> UPDATE[harness_update<br/>템플릿 업데이트]
+    WORK --> ONTO[온톨로지 도구]
+
+    UPDATE --> DIFF{파일 상태 판별}
+    DIFF -->|UPSTREAM_CHANGED| AUTO[자동 업데이트]
+    DIFF -->|USER_MODIFIED| SKIP[건너뛰기]
+    DIFF -->|CONFLICT| RESOLVE[백업 후 교체]
+
+    AUTO --> WORK
+    SKIP --> WORK
+    RESOLVE --> WORK
+
+    ONTO --> GEN[harness_ontology_generate<br/>전체 재생성]
+    ONTO --> REF[harness_ontology_refresh<br/>점진적 갱신]
+    ONTO --> STAT[harness_ontology_status<br/>상태 확인]
+    GEN --> WORK
+    REF --> WORK
+
+    style Start fill:#4CAF50,color:#fff
+    style WORK fill:#2196F3,color:#fff
+    style INIT fill:#FF9800,color:#fff
+    style MIG fill:#9C27B0,color:#fff
+    style ONTO fill:#00BCD4,color:#fff
+```
+
+### 모듈 의존성 구조
+
+```mermaid
+flowchart BT
+    CORE[core<br/>Plan-First + SPARC + Memory]
+
+    TDD[tdd<br/>Red-Green-Refactor] --> CORE
+    QUALITY[quality<br/>품질 게이트 + 검증] --> CORE
+    SHIP[ship<br/>논리 커밋 + PR] --> CORE
+    PATTERNS[patterns<br/>패턴 클로닝] --> CORE
+    ONTOLOGY[ontology<br/>3계층 온톨로지] --> CORE
+    MAINT[maintenance<br/>환경 업데이트]
+
+    style CORE fill:#FF9800,color:#fff,stroke-width:2px
+    style TDD fill:#4CAF50,color:#fff
+    style QUALITY fill:#2196F3,color:#fff
+    style SHIP fill:#9C27B0,color:#fff
+    style PATTERNS fill:#607D8B,color:#fff
+    style ONTOLOGY fill:#00BCD4,color:#fff
+    style MAINT fill:#795548,color:#fff
+```
+
+### init → 일상 워크플로우
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자 (Claude 대화)
+    participant M as MCP 서버
+    participant F as 프로젝트 파일
+
+    rect rgb(255, 243, 224)
+    Note over U,F: 초기 설치
+    U->>M: harness_init(preset: "standard")
+    M->>F: .claude/commands/*.md 생성
+    M->>F: .claude/hooks/*.sh 생성
+    M->>F: settings.local.json 훅 등록
+    M->>F: carpdm-harness.config.json 저장
+    M-->>U: 설치 완료 (16개 파일, 4개 훅)
+    end
+
+    rect rgb(232, 245, 233)
+    Note over U,F: 일상 작업
+    U->>M: harness_doctor()
+    M->>F: 파일 존재 + 해시 검증
+    M-->>U: 진단 결과 (이슈 0, 경고 0)
+    end
+
+    rect rgb(227, 242, 253)
+    Note over U,F: 업데이트
+    U->>M: harness_update(dryRun: true)
+    M->>F: SHA-256 해시 비교
+    M-->>U: 변경사항 diff 미리보기
+    U->>M: harness_update(acceptAll: true)
+    M->>F: 파일 교체 + 해시 갱신
+    M-->>U: 업데이트 완료
+    end
+```
+
 ## MCP 도구
 
 | 도구 | 설명 |
