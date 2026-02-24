@@ -7,7 +7,7 @@ import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
 import { ensureDir, safeCopyFile, safeWriteFile } from '../core/file-ops.js';
-import { getGlobalCommandsDir, getTemplatesDir } from '../utils/paths.js';
+import { getGlobalCommandsDir, getTemplatesDir, getPackageRoot } from '../utils/paths.js';
 import { buildOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
@@ -120,6 +120,9 @@ export function registerInitTool(server: McpServer): void {
         if (!pDryRun) {
           ensureDir(join(pRoot, '.agent'));
           ensureDir(join(pRoot, '.harness', 'state'));
+
+          // 플러그인 루트 경로 저장 (SessionStart 업데이트 체크용)
+          safeWriteFile(join(pRoot, '.harness', 'plugin-root'), getPackageRoot());
 
           // .gitignore에 .harness/ 추가
           const gitignorePath = join(pRoot, '.gitignore');
@@ -365,7 +368,7 @@ function installGlobalCommands(): void {
 
   ensureDir(globalDir);
 
-  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'workflow-guide.md', 'dashboard.md'];
+  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'harness-sync.md', 'workflow-guide.md', 'dashboard.md'];
   for (const file of globalFiles) {
     const src = join(globalTemplates, file);
     const dest = join(globalDir, file);

@@ -17,6 +17,7 @@ interface HookConfig {
 
 const HOOK_MAP: Record<string, HookRegistration[]> = {
   core: [
+    { event: 'SessionStart', command: 'bash .claude/hooks/update-check.sh' },
     { event: 'UserPromptSubmit', command: 'bash .claude/hooks/pre-task.sh' },
     { event: 'PreToolUse', command: 'bash .claude/hooks/plan-guard.sh', pattern: 'Edit|Write' },
     { event: 'Stop', command: 'bash .claude/hooks/post-task.sh' },
