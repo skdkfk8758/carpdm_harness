@@ -169,6 +169,12 @@ claude mcp add -s project memory -- npx -y @modelcontextprotocol/server-memory -
 ```
 이미 설치된 경우 스킵.
 
+**carpdm-harness (워크플로우 엔진):**
+```bash
+claude mcp add -s user carpdm-harness -- node /Users/carpdm/Workspace/Github/carpdm_harness/dist/server.js
+```
+이미 설치된 경우 스킵. (참고용 — 플러그인을 통해 자동 설정된 경우 불필요)
+
 **교차 검증 CLI 확인:**
 ```bash
 codex --version 2>/dev/null || echo "Codex CLI 미설치 — 교차 검증 시 서브에이전트 fallback"
@@ -203,12 +209,26 @@ gemini --version 2>/dev/null || echo "Gemini CLI 미설치 (선택)"
 - 기존 에러 핸들링 패턴 정리
 - 기존 테스트 패턴 정리
 
-#### 5-3~5-9: `/project-setup` Phase 5와 동일
+#### 5-3. carpdm-harness 워크플로우 설치
+
+커맨드, 훅, 문서 템플릿을 한 번에 설치한다:
+
+```
+harness_init(
+  projectRoot: PROJECT_ROOT,
+  preset: "full",
+  installGlobal: true,
+  enableOntology: false
+)
+```
+
+이 도구가 커맨드, 훅, 문서 템플릿을 자동 생성한다.
+이미 설치되어 있으면 `harness_update`로 자동 전환된다.
+
+#### 5-4~5-9: `/project-setup` Phase 5와 동일
 - .agent/ (External Memory — plan.md, todo.md, context.md, lessons.md를 docs/templates/ 기반으로 생성)
-- docs/templates/ (External Memory 템플릿 원본)
-- .claude/commands/ (커스텀 커맨드)
-- .claude/hooks/ (자동 훅)
 - .claude/settings.local.json (훅 등록)
+- .omc/hud-config.json (Statusline HUD 설정)
 - .omc/project-memory.json (자동 분석 결과 저장)
 - .gitignore 업데이트 (.agent/ 포함)
 - Git Tracking 설정

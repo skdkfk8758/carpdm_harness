@@ -2,8 +2,6 @@
 
 설치된 플러그인, MCP 서버, CLI 도구, 스킬을 한 번에 최신 버전으로 업데이트한다.
 
-> **Shell 대안**: Claude Code 밖에서 업데이트하려면 `bash install.sh --update` 사용.
-> 프로젝트 템플릿까지 배포하려면 `bash install.sh --update --project /path/to/project`.
 
 ## Argument: $ARGUMENTS
 업데이트 옵션 (예: "전체", "cli만", "mcp만", "스킬만", "플러그인만", "dry-run")
@@ -72,17 +70,23 @@ echo "[교차 검증 CLI]"
 command -v codex &>/dev/null && echo "  Codex: $(codex --version 2>/dev/null || echo 'installed')" || echo "  Codex: 미설치"
 command -v gemini &>/dev/null && echo "  Gemini: $(gemini --version 2>/dev/null || echo 'installed')" || echo "  Gemini: 미설치"
 
-# 8. agent_harness 레포
+# 8. carpdm-harness 플러그인
 echo ""
-echo "[agent_harness]"
-for dir in "$HOME/Workspace/Github/agent_harness" "$HOME/agent_harness"; do
-    if [ -d "$dir" ]; then
-        echo "  경로: $dir"
-        echo "  브랜치: $(git -C "$dir" branch --show-current 2>/dev/null)"
-        echo "  최근 커밋: $(git -C "$dir" log -1 --format='%h %s (%cr)' 2>/dev/null)"
-        break
-    fi
-done
+echo "[carpdm-harness]"
+# MCP 도구 등록 여부로 확인
+if [ -f ".mcp.json" ]; then
+    python3 -c "
+import json
+with open('.mcp.json') as f:
+    data = json.load(f)
+if 'carpdm-harness' in data.get('mcpServers', {}):
+    print('  상태: 등록됨')
+else:
+    print('  상태: 미등록')
+" 2>/dev/null
+else
+    echo "  상태: .mcp.json 없음"
+fi
 ```
 
 스캔 결과를 사용자에게 보여준다.
@@ -98,7 +102,7 @@ done
 | `mcp만` | MCP 서버 (npx 패키지) |
 | `스킬만` | 커스텀 커맨드 + 훅 |
 | `플러그인만` | oh-my-claudecode |
-| `harness만` | agent_harness 레포 pull + 템플릿 배포 (`bash install.sh --update --project .` 동등) |
+| `harness만` | harness_update MCP 도구로 설치된 템플릿 업데이트 |
 | `dry-run` | 업데이트 예정 항목만 표시, 실행 안 함 |
 
 ### Phase 2: 플러그인 업데이트
@@ -169,63 +173,38 @@ else
 fi
 ```
 
-### Phase 5: agent_harness 레포 업데이트 + 템플릿 배포
+### Phase 5: carpdm-harness 템플릿 업데이트
 
-agent_harness 레포 자체를 최신화하고, 최신 템플릿을 현재 프로젝트에 배포한다.
+설치된 carpdm-harness 템플릿을 MCP 도구로 최신 버전으로 업데이트한다.
 
-> **참고**: `bash install.sh --update --project $(pwd)` 명령으로 Phase 5 전체를 한 번에 실행할 수 있다.
-> 이 경우 git pull, 글로벌 커맨드, 프로젝트 커맨드/훅/문서가 자동 배포된다.
+#### 5-1. 프로젝트 루트 감지
 
 ```bash
-echo "=== Phase 5: agent_harness + 커맨드 + 훅 업데이트 ==="
-
-# agent_harness 레포 위치 감지
-HARNESS_DIR=""
-for dir in "$HOME/Workspace/Github/agent_harness" "$HOME/agent_harness"; do
-    if [ -d "$dir" ]; then
-        HARNESS_DIR="$dir"
-        break
-    fi
-done
+PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 ```
 
-**agent_harness 레포가 감지된 경우:**
+#### 5-2. harness_update MCP 도구 호출
 
-**5-1. agent_harness 레포 자체 최신화:**
-```bash
-echo "[agent_harness] 레포 업데이트 중..."
-cd "$HARNESS_DIR"
-BEFORE_SHA=$(git rev-parse HEAD)
-git fetch origin
-git pull --rebase origin $(git branch --show-current) 2>/dev/null || git pull origin $(git branch --show-current)
-AFTER_SHA=$(git rev-parse HEAD)
-if [ "$BEFORE_SHA" != "$AFTER_SHA" ]; then
-    echo "[OK] agent_harness 업데이트됨: $(git log --oneline ${BEFORE_SHA}..${AFTER_SHA} | wc -l | tr -d ' ')개 커밋"
-    git log --oneline ${BEFORE_SHA}..${AFTER_SHA}
-else
-    echo "[OK] agent_harness 이미 최신"
-fi
-cd -
+carpdm-harness가 설치된 프로젝트인 경우:
+
+```
+harness_update(
+  projectRoot: PROJECT_ROOT,
+  acceptAll: true,
+  refreshOntology: true
+)
 ```
 
-**5-2. 글로벌 커맨드 갱신:**
-   - `cp "$HARNESS_DIR/project-setup.md" "$HOME/.claude/commands/"`
-   - `cp "$HARNESS_DIR/project-setup-simple.md" "$HOME/.claude/commands/"`
-   - `cp "$HARNESS_DIR/project-init.md" "$HOME/.claude/commands/"`
+carpdm-harness가 설치되어 있지 않은 경우:
+- `[SKIP] carpdm-harness 미설치 — /harness-init으로 먼저 설치하세요`
 
-**5-3. 프로젝트 커맨드 갱신 (현재 프로젝트):**
-   - `cp "$HARNESS_DIR/templates/.claude/commands/"*.md .claude/commands/`
+#### 5-3. 결과 확인
 
-**5-4. 훅 갱신:**
-   - `cp "$HARNESS_DIR/templates/.claude/hooks/"*.sh .claude/hooks/`
+- 업데이트된 파일 수, 건너뛴 파일 수, 충돌 수를 보고
+- 충돌이 있는 경우 사용자에게 수동 확인을 안내
+- 사용자 수정 파일(USER_MODIFIED)은 자동으로 보호됨
 
-**5-5. 문서 템플릿 갱신:**
-   - `cp "$HARNESS_DIR/templates/docs/templates/"*.md docs/templates/`
-
-**agent_harness 레포가 없는 경우:**
-- 사용자에게 경로를 질문하거나, 수동 업데이트 가이드 제공
-
-**주의:** CLAUDE.md는 프로젝트별 커스터마이즈가 있으므로 **절대 덮어쓰지 않는다.**
+**주의:** CLAUDE.md, docs/conventions.md 등 프로젝트별 커스터마이즈 파일은 harness_update가 자동으로 보호한다 (USER_MODIFIED 상태로 건너뜀).
 
 ### Phase 6: 업데이트 결과 보고
 
@@ -236,17 +215,15 @@ cd -
 
 | 항목 | 이전 | 이후 | 상태 |
 |------|------|------|------|
-| agent_harness | abc1234 | def5678 | ✓ N개 커밋 업데이트 |
+| carpdm-harness | - | - | ✓ N개 파일 업데이트 |
 | Claude Code | 1.x.x | 1.y.y | ✓ 업데이트됨 |
 | oh-my-claudecode | 3.x.x | 4.x.x | ✓ 업데이트됨 |
 | Codex CLI | 1.x.x | 1.y.y | ✓ 업데이트됨 |
 | Gemini CLI | - | - | ─ 미설치 |
 | MCP 서버 | (캐시 갱신) | - | ✓ 다음 실행 시 적용 |
-| 커맨드 (7개) | 갱신됨 | - | ✓ 복사 완료 |
-| 훅 (4개) | 갱신됨 | - | ✓ 복사 완료 |
+| 커맨드/훅 | harness_update로 갱신 | - | ✓ 업데이트 완료 |
 
-[주의] CLAUDE.md는 자동 업데이트하지 않았습니다.
-새 섹션이 있는지 확인하려면: diff <(grep '^## ' CLAUDE.md) <(grep '^## ' /path/to/agent_harness/templates/CLAUDE-sections.md)
+[주의] CLAUDE.md는 자동 업데이트하지 않았습니다 (USER_MODIFIED 상태로 보호됨).
 ```
 
 ## Rules
