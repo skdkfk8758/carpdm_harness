@@ -5,6 +5,7 @@ import type {
   DomainLayer,
   DirectoryNode,
   OntologyMetadata,
+  OntologyIndexData,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -376,4 +377,58 @@ export function renderOntologyMarkdown(data: OntologyData): {
     : `# ONTOLOGY-DOMAIN\n\n_(Layer 비활성화 또는 빌드 실패)_\n`;
 
   return { structure, semantics, domain };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ONTOLOGY-INDEX.md 렌더링
+// ────────────────────────────────────────────────────────────────────────────
+
+/** ONTOLOGY-INDEX.md 렌더링 — .agent/ 전체 지식 인덱스 */
+export function renderIndexMarkdown(data: OntologyIndexData): string {
+  const lines: string[] = [];
+
+  lines.push('# ONTOLOGY-INDEX');
+  lines.push('');
+  lines.push(`> Generated: ${data.generatedAt} | carpdm-harness v${data.harnessVersion}`);
+  lines.push('');
+  lines.push('`.agent/` 디렉토리의 전체 지식 인덱스입니다.');
+  lines.push('');
+
+  // Agent Files 섹션
+  lines.push('## Agent Files (수동 편집)');
+  lines.push('');
+  lines.push('| 파일 | 상태 | 관리 | 설명 |');
+  lines.push('|------|------|------|------|');
+  for (const file of data.agentFiles) {
+    const statusIcon = file.status === 'exists' ? '✅' : file.status === 'missing' ? '❌' : '🔄';
+    lines.push(`| \`${file.path}\` | ${statusIcon} ${file.status} | ${file.managed} | ${file.description} |`);
+  }
+  lines.push('');
+
+  // Ontology Files 섹션
+  lines.push('## Ontology Files (자동 생성)');
+  lines.push('');
+  lines.push('| 파일 | 상태 | 관리 | 설명 |');
+  lines.push('|------|------|------|------|');
+  for (const file of data.ontologyFiles) {
+    const statusIcon = file.status === 'exists' ? '✅' : file.status === 'missing' ? '❌' : '🔄';
+    lines.push(`| \`${file.path}\` | ${statusIcon} ${file.status} | ${file.managed} | ${file.description} |`);
+  }
+  lines.push('');
+
+  // Quick Reference
+  lines.push('## Quick Reference');
+  lines.push('');
+  lines.push('| 용도 | 파일 |');
+  lines.push('|------|------|');
+  lines.push('| 작업 계획 수립 | `.agent/plan.md` |');
+  lines.push('| TODO 추적 | `.agent/todo.md` |');
+  lines.push('| 결정/맥락 기록 | `.agent/context.md` |');
+  lines.push('| 팀 학습 내역 | `.agent/memory.md` |');
+  lines.push('| 디렉토리 구조 | `.agent/ontology/ONTOLOGY-STRUCTURE.md` |');
+  lines.push('| 코드 심볼 인덱스 | `.agent/ontology/ONTOLOGY-SEMANTICS.md` |');
+  lines.push('| 도메인 지식 | `.agent/ontology/ONTOLOGY-DOMAIN.md` |');
+  lines.push('');
+
+  return lines.join('\n');
 }

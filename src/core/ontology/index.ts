@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { logger } from '../../utils/logger.js';
 import { safeWriteFile } from '../file-ops.js';
 import type {
@@ -10,12 +10,15 @@ import type {
   OntologyMetadata,
   LayerStatus,
   DomainBuildContext,
+  OntologyIndexData,
+  AgentFileInfo,
+  AgentFileStatus,
 } from '../../types/ontology.js';
 import { PluginRegistry } from './plugin-registry.js';
 import { buildStructureLayer } from './structure-builder.js';
 import { buildSemanticsLayer } from './semantics-builder.js';
 import { buildDomainLayer, collectDomainContext } from './domain-builder.js';
-import { renderOntologyMarkdown } from './markdown-renderer.js';
+import { renderOntologyMarkdown, renderIndexMarkdown } from './markdown-renderer.js';
 import {
   loadOntologyCache,
   saveOntologyCache,
@@ -317,6 +320,39 @@ export function getOntologyStatus(
 }
 
 /**
+ * .agent/ 디렉토리의 파일 현황을 수집하여 인덱스 데이터를 생성합니다.
+ */
+export function collectIndexData(
+  projectRoot: string,
+  version: string,
+): OntologyIndexData {
+  const checkStatus = (relPath: string): AgentFileStatus => {
+    return existsSync(join(projectRoot, relPath)) ? 'exists' : 'missing';
+  };
+
+  const agentFiles: AgentFileInfo[] = [
+    { path: '.agent/plan.md', status: checkStatus('.agent/plan.md'), description: '작업 계획 (SDD 기반)', managed: 'manual' },
+    { path: '.agent/todo.md', status: checkStatus('.agent/todo.md'), description: 'TODO 체크리스트', managed: 'manual' },
+    { path: '.agent/context.md', status: checkStatus('.agent/context.md'), description: '결정/트레이드오프 기록', managed: 'manual' },
+    { path: '.agent/memory.md', status: checkStatus('.agent/memory.md'), description: '팀 메모리 (자동 동기화)', managed: 'semi-auto' },
+  ];
+
+  const ontologyFiles: AgentFileInfo[] = [
+    { path: '.agent/ontology/ONTOLOGY-STRUCTURE.md', status: checkStatus('.agent/ontology/ONTOLOGY-STRUCTURE.md'), description: '디렉토리 구조 맵', managed: 'auto' },
+    { path: '.agent/ontology/ONTOLOGY-SEMANTICS.md', status: checkStatus('.agent/ontology/ONTOLOGY-SEMANTICS.md'), description: '코드 심볼 인덱스', managed: 'auto' },
+    { path: '.agent/ontology/ONTOLOGY-DOMAIN.md', status: checkStatus('.agent/ontology/ONTOLOGY-DOMAIN.md'), description: '도메인 지식', managed: 'auto' },
+    { path: '.agent/ontology/ONTOLOGY-INDEX.md', status: checkStatus('.agent/ontology/ONTOLOGY-INDEX.md'), description: '전체 지식 인덱스 (이 파일)', managed: 'auto' },
+  ];
+
+  return {
+    generatedAt: new Date().toISOString(),
+    harnessVersion: version,
+    agentFiles,
+    ontologyFiles,
+  };
+}
+
+/**
  * Markdown 파일로 저장
  * renderOntologyMarkdown 결과를 outputDir에 씁니다.
  */
@@ -344,6 +380,19 @@ export async function writeOntologyFiles(
     } catch (err) {
       logger.warn(`파일 쓰기 실패: ${filePath} — ${String(err)}`);
     }
+  }
+
+  // ONTOLOGY-INDEX.md 생성
+  try {
+    const version = data.metadata.harnessVersion;
+    const indexData = collectIndexData(projectRoot, version);
+    const indexContent = renderIndexMarkdown(indexData);
+    const indexPath = join(absOutputDir, 'ONTOLOGY-INDEX.md');
+    safeWriteFile(indexPath, indexContent);
+    filePaths.push(indexPath);
+    logger.fileAction('create', indexPath);
+  } catch (err) {
+    logger.warn(`INDEX 파일 쓰기 실패: ${String(err)}`);
   }
 
   return filePaths;
