@@ -91,6 +91,7 @@ export function addEntry(
   store.entries.push(entry);
   saveStore(projectRoot, store);
   syncRuleFile(projectRoot, entry.category, store);
+  syncMemoryMd(projectRoot, store);
   return entry;
 }
 
@@ -137,6 +138,57 @@ function syncRuleFile(
   }
 
   writeFileSync(filePath, content);
+}
+
+/**
+ * .agent/memory.md 파일에 팀 메모리를 동기화합니다.
+ * <!-- team-memory:{category}:start --> ~ <!-- team-memory:{category}:end --> 마커 사이를 교체합니다.
+ */
+export function syncMemoryMd(projectRoot: string, store: TeamMemoryStore): void {
+  const memoryPath = join(projectRoot, '.agent', 'memory.md');
+  if (!existsSync(memoryPath)) return;
+
+  let content = readFileSync(memoryPath, 'utf-8');
+
+  const categories: MemoryCategory[] = ['conventions', 'patterns', 'decisions', 'mistakes'];
+
+  for (const category of categories) {
+    const startMarker = `<!-- team-memory:${category}:start -->`;
+    const endMarker = `<!-- team-memory:${category}:end -->`;
+
+    const startIdx = content.indexOf(startMarker);
+    const endIdx = content.indexOf(endMarker);
+    if (startIdx === -1 || endIdx === -1) continue;
+
+    const entries = store.entries.filter(e => e.category === category);
+    let rendered: string;
+    if (entries.length === 0) {
+      rendered = `${startMarker}\n_(등록된 ${categoryLabel(category)} 없음)_\n${endMarker}`;
+    } else {
+      const items = entries.map(e => renderEntry(e)).join('\n\n');
+      rendered = `${startMarker}\n${items}\n${endMarker}`;
+    }
+
+    content = content.substring(0, startIdx) + rendered + content.substring(endIdx + endMarker.length);
+  }
+
+  // 마지막 동기화 시각 업데이트
+  content = content.replace(
+    /> 마지막 동기화: .*/,
+    `> 마지막 동기화: ${new Date().toISOString().slice(0, 19)}`,
+  );
+
+  writeFileSync(memoryPath, content);
+}
+
+function categoryLabel(category: MemoryCategory): string {
+  const labels: Record<MemoryCategory, string> = {
+    conventions: '컨벤션',
+    patterns: '패턴',
+    decisions: '결정',
+    mistakes: '실수',
+  };
+  return labels[category];
 }
 
 function renderEntry(entry: MemoryEntry): string {

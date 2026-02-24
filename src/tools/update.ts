@@ -5,12 +5,14 @@ import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
 import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
 import { getAllModules } from '../core/module-registry.js';
-import { safeCopyFile, computeFileHash, backupFile } from '../core/file-ops.js';
+import { safeCopyFile, computeFileHash, backupFile, safeWriteFile, ensureDir } from '../core/file-ops.js';
 import { getAllModuleFiles } from '../core/template-engine.js';
 import { getTemplatesDir, getPackageRoot } from '../utils/paths.js';
 import { checkForUpdates, performUpdate, recordUpdateHistory } from '../core/self-update.js';
 import { getPackageVersion } from '../utils/version.js';
-import { refreshOntology } from '../core/ontology/index.js';
+import { refreshOntology, collectIndexData } from '../core/ontology/index.js';
+import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
+import { loadStore, syncMemoryMd } from '../core/team-memory.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
@@ -226,6 +228,29 @@ export function registerUpdateTool(server: McpServer): void {
             }
           } else if (!ontologyConfig.enabled) {
             res.info('온톨로지가 비활성화 상태입니다.');
+          }
+        }
+
+        // INDEX 재생성 + memory.md 동기화
+        if (!pDryRun) {
+          try {
+            const version = getPackageVersion();
+            const indexData = collectIndexData(pRoot, version);
+            const indexContent = renderIndexMarkdown(indexData);
+            const indexPath = join(pRoot, '.agent', 'ontology', 'ONTOLOGY-INDEX.md');
+            ensureDir(join(pRoot, '.agent', 'ontology'));
+            safeWriteFile(indexPath, indexContent);
+            res.ok('ONTOLOGY-INDEX.md 재생성 완료');
+          } catch (err) {
+            res.warn(`INDEX 재생성 실패: ${String(err)}`);
+          }
+
+          try {
+            const store = loadStore(pRoot);
+            syncMemoryMd(pRoot, store);
+            res.ok('.agent/memory.md 동기화 완료');
+          } catch (err) {
+            res.warn(`memory.md 동기화 실패: ${String(err)}`);
           }
         }
 
