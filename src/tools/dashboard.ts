@@ -8,10 +8,10 @@ import { getAllModules } from '../core/module-registry.js';
 import { computeFileHash } from '../core/file-ops.js';
 import { loadStore } from '../core/team-memory.js';
 import { getOntologyStatus } from '../core/ontology/index.js';
-import { readEvents, listSessions, getEventStats } from '../core/event-logger.js';
+import { readEvents, listSessions, getEventStats, pruneOldSessions } from '../core/event-logger.js';
 import { renderDashboard } from '../core/dashboard-renderer.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
-import type { DashboardData } from '../types/dashboard.js';
+import type { DashboardData, EventEntry } from '../types/dashboard.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 import { safeWriteFile } from '../core/file-ops.js';
 
@@ -29,6 +29,11 @@ export function registerDashboardTool(server: McpServer): void {
         const res = new McpResponseBuilder();
         const root = projectRoot as string;
 
+        // 0. config 로딩 + 오래된 세션 정리
+        const config = loadConfig(root);
+        const retentionDays = config?.eventRetentionDays ?? 30;
+        pruneOldSessions(root, retentionDays);
+
         // 1. 이벤트 데이터 수집
         const sessions = listSessions(root);
         const allEvents = readEvents(root);
@@ -39,8 +44,20 @@ export function registerDashboardTool(server: McpServer): void {
             : null;
         const stats = getEventStats(allEvents);
 
+        // 1b. 전체 세션 데이터 수집 (최근 10개, 총 1000건 제한)
+        const recentSessions = sessions.slice(0, 10);
+        const allSessions: Record<string, EventEntry[]> = {};
+        let totalEmbedded = 0;
+        const MAX_EMBEDDED_EVENTS = 1000;
+        for (const s of recentSessions) {
+          if (totalEmbedded >= MAX_EMBEDDED_EVENTS) break;
+          const events = readEvents(root, s.sessionId);
+          const remaining = MAX_EMBEDDED_EVENTS - totalEmbedded;
+          allSessions[s.sessionId] = events.slice(-remaining);
+          totalEmbedded += allSessions[s.sessionId].length;
+        }
+
         // 2. 모듈 상태/의존성 수집
-        const config = loadConfig(root);
         const allModules = getAllModules();
         const installedModules = config?.modules ?? [];
 
@@ -141,6 +158,7 @@ export function registerDashboardTool(server: McpServer): void {
           projectName,
           sessions,
           currentSession,
+          allSessions,
           stats,
           modules,
           moduleGraph,
