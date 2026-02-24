@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import type { HookRegistration, ModuleDefinition } from '../types/module.js';
+import type { HookRegistration } from '../types/module.js';
 import { logger } from '../utils/logger.js';
 
 interface SettingsLocalJson {

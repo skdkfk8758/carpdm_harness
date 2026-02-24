@@ -1,5 +1,3 @@
-import type { PresetDefinition } from '../types/module.js';
-
 export interface InitAnswers {
   preset: string;
   modules: string[];
@@ -11,7 +9,7 @@ export interface InitAnswers {
 }
 
 export async function runInitPrompts(
-  presetNames: string[],
+  _presetNames: string[],
   moduleNames: string[],
 ): Promise<InitAnswers> {
   const inquirer = await import('inquirer');

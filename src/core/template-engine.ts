@@ -1,9 +1,9 @@
 import { join, relative } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
-import type { ModuleDefinition, ModuleFile } from '../types/module.js';
+import { existsSync } from 'node:fs';
+import type { ModuleDefinition } from '../types/module.js';
 import type { HarnessConfig } from '../types/config.js';
 import { getTemplatesDir } from '../utils/paths.js';
-import { safeCopyFile, computeFileHash, computeHash, ensureDir } from './file-ops.js';
+import { safeCopyFile, computeFileHash } from './file-ops.js';
 import { updateFileRecord } from './config.js';
 import { getPackageVersion } from '../utils/version.js';
 import { logger } from '../utils/logger.js';

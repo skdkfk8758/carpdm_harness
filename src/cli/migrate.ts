@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join } from 'node:path';
 import { loadConfig } from '../core/config.js';
 import { logger } from '../utils/logger.js';
 import chalk from 'chalk';

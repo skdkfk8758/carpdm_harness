@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, chmodSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { PROTECTED_FILES, PROTECTED_DIRS } from '../types/common.js';
 
