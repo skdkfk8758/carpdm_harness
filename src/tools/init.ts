@@ -6,9 +6,12 @@ import { resolveModules, getModule, getPresetModules } from '../core/module-regi
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
-import { ensureDir, safeCopyFile } from '../core/file-ops.js';
+import { ensureDir, safeCopyFile, safeWriteFile } from '../core/file-ops.js';
 import { getGlobalCommandsDir, getTemplatesDir } from '../utils/paths.js';
-import { buildOntology } from '../core/ontology/index.js';
+import { buildOntology, collectIndexData } from '../core/ontology/index.js';
+import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
+import { loadStore, syncMemoryMd } from '../core/team-memory.js';
+import { getPackageVersion } from '../utils/version.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
 import { logger } from '../utils/logger.js';
@@ -222,6 +225,30 @@ export function registerInitTool(server: McpServer): void {
         }
 
         if (!pDryRun) {
+          // .agent/ INDEX 생성 (온톨로지 유무와 무관)
+          try {
+            const version = getPackageVersion();
+            const indexData = collectIndexData(pRoot, version);
+            const indexContent = renderIndexMarkdown(indexData);
+            const indexPath = join(pRoot, '.agent', 'ontology', 'ONTOLOGY-INDEX.md');
+            ensureDir(join(pRoot, '.agent', 'ontology'));
+            safeWriteFile(indexPath, indexContent);
+            res.ok('ONTOLOGY-INDEX.md 생성 완료');
+          } catch (err) {
+            res.warn(`INDEX 생성 실패: ${String(err)}`);
+          }
+
+          // memory.md 초기 동기화
+          if (resolvedModules.includes('team-memory')) {
+            try {
+              const store = loadStore(pRoot);
+              syncMemoryMd(pRoot, store);
+              res.ok('.agent/memory.md 초기 동기화 완료');
+            } catch (err) {
+              res.warn(`memory.md 동기화 실패: ${String(err)}`);
+            }
+          }
+
           saveConfig(pRoot, config);
         }
 

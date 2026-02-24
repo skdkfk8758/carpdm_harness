@@ -41,7 +41,7 @@ export function registerMemoryAddTool(server: McpServer): void {
           res.info(`서브카테고리: ${entry.subcategory}`);
         }
         res.blank();
-        res.ok('.claude/rules/ 파일에 동기화 완료');
+        res.ok('.claude/rules/ + .agent/memory.md 동기화 완료');
         return res.toResult();
       } catch (err) {
         return errorResult(`팀 메모리 추가 실패: ${String(err)}`);

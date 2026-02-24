@@ -21,6 +21,11 @@
         { "source": "core/docs/todo-template.md", "destination": "docs/templates/todo-template.md" },
         { "source": "core/docs/context-template.md", "destination": "docs/templates/context-template.md" },
         { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" }
+      ],
+      "agentFiles": [
+        { "source": "core/agent/plan.md", "destination": ".agent/plan.md" },
+        { "source": "core/agent/todo.md", "destination": ".agent/todo.md" },
+        { "source": "core/agent/context.md", "destination": ".agent/context.md" }
       ]
     },
     "tdd": {
@@ -132,6 +137,9 @@
       ],
       "agents": [
         { "source": "team-memory/agents/team-memory-keeper.md", "destination": ".claude/agents/team-memory-keeper.md" }
+      ],
+      "agentFiles": [
+        { "source": "team-memory/agent/memory.md", "destination": ".agent/memory.md" }
       ]
     }
   }
