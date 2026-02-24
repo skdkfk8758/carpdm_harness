@@ -11,6 +11,9 @@ export interface HarnessConfig {
   options: ConfigOptions;
   files: Record<string, FileHash>;
   ontology?: OntologyConfig;
+  eventRetentionDays?: number;
+  pluginVersion?: string;
+  lastPluginUpdateAt?: string;
 }
 
 export interface ConfigOptions {
