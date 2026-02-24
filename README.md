@@ -37,12 +37,19 @@ AI 협업 워크플로우 MCP 서버 플러그인 — Plan-First + DDD + SPARC +
 
 ## 설치
 
-```bash
-# Claude Code에 플러그인으로 등록
-claude mcp add carpdm-harness node /path/to/carpdm-harness/dist/server.js
+### 원라인 설치 (권장)
 
-# 또는 .mcp.json을 프로젝트에 복사
-cp /path/to/carpdm-harness/.mcp.json .
+```bash
+curl -fsSL https://raw.githubusercontent.com/skdkfk8758/carpdm_harness/main/install.sh | bash
+```
+
+### 수동 설치
+
+```bash
+git clone --depth 1 --branch v2.0.0 https://github.com/skdkfk8758/carpdm_harness.git ~/.claude/plugins/carpdm-harness
+cd ~/.claude/plugins/carpdm-harness
+npm install --production && npm run build
+claude mcp add carpdm-harness -- node ~/.claude/plugins/carpdm-harness/dist/server.js
 ```
 
 ## 빠른 시작
@@ -331,6 +338,7 @@ flowchart LR
 | `/project-init` | 기존 프로젝트에 AI 협업 환경 적용 (코드베이스 자동 분석) |
 | `/project-setup-simple` | 초보자용 간소화 세팅 (4문항 인터뷰) |
 | `/workflow-guide` | 모듈 조합 워크플로우 가이드 (7가지 파이프라인) |
+| `/ship-release` | PR 머지 + 버전 bump + GitHub Release 생성 |
 
 ---
 
@@ -343,7 +351,7 @@ flowchart LR
 | **core** | Plan-First + SPARC + External Memory | 없음 | 3 | 4 | 4 | - | - |
 | **tdd** | Red-Green-Refactor + 자동 차단 | core | 1 | 1 | - | - | - |
 | **quality** | 품질 게이트 + 교차 검증 + 변경 추적 | core | 5 | 1 | - | - | - |
-| **ship** | 논리 커밋 + PR 생성 | core | 2 | - | - | - | - |
+| **ship** | 논리 커밋 + PR 생성 + 릴리스 | core | 3 | - | - | - | - |
 | **maintenance** | 환경 업데이트 | 없음 | 1 | - | - | - | - |
 | **patterns** | 패턴 클로닝 | core | 1 | - | - | - | - |
 | **ontology** | 3계층 온톨로지 (구조맵 + 시맨틱 + 도메인) | core | 2 | 1 | 1 | - | - |
@@ -406,6 +414,31 @@ harness의 모든 훅은 실행 시 이벤트를 `.harness/events/` 디렉토리
 | 3 | **훅 이벤트 플로우** | 이벤트 → 훅 실행 흐름 | Mermaid 시퀀스 다이어그램 |
 | 4 | **통계 대시보드** | 훅 빈도, PASS/WARN/BLOCK 비율, 시간대별 활동, Top 변경 파일 | Chart.js 차트 4개 |
 | 5 | **세션 리플레이** | 세션별 이벤트 타임라인 (색상: PASS=초록, WARN=노랑, BLOCK=빨강) | 인터랙티브 타임라인 |
+
+---
+
+## 릴리스 파이프라인
+
+코드 변경부터 릴리스까지의 전체 워크플로우:
+
+```
+/logical-commit → /ship-pr → /ship-release
+(변경 분류+커밋)  (브랜치+PR)  (머지+태그+Release)
+```
+
+| 단계 | 커맨드 | 동작 |
+|------|--------|------|
+| 1. 커밋 | `/logical-commit` | 변경사항을 논리 단위로 분류하여 커밋 |
+| 2. PR | `/ship-pr` | feature 브랜치 생성 + PR 올리기 |
+| 3. 릴리스 | `/ship-release` | PR 머지 + 버전 bump + GitHub Release |
+
+### 다른 프로젝트 업데이트
+
+릴리스 후 다른 프로젝트에서는 세션 시작 시 자동으로 업데이트가 감지됩니다:
+
+```
+세션 시작 → update-check.sh → 최신 태그 감지 → harness_update(updatePlugin: true)
+```
 
 ---
 
