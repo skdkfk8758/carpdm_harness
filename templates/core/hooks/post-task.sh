@@ -1,10 +1,11 @@
 #!/bin/bash
 # Hook: Stop - Post-task 검증 리마인더 + 교차 검증 자동 트리거
 # AI가 응답을 마칠 때 실행: 미완료 항목 확인, 교차 검증 실행
+source "$(dirname "$0")/_harness-common.sh"
 
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
+harness_set_cwd
+harness_init_event_log ""
 
 OUTPUT=""
 
@@ -78,7 +79,7 @@ elif [ -n "$PLAN_FILE" ]; then
 fi
 
 # === Self-Improvement Loop: 실수 감지 + lessons.md 기록 검증 ===
-mkdir -p ".omc/state" 2>/dev/null
+harness_ensure_state_dir
 MISTAKE_DETECTED=false
 MISTAKE_SIGNALS=""
 
@@ -93,23 +94,23 @@ if command -v git &>/dev/null; then
 fi
 
 # 신호 2: todo.md에서 체크 해제(되돌림) 흔적 — 완료 수가 이전보다 줄었으면
-LESSONS_COUNTER=".omc/state/lessons-counter"
+LESSONS_COUNTER="$HARNESS_STATE_DIR/lessons-counter"
 if [ -n "$TODO_FILE" ]; then
     CURRENT_DONE=$(grep -c '\[x\]' "$TODO_FILE" 2>/dev/null) || true; CURRENT_DONE=${CURRENT_DONE:-0}
-    if [ -f ".omc/state/todo-done-count" ]; then
-        PREV_DONE=$(cat ".omc/state/todo-done-count" 2>/dev/null || echo "0")
+    if [ -f "$HARNESS_STATE_DIR/todo-done-count" ]; then
+        PREV_DONE=$(cat "$HARNESS_STATE_DIR/todo-done-count" 2>/dev/null || echo "0")
         if [ "$CURRENT_DONE" -lt "$PREV_DONE" ]; then
             MISTAKE_DETECTED=true
             MISTAKE_SIGNALS="${MISTAKE_SIGNALS}\n  - TODO 되돌림 감지 (완료 ${PREV_DONE}→${CURRENT_DONE}, 이전 작업을 번복)"
         fi
     fi
-    echo "$CURRENT_DONE" > ".omc/state/todo-done-count"
+    echo "$CURRENT_DONE" > "$HARNESS_STATE_DIR/todo-done-count"
 fi
 
 # 신호 3: Dumb Zone 카운터가 이미 2 이상 (반복 수정 진행 중)
 EDIT_COUNTER_VAL=0
-if [ -f ".omc/state/edit-counter" ]; then
-    EDIT_COUNTER_VAL=$(cat ".omc/state/edit-counter" 2>/dev/null || echo "0")
+if [ -f "$HARNESS_STATE_DIR/edit-counter" ]; then
+    EDIT_COUNTER_VAL=$(cat "$HARNESS_STATE_DIR/edit-counter" 2>/dev/null || echo "0")
     if [ "$EDIT_COUNTER_VAL" -ge 2 ]; then
         MISTAKE_DETECTED=true
         MISTAKE_SIGNALS="${MISTAKE_SIGNALS}\n  - 동일 파일 반복 수정 ${EDIT_COUNTER_VAL}회 (Dumb Zone 접근 중)"
@@ -156,6 +157,12 @@ if [ -n "$LESSONS_FILE" ]; then
     echo "$CURRENT_LESSONS" > "$LESSONS_COUNTER"
 fi
 
+# === OMC 모드 조율: 활성 시 verbose 출력/교차검증/Dumb Zone 경고 생략 ===
+if harness_omc_mode_active; then
+    [ -n "$OUTPUT" ] && echo "$OUTPUT"
+    exit 0
+fi
+
 # === 세션 요약 자동 생성 ===
 if [ -n "$TODO_FILE" ]; then
     SUMMARY_REMAINING=$(grep -c '\[ \]' "$TODO_FILE" 2>/dev/null) || true; SUMMARY_REMAINING=${SUMMARY_REMAINING:-0}
@@ -185,8 +192,8 @@ if command -v git &>/dev/null; then
     if [ -z "$DUMB_ZONE_FILES" ]; then
         REPEAT_EDITS=$({ git diff --name-only 2>/dev/null; git diff --cached --name-only 2>/dev/null; } | sort | uniq -d 2>/dev/null)
         # .omc에 수정 카운터 유지
-        mkdir -p ".omc/state" 2>/dev/null
-        EDIT_COUNTER=".omc/state/edit-counter"
+        harness_ensure_state_dir
+        EDIT_COUNTER="$HARNESS_STATE_DIR/edit-counter"
         if [ -n "$REPEAT_EDITS" ] && [ -f "$EDIT_COUNTER" ]; then
             PREV_COUNT=$(cat "$EDIT_COUNTER" 2>/dev/null || echo "0")
             NEW_COUNT=$((PREV_COUNT + 1))
@@ -225,8 +232,8 @@ except:
     print('false')
 " 2>/dev/null)
     if [ "$TDD_ON" = "true" ]; then
-        TDD_RESULT=".omc/state/tdd-result"
-        TDD_ORDER=".omc/state/tdd-edit-order"
+        TDD_RESULT="$HARNESS_STATE_DIR/tdd-result"
+        TDD_ORDER="$HARNESS_STATE_DIR/tdd-edit-order"
 
         # tdd-result 확인: Refactor Phase가 DONE인지
         if [ -f "$TDD_RESULT" ]; then
@@ -235,7 +242,7 @@ except:
                 OUTPUT="${OUTPUT}
 
 [TDD] TDD 사이클이 완료되지 않았습니다.
-  → .omc/state/tdd-result에 REFACTOR Phase가 DONE이 아닙니다.
+  → .harness/state/tdd-result에 REFACTOR Phase가 DONE이 아닙니다.
   → /tdd-cycle 커맨드로 사이클을 완료하세요."
             else
                 OUTPUT="${OUTPUT}
@@ -261,7 +268,7 @@ fi
 
 # === Verify 게이트 (실행 기반 검증 확인) ===
 # 코드/훅 변경이 있는데 verify-result가 없으면 경고
-VERIFY_RESULT=".omc/state/verify-result"
+VERIFY_RESULT="$HARNESS_STATE_DIR/verify-result"
 VG_CODE=$(git diff --name-only 2>/dev/null | grep -cE '\.(py|ts|tsx|js|jsx|go|rs|java|rb|swift|kt|c|cpp|cs|sh)$') || true; VG_CODE=${VG_CODE:-0}
 VG_STAGED=$(git diff --cached --name-only 2>/dev/null | grep -cE '\.(py|ts|tsx|js|jsx|go|rs|java|rb|swift|kt|c|cpp|cs|sh)$') || true; VG_STAGED=${VG_STAGED:-0}
 TOTAL_SIGNIFICANT=$((VG_CODE + VG_STAGED))
@@ -290,7 +297,7 @@ if [ "$TOTAL_SIGNIFICANT" -gt 0 ]; then
     fi
 
     # verify-loop-result도 확인
-    VERIFY_LOOP_RESULT=".omc/state/verify-loop-result"
+    VERIFY_LOOP_RESULT="$HARNESS_STATE_DIR/verify-loop-result"
     if [ -f "$VERIFY_LOOP_RESULT" ]; then
         LOOP_STATUS=$(grep -oE 'Final Status: (PASS|FAIL)' "$VERIFY_LOOP_RESULT" 2>/dev/null | head -1)
         LOOP_ATTEMPTS=$(grep -oE 'Total Attempts: [0-9]+/3' "$VERIFY_LOOP_RESULT" 2>/dev/null | head -1)
@@ -335,8 +342,8 @@ fi
 # 코드 변경이 있을 때만 교차 검증 실행
 if [ "$CODE_CHANGED" -gt 0 ] || [ "$STAGED_CODE" -gt 0 ]; then
     # 무한루프 방지: 마커 파일 확인
-    mkdir -p ".omc/state" 2>/dev/null
-    VERIFY_MARKER=".omc/state/cross-verified"
+    harness_ensure_state_dir
+    VERIFY_MARKER="$HARNESS_STATE_DIR/cross-verified"
 
     SHOULD_VERIFY=true
     if [ -f "$VERIFY_MARKER" ]; then
@@ -377,4 +384,5 @@ ${CHANGED_FILES}
 fi
 
 [ -n "$OUTPUT" ] && echo "$OUTPUT"
+harness_log_event "post-task" "PASS" "Stop"
 exit 0

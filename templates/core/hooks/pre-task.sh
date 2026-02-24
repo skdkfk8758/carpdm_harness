@@ -1,13 +1,16 @@
 #!/bin/bash
 # Hook: UserPromptSubmit - Pre-task 자동 감지
 # 매 사용자 요청마다 실행: 도메인 식별, plan-first 강제, 모드 감지, 현재 상태 출력
+source "$(dirname "$0")/_harness-common.sh"
 
 # stdin에서 사용자 입력 읽기 (있으면)
 INPUT=$(cat 2>/dev/null || echo "")
 
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
+harness_set_cwd
+harness_init_event_log "$INPUT"
+harness_ensure_state_dir
+echo "$HARNESS_SESSION_ID" > "$HARNESS_STATE_DIR/current-session" 2>/dev/null || true
 
 # === Task Mode + Bug Mode 감지 ===
 MODE="Standard"
@@ -129,17 +132,17 @@ except:
     if [ "$TDD_ON" = "true" ]; then
         TDD_STATUS="ENABLED"
         # 마지막 TDD 결과 확인
-        if [ -f ".omc/state/tdd-result" ]; then
-            TDD_LAST=$(grep -m1 'Target:' .omc/state/tdd-result 2>/dev/null | sed 's/.*Target: //' | head -c 40)
-            TDD_PHASE=$(grep -E '^\| (RED|GREEN|REFACTOR)' .omc/state/tdd-result 2>/dev/null | tail -1 | awk -F'|' '{print $2}' | tr -d ' ')
+        if [ -f "$HARNESS_STATE_DIR/tdd-result" ]; then
+            TDD_LAST=$(grep -m1 'Target:' "$HARNESS_STATE_DIR/tdd-result" 2>/dev/null | sed 's/.*Target: //' | head -c 40)
+            TDD_PHASE=$(grep -E '^\| (RED|GREEN|REFACTOR)' "$HARNESS_STATE_DIR/tdd-result" 2>/dev/null | tail -1 | awk -F'|' '{print $2}' | tr -d ' ')
             [ -n "$TDD_LAST" ] && TDD_STATUS="ENABLED (Last: ${TDD_LAST}, Phase: ${TDD_PHASE})"
         fi
     fi
 fi
 
 # Mode를 task-mode 파일에 기록 (tdd-guard.sh 연동)
-mkdir -p ".omc/state" 2>/dev/null
-echo "$MODE" > ".omc/state/task-mode"
+harness_ensure_state_dir
+echo "$MODE" > "$HARNESS_STATE_DIR/task-mode"
 
 # === 출력 ===
 cat <<EOF
@@ -207,4 +210,5 @@ if [ -n "$LAST_SESSION_PREVIEW" ]; then
     echo "[LAST SESSION] 이전 세션 요약 (<!-- PRIVATE --> 구간 제외):"
     echo "$LAST_SESSION_PREVIEW"
 fi
+harness_log_event "pre-task" "PASS" "UserPromptSubmit" "$MODE"
 exit 0

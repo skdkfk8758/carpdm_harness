@@ -2,13 +2,14 @@
 # Hook: PreToolUse (Edit|Write) - Plan Guard
 # 코드 파일 수정 시 plan.md 승인 여부 확인
 # plan이 없거나 DRAFT 상태면 경고 주입
+source "$(dirname "$0")/_harness-common.sh"
 
 # stdin에서 JSON 읽기
 INPUT=$(cat)
 
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
+harness_set_cwd
+harness_init_event_log "$INPUT"
 
 # 수정 대상 파일 추출
 FILE_PATH=$(echo "$INPUT" | python3 -c "
@@ -36,6 +37,19 @@ elif [ -f "plan.md" ]; then PLAN_FILE="plan.md"; fi
 # 소스 코드 파일인지 확인
 case "$FILE_PATH" in
     *.py|*.ts|*.tsx|*.js|*.jsx|*.sql)
+        # OMC 모드 활성 시 경고를 hint 수준으로 완화
+        if harness_omc_mode_active; then
+            if [ -z "$PLAN_FILE" ]; then
+                echo "[PLAN GUARD] plan.md가 없습니다. OMC 모드 활성 중 — 작업 후 plan.md 작성을 고려하세요."
+            else
+                STATUS=$(grep -oE 'DRAFT|APPROVED|IN_PROGRESS|COMPLETED' "$PLAN_FILE" 2>/dev/null | head -1)
+                if [ "$STATUS" = "DRAFT" ]; then
+                    echo "[PLAN GUARD] plan.md가 DRAFT 상태입니다. OMC 모드 활성 중 — 승인 후 진행을 권장합니다."
+                fi
+            fi
+            exit 0
+        fi
+
         # plan.md 확인
         if [ -z "$PLAN_FILE" ]; then
             cat <<'EOF'
@@ -62,4 +76,5 @@ EOF
         fi
         ;;
 esac
+harness_log_event "plan-guard" "PASS" "PreToolUse" "" "" "$FILE_PATH"
 exit 0

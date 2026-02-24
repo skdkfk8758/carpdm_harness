@@ -9,6 +9,8 @@ INPUT=$(cat)
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
 CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$CWD" 2>/dev/null || exit 0
+source "$(dirname "$0")/../../core/hooks/_harness-common.sh" 2>/dev/null || true
+harness_init_event_log "$INPUT"
 
 # tool_input.command 추출 및 위험 패턴 검사
 RESULT=$(echo "$INPUT" | python3 -c "
@@ -109,7 +111,9 @@ if [ $EXIT_CODE -eq 2 ] || echo "$RESULT" | grep -q "^BLOCKED:"; then
     CATEGORY=$(echo "$BLOCK_INFO" | cut -d: -f2)
     PATTERN=$(echo "$BLOCK_INFO" | cut -d: -f3-)
     echo "BLOCKED: 위험한 명령 차단 — 카테고리: ${CATEGORY:-알 수 없음} (패턴: ${PATTERN:-알 수 없음})" >&2
+    harness_log_event "command-guard" "BLOCK" "PreToolUse" "$CATEGORY" "" ""
     exit 2
 fi
 
+harness_log_event "command-guard" "PASS" "PreToolUse"
 exit 0

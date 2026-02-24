@@ -8,6 +8,8 @@ INPUT=$(cat)
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
 CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$CWD" 2>/dev/null || exit 0
+source "$(dirname "$0")/../../core/hooks/_harness-common.sh" 2>/dev/null || true
+harness_init_event_log "$INPUT"
 
 # tool_result에서 텍스트 콘텐츠 추출 후 시크릿 패턴 감지
 echo "$INPUT" | python3 -c "
@@ -56,4 +58,5 @@ for secret_type in found:
     print(f'[Security] 시크릿 패턴 감지: {secret_type}. 커밋 전 확인하세요.', file=sys.stderr)
 " 2>&1
 
+harness_log_event "secret-filter" "PASS" "PostToolUse"
 exit 0

@@ -9,6 +9,8 @@ INPUT=$(cat)
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
 CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$CWD" 2>/dev/null || exit 0
+source "$(dirname "$0")/../../core/hooks/_harness-common.sh" 2>/dev/null || true
+harness_init_event_log "$INPUT"
 
 # 수정된 파일 경로 추출
 FILE_PATH=$(echo "$INPUT" | python3 -c "
@@ -109,4 +111,5 @@ if [ -d "$SECURITY_MARKER_DIR" ]; then
     fi
 fi
 
+harness_log_event "security-trigger" "PASS" "PostToolUse" "" "" "$FILE_PATH"
 exit 0
