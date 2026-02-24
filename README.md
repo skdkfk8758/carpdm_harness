@@ -37,6 +37,7 @@ carpdm-harness init --preset tdd --yes --global
 | `list` | 모듈/프리셋 목록 표시 |
 | `info` | 현재 설치 상태 표시 |
 | `doctor` | 설치 건강 진단 |
+| `ontology` | 프로젝트 온톨로지 생성/관리 |
 
 ### init 옵션
 
@@ -47,6 +48,8 @@ carpdm-harness init --preset tdd --yes --global
 --skip-hooks       훅 등록 건너뛰기
 --dry-run          미리보기만
 --yes              비대화형 모드
+--ontology         온톨로지 강제 활성화
+--skip-ontology    온톨로지 설정 건너뛰기
 ```
 
 ### update 옵션
@@ -57,11 +60,13 @@ carpdm-harness init --preset tdd --yes --global
 --global           글로벌 커맨드도 업데이트
 --dry-run          diff만 표시
 --accept-all       모든 변경 수락
+--refresh-ontology 온톨로지 갱신
+--skip-ontology    온톨로지 갱신 건너뛰기
 ```
 
 ## 모듈 시스템
 
-6개 모듈로 구성되며, 각 모듈은 커맨드(`.claude/commands/`), 훅(`.claude/hooks/`), 문서 템플릿을 포함합니다.
+7개 모듈로 구성되며, 각 모듈은 커맨드(`.claude/commands/`), 훅(`.claude/hooks/`), 문서 템플릿을 포함합니다.
 
 | 모듈 | 설명 | 의존성 | 커맨드 | 훅 | 문서 |
 |------|------|--------|--------|-----|------|
@@ -71,13 +76,14 @@ carpdm-harness init --preset tdd --yes --global
 | **ship** | 논리 커밋 + PR 생성 | core | 2 | 0 | 0 |
 | **maintenance** | 환경 업데이트 | 없음 | 1 | 0 | 0 |
 | **patterns** | 패턴 클로닝 | core | 1 | 0 | 0 |
+| **ontology** | 3계층 통합 온톨로지 (구조맵 + 시맨틱 + 도메인) | core | 2 | 1 | 1 |
 
 ## 프리셋
 
 | 프리셋 | 모듈 | 설명 |
 |--------|------|------|
 | `standard` (추천) | core, quality, ship | 일반 프로젝트 |
-| `full` | 전체 6개 | 완전한 워크플로우 |
+| `full` | 전체 7개 | 완전한 워크플로우 (온톨로지 포함) |
 | `tdd` | core, tdd, quality, ship | TDD 중심 |
 | `minimal` | core | 최소 구성 |
 
