@@ -1,0 +1,5 @@
+{
+  "name": "secure",
+  "description": "보안 중심 — core + quality + security + ship",
+  "modules": ["core", "quality", "security", "ship"]
+}

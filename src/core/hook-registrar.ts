@@ -26,6 +26,12 @@ const HOOK_MAP: Record<string, HookRegistration[]> = {
   quality: [
     { event: 'PostToolUse', command: 'bash .claude/hooks/code-change.sh', pattern: 'Edit|Write' },
   ],
+  security: [
+    { event: 'PostToolUse', command: 'bash .claude/hooks/secret-filter.sh' },
+    { event: 'PreToolUse', command: 'bash .claude/hooks/command-guard.sh', pattern: 'Bash' },
+    { event: 'PreToolUse', command: 'bash .claude/hooks/db-guard.sh', pattern: 'mcp__*' },
+    { event: 'PostToolUse', command: 'bash .claude/hooks/security-trigger.sh', pattern: 'Edit|Write' },
+  ],
 };
 
 export function getModuleHooks(moduleName: string): HookRegistration[] {
