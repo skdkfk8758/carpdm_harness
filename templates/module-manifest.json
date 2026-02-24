@@ -11,6 +11,7 @@
         { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" }
       ],
       "hooks": [
+        { "source": "core/hooks/_harness-common.sh", "destination": ".claude/hooks/_harness-common.sh", "executable": true },
         { "source": "core/hooks/pre-task.sh", "destination": ".claude/hooks/pre-task.sh", "executable": true },
         { "source": "core/hooks/plan-guard.sh", "destination": ".claude/hooks/plan-guard.sh", "executable": true },
         { "source": "core/hooks/post-task.sh", "destination": ".claude/hooks/post-task.sh", "executable": true }
@@ -111,6 +112,27 @@
         { "source": "security/hooks/security-trigger.sh", "destination": ".claude/hooks/security-trigger.sh", "executable": true }
       ],
       "docs": []
+    },
+    "team-memory": {
+      "name": "team-memory",
+      "description": "팀 협업 메모리 — .claude/rules/ 공유 규칙 + 학습 에이전트",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "team-memory/commands/memory-review.md", "destination": ".claude/commands/memory-review.md" }
+      ],
+      "hooks": [],
+      "docs": [
+        { "source": "team-memory/docs/team-memory-guide.md", "destination": "docs/templates/team-memory-guide.md" }
+      ],
+      "rules": [
+        { "source": "team-memory/rules/conventions.md", "destination": ".claude/rules/conventions.md" },
+        { "source": "team-memory/rules/patterns.md", "destination": ".claude/rules/patterns.md" },
+        { "source": "team-memory/rules/decisions.md", "destination": ".claude/rules/decisions.md" },
+        { "source": "team-memory/rules/mistakes.md", "destination": ".claude/rules/mistakes.md" }
+      ],
+      "agents": [
+        { "source": "team-memory/agents/team-memory-keeper.md", "destination": ".claude/agents/team-memory-keeper.md" }
+      ]
     }
   }
 }
