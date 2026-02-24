@@ -176,6 +176,42 @@ EOF
 5. 테스트
 6. 문서
 
+### Phase 4.5: Handoff Verify (독립 검증)
+
+커밋이 완료된 후, PR 생성 전에 독립적인 Fresh-Context 검증을 실행한다.
+작성자의 확인 편향(confirmation bias)을 제거하여 PR 품질을 보장한다.
+
+#### 검증 실행
+
+1. `.omc/state/handoff-intent.md`에 현재 PR 의도를 기록:
+   - 변경 요약 (각 커밋의 목적)
+   - 기대 동작
+   - Acceptance Criteria
+
+2. Task 도구로 독립 verifier 에이전트를 생성:
+```
+Task(subagent_type="oh-my-claudecode:verifier", prompt="
+.omc/state/handoff-intent.md를 읽고 독립 검증:
+1. 빌드 성공 여부
+2. 전체 테스트 통과 여부
+3. lint 에러 없음
+결과를 .omc/state/handoff-verify-result에 저장
+")
+```
+
+3. 검증 결과 확인:
+```
+✅ PASS → Phase 5로 진행
+❌ FAIL → 실패 원인 수정 후 재커밋, Phase 4.5 재실행
+```
+
+#### 건너뛰기 조건
+
+다음 경우 Phase 4.5를 건너뛸 수 있다:
+- 문서만 변경한 경우 (`docs:` 커밋만 존재)
+- 설정 파일만 변경한 경우 (`chore:` 커밋만 존재)
+- 사용자가 `--skip-verify`를 명시한 경우
+
 ### Phase 5: Push + PR 생성
 
 ```bash
@@ -210,6 +246,7 @@ EOF
 
 브랜치: feat/<name>
 커밋: N개
+검증: Handoff Verify PASS ✓
 PR: <URL>
 
 커밋 목록:

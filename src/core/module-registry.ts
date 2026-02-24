@@ -58,7 +58,7 @@ export function loadPreset(name: string): PresetDefinition | null {
 }
 
 export function getPresetNames(): string[] {
-  return ['full', 'standard', 'minimal', 'tdd'];
+  return ['full', 'standard', 'minimal', 'tdd', 'secure'];
 }
 
 export function getPresetModules(presetName: string): string[] {

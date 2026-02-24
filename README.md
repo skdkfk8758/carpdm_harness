@@ -86,6 +86,7 @@ flowchart BT
     PATTERNS[patterns<br/>패턴 클로닝] --> CORE
     ONTOLOGY[ontology<br/>3계층 온톨로지] --> CORE
     MAINT[maintenance<br/>환경 업데이트]
+    SECURITY[security<br/>보안 훅 + 감사] --> CORE
 
     style CORE fill:#FF9800,color:#fff,stroke-width:2px
     style TDD fill:#4CAF50,color:#fff
@@ -94,6 +95,7 @@ flowchart BT
     style PATTERNS fill:#607D8B,color:#fff
     style ONTOLOGY fill:#00BCD4,color:#fff
     style MAINT fill:#795548,color:#fff
+    style SECURITY fill:#E91E63,color:#fff
 ```
 
 ### init → 일상 워크플로우
@@ -151,7 +153,7 @@ sequenceDiagram
 | 파라미터 | 타입 | 기본값 | 설명 |
 |---------|------|--------|------|
 | `projectRoot` | string | (필수) | 프로젝트 루트 경로 |
-| `preset` | string | `"standard"` | 프리셋 (full\|standard\|minimal\|tdd) |
+| `preset` | string | `"standard"` | 프리셋 (full\|standard\|minimal\|tdd\|secure) |
 | `modules` | string | - | 모듈 직접 지정 (쉼표 구분) |
 | `installGlobal` | boolean | `true` | 글로벌 커맨드 설치 |
 | `skipHooks` | boolean | `false` | 훅 등록 건너뛰기 |
@@ -179,29 +181,32 @@ sequenceDiagram
 | `/project-setup` | 새 프로젝트에 AI 협업 환경 원스톱 구축 (플러그인 + MCP + 스킬 + 워크플로우) |
 | `/project-init` | 기존 프로젝트에 AI 협업 환경 적용 (코드베이스 자동 분석) |
 | `/project-setup-simple` | 초보자용 간소화 세팅 (4문항 인터뷰) |
+| `/workflow-guide` | 모듈 조합 워크플로우 가이드 (7가지 파이프라인) |
 
 ## 모듈 시스템
 
-7개 모듈로 구성되며, 각 모듈은 커맨드(`.claude/commands/`), 훅(`.claude/hooks/`), 문서 템플릿을 포함합니다.
+8개 모듈로 구성되며, 각 모듈은 커맨드(`.claude/commands/`), 훅(`.claude/hooks/`), 문서 템플릿을 포함합니다.
 
 | 모듈 | 설명 | 의존성 | 커맨드 | 훅 | 문서 |
 |------|------|--------|--------|-----|------|
 | **core** | Plan-First + SPARC + External Memory | 없음 | 3 | 3 | 4 |
 | **tdd** | Red-Green-Refactor + 자동 차단 | core | 1 | 1 | 0 |
-| **quality** | 품질 게이트 + 교차 검증 + 변경 추적 | core | 3 | 1 | 0 |
+| **quality** | 품질 게이트 + 교차 검증 + 변경 추적 | core | 5 | 1 | 0 |
 | **ship** | 논리 커밋 + PR 생성 | core | 2 | 0 | 0 |
 | **maintenance** | 환경 업데이트 | 없음 | 1 | 0 | 0 |
 | **patterns** | 패턴 클로닝 | core | 1 | 0 | 0 |
 | **ontology** | 3계층 통합 온톨로지 (구조맵 + 시맨틱 + 도메인) | core | 2 | 1 | 1 |
+| **security** | 보안 훅 + 감사 + 권한 관리 | core | 2 | 4 | 0 |
 
 ## 프리셋
 
 | 프리셋 | 모듈 | 설명 |
 |--------|------|------|
 | `standard` (추천) | core, quality, ship | 일반 프로젝트 |
-| `full` | 전체 7개 | 완전한 워크플로우 (온톨로지 포함) |
+| `full` | 전체 8개 | 완전한 워크플로우 (보안 + 온톨로지 포함) |
 | `tdd` | core, tdd, quality, ship | TDD 중심 |
 | `minimal` | core | 최소 구성 |
+| `secure` | core, quality, security, ship | 보안 중심 |
 
 ## Update 흐름
 

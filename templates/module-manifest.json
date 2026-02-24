@@ -41,7 +41,9 @@
       "commands": [
         { "source": "quality/commands/quality-guard.md", "destination": ".claude/commands/quality-guard.md" },
         { "source": "quality/commands/post-task-check.md", "destination": ".claude/commands/post-task-check.md" },
-        { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" }
+        { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" },
+        { "source": "quality/commands/verify-loop.md", "destination": ".claude/commands/verify-loop.md" },
+        { "source": "quality/commands/handoff-verify.md", "destination": ".claude/commands/handoff-verify.md" }
       ],
       "hooks": [
         { "source": "quality/hooks/code-change.sh", "destination": ".claude/hooks/code-change.sh", "executable": true }
@@ -93,6 +95,22 @@
       "docs": [
         { "source": "ontology/docs/ontology-guide.md", "destination": "docs/templates/ontology-guide.md" }
       ]
+    },
+    "security": {
+      "name": "security",
+      "description": "보안 훅 + 감사 + 권한 관리 자동화",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "security/commands/security-audit.md", "destination": ".claude/commands/security-audit.md" },
+        { "source": "security/commands/security-setup.md", "destination": ".claude/commands/security-setup.md" }
+      ],
+      "hooks": [
+        { "source": "security/hooks/secret-filter.sh", "destination": ".claude/hooks/secret-filter.sh", "executable": true },
+        { "source": "security/hooks/command-guard.sh", "destination": ".claude/hooks/command-guard.sh", "executable": true },
+        { "source": "security/hooks/db-guard.sh", "destination": ".claude/hooks/db-guard.sh", "executable": true },
+        { "source": "security/hooks/security-trigger.sh", "destination": ".claude/hooks/security-trigger.sh", "executable": true }
+      ],
+      "docs": []
     }
   }
 }

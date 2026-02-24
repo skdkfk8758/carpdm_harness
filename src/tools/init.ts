@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveModules, getModule, getPresetModules } from '../core/module-registry.js';
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
@@ -20,7 +20,7 @@ export function registerInitTool(server: McpServer): void {
     '프로젝트에 워크플로우를 설치합니다',
     {
       projectRoot: z.string().describe('프로젝트 루트 경로'),
-      preset: z.string().optional().describe('프리셋 (full|standard|minimal|tdd)'),
+      preset: z.string().optional().describe('프리셋 (full|standard|minimal|tdd|secure)'),
       modules: z.string().optional().describe('모듈 직접 지정 (쉼표 구분)'),
       installGlobal: z.boolean().optional().describe('글로벌 커맨드 설치'),
       skipHooks: z.boolean().optional().describe('훅 등록 건너뛰기'),
@@ -94,6 +94,13 @@ export function registerInitTool(server: McpServer): void {
           config.options.hooksRegistered = true;
         }
 
+        // security deny 규칙 자동 적용
+        if (resolvedModules.includes('security') && !pDryRun) {
+          res.info('보안 deny 규칙 적용 중...');
+          const denyResult = applySecurityDenyRules(pRoot);
+          res.ok(`deny 규칙 ${denyResult.added}/${denyResult.total}개 추가`);
+        }
+
         if (pInstallGlobal && !pDryRun) {
           res.info('글로벌 커맨드 설치 중...');
           installGlobalCommands();
@@ -147,6 +154,89 @@ export function registerInitTool(server: McpServer): void {
   );
 }
 
+function applySecurityDenyRules(projectRoot: string): { added: number; total: number } {
+  const settingsPath = join(projectRoot, '.claude', 'settings.local.json');
+  let settings: Record<string, unknown> = {};
+
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+    } catch {
+      settings = {};
+    }
+  }
+
+  if (!settings.permissions) {
+    settings.permissions = {};
+  }
+  const permissions = settings.permissions as Record<string, unknown>;
+  if (!Array.isArray(permissions.deny)) {
+    permissions.deny = [];
+  }
+  const deny = permissions.deny as string[];
+
+  const SECURITY_DENY_RULES = [
+    // 파괴적 파일 작업
+    'Bash(rm -rf /)*',
+    'Bash(rm -rf ~)*',
+    'Bash(rm -rf .)*',
+    'Bash(rm -rf *)*',
+    'Bash(sudo:*)',
+    'Bash(chmod 777:*)',
+    'Bash(>/dev/*)',
+    // 외부 코드 실행
+    'Bash(curl*|*sh)*',
+    'Bash(wget*|*sh)*',
+    'Bash(eval *)*',
+    'Bash(bash -c *)*',
+    'Bash(sh -c *)*',
+    'Bash(node -e *)*',
+    'Bash(perl -e *)*',
+    'Bash(python3 -c *import os*)*',
+    // 환경/프로필 보호
+    'Bash(*>~/.ssh/*)',
+    'Bash(*>~/.zshrc)*',
+    'Bash(*>~/.bashrc)*',
+    'Bash(*>~/.profile)*',
+    'Bash(*>~/.zprofile)*',
+    // Git 위험 명령
+    'Bash(git push --force*main)*',
+    'Bash(git push -f*main)*',
+    'Bash(git push --force*master)*',
+    'Bash(git push -f*master)*',
+    'Bash(git reset --hard origin/*)*',
+    'Bash(git clean -f*)*',
+    'Bash(git checkout -- .)*',
+    'Bash(git restore .)*',
+    // 패키지 배포
+    'Bash(npm publish)*',
+    'Bash(pnpm publish)*',
+    'Bash(yarn publish)*',
+    // 시스템 명령
+    'Bash(osascript*)*',
+    'Bash(crontab*)*',
+    'Bash(launchctl*)*',
+    'Bash(docker system prune)*',
+    'Bash(mkfs*)*',
+    'Bash(dd if=*)*',
+  ];
+
+  let added = 0;
+  for (const rule of SECURITY_DENY_RULES) {
+    if (!deny.includes(rule)) {
+      deny.push(rule);
+      added++;
+    }
+  }
+
+  if (added > 0) {
+    mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  }
+
+  return { added, total: SECURITY_DENY_RULES.length };
+}
+
 function installGlobalCommands(): void {
   const globalDir = getGlobalCommandsDir();
   const templatesDir = getTemplatesDir();
@@ -154,7 +244,7 @@ function installGlobalCommands(): void {
 
   ensureDir(globalDir);
 
-  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md'];
+  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'workflow-guide.md'];
   for (const file of globalFiles) {
     const src = join(globalTemplates, file);
     const dest = join(globalDir, file);

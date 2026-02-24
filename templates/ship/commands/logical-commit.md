@@ -4,6 +4,30 @@ Analyze all uncommitted changes in the working directory and commit them in logi
 
 ## Instructions
 
+### Phase 0: 검증 게이트
+
+커밋 전에 검증이 완료되었는지 확인한다.
+
+```bash
+# verify-loop 결과 확인
+if [ -f ".omc/state/verify-loop-result" ]; then
+    grep -q "Final Status: PASS" .omc/state/verify-loop-result
+fi
+# 또는 verify 결과 확인
+if [ -f ".omc/state/verify-result" ]; then
+    grep -c "| FAIL |" .omc/state/verify-result
+fi
+```
+
+| 상태 | 행동 |
+|------|------|
+| verify-loop-result PASS 존재 | 계속 진행 |
+| verify-result PASS만 존재 (FAIL 없음) | 계속 진행 |
+| verify 결과 없음 | 경고: "/verify-loop 또는 /verify를 먼저 실행하세요" → 사용자 확인 후 진행 |
+| verify 결과 FAIL 존재 | 차단: "검증 실패 항목이 있습니다. 수정 후 다시 시도하세요" |
+
+> 검증 없이 커밋하는 것은 "확인했습니다" 수준의 자기 신고입니다. 실행 증거가 있어야 합니다.
+
 1. Run `git status -s` to see all uncommitted changes (staged and unstaged).
 2. Run `git diff --stat HEAD` to understand the scope of changes.
 3. Run `git log --oneline -5` to see the recent commit style.
