@@ -1,11 +1,8 @@
 {
   "name": "carpdm-harness",
-  "version": "1.0.0",
-  "description": "AI 협업 워크플로우 모듈화 CLI - Plan-First + DDD + SPARC + External Memory",
+  "version": "2.0.0",
+  "description": "AI 협업 워크플로우 MCP 서버 플러그인 — Plan-First + DDD + SPARC",
   "type": "module",
-  "bin": {
-    "carpdm-harness": "./dist/index.js"
-  },
   "scripts": {
     "build": "tsup && node scripts/copy-templates.js",
     "dev": "tsup --watch",
@@ -18,7 +15,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    ".claude-plugin"
   ],
   "engines": {
     "node": ">=18"
@@ -29,7 +27,9 @@
     "plan-first",
     "ddd",
     "sparc",
-    "cli"
+    "mcp-server",
+    "mcp",
+    "plugin"
   ],
   "author": "carpdm",
   "license": "MIT",
@@ -38,15 +38,12 @@
     "url": "https://github.com/skdkfk8758/carpdm_harness.git"
   },
   "dependencies": {
-    "chalk": "^5.3.0",
-    "commander": "^12.1.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "diff": "^7.0.0",
-    "inquirer": "^9.3.0",
-    "ora": "^8.1.0"
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/diff": "^6.0.0",
-    "@types/inquirer": "^9.0.7",
     "@types/node": "^20.14.0",
     "tsup": "^8.2.0",
     "typescript": "^5.5.0",

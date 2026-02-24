@@ -78,6 +78,21 @@
       ],
       "hooks": [],
       "docs": []
+    },
+    "ontology": {
+      "name": "ontology",
+      "description": "3계층 통합 온톨로지 — 구조맵 + 코드 시맨틱 + 도메인 지식",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "ontology/commands/generate-ontology.md", "destination": ".claude/commands/generate-ontology.md" },
+        { "source": "ontology/commands/analyze-domain.md", "destination": ".claude/commands/analyze-domain.md" }
+      ],
+      "hooks": [
+        { "source": "ontology/hooks/ontology-update.sh", "destination": ".claude/hooks/ontology-update.sh", "executable": true }
+      ],
+      "docs": [
+        { "source": "ontology/docs/ontology-guide.md", "destination": "docs/templates/ontology-guide.md" }
+      ]
     }
   }
 }

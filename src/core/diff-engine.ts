@@ -4,7 +4,7 @@ import { createPatch } from 'diff';
 import type { FileChange, FileStatus } from '../types/common.js';
 import type { HarnessConfig } from '../types/config.js';
 import { getTemplatesDir } from '../utils/paths.js';
-import { computeFileHash, computeHash } from './file-ops.js';
+import { computeFileHash } from './file-ops.js';
 import { getAllModules } from './module-registry.js';
 
 export function analyzeChanges(

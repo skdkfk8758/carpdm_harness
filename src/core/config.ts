@@ -1,9 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HarnessConfig, ConfigOptions } from '../types/config.js';
-import type { FileHash } from '../types/common.js';
 import { DEFAULT_CONFIG, CONFIG_FILENAME } from '../types/config.js';
-import { readFileContent, safeWriteFile, computeHash } from './file-ops.js';
+import { readFileContent, safeWriteFile } from './file-ops.js';
 
 export function loadConfig(projectRoot: string): HarnessConfig | null {
   const configPath = join(projectRoot, CONFIG_FILENAME);
@@ -23,7 +22,7 @@ export function saveConfig(projectRoot: string, config: HarnessConfig): void {
 }
 
 export function createConfig(
-  projectRoot: string,
+  _projectRoot: string,
   preset: string,
   modules: string[],
   options: Partial<ConfigOptions> = {},
