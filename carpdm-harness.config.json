@@ -17,7 +17,7 @@
     "layers": {
       "structure": { "enabled": true, "maxDepth": 10, "excludePatterns": ["node_modules", ".git", "dist", "build", "coverage", ".next", ".cache", ".omc", ".serena", ".agent"] },
       "semantics": { "enabled": true, "languages": ["typescript"] },
-      "domain": { "enabled": false, "provider": "anthropic", "model": "claude-sonnet-4-20250514", "maxTokens": 4096 }
+      "domain": { "enabled": true, "provider": "claude-code", "model": "", "maxTokens": 4096 }
     },
     "autoUpdate": {
       "enabled": true,
@@ -26,6 +26,12 @@
       "incrementalOnly": true
     },
     "plugins": ["typescript"],
-    "ai": null
+    "ai": {
+    "provider": "claude-code",
+    "apiKeyEnv": "",
+    "model": "",
+    "maxTokensPerRequest": 0,
+    "rateLimitMs": 0
+  }
   }
 }
