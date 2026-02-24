@@ -44,7 +44,7 @@ export function checkForUpdates(packageRoot: string): PluginUpdateCheck {
   }
 
   try {
-    execSync('git fetch origin', { cwd: packageRoot, stdio: 'pipe' });
+    execSync('git fetch --tags origin', { cwd: packageRoot, stdio: 'pipe' });
   } catch {
     return {
       available: false,
@@ -57,19 +57,25 @@ export function checkForUpdates(packageRoot: string): PluginUpdateCheck {
 
   let remoteVersion: string;
   try {
-    const remotePkg = execSync('git show origin/main:package.json', {
+    const tagOutput = execSync('git tag --sort=-v:refname', {
       cwd: packageRoot,
       stdio: 'pipe',
     }).toString().trim();
-    remoteVersion = JSON.parse(remotePkg).version || '0.0.0';
+
+    const latestTag = tagOutput.split('\n').find((tag) => /^v\d+\.\d+\.\d+$/.test(tag));
+
+    if (latestTag) {
+      remoteVersion = latestTag.replace(/^v/, '');
+    } else {
+      // fallback: 태그 없으면 origin/main에서 가져오기
+      const remotePkg = execSync('git show origin/main:package.json', {
+        cwd: packageRoot,
+        stdio: 'pipe',
+      }).toString().trim();
+      remoteVersion = JSON.parse(remotePkg).version || '0.0.0';
+    }
   } catch {
-    return {
-      available: false,
-      currentVersion,
-      remoteVersion: '',
-      changelog: [],
-      reason: 'fetch-failed',
-    };
+    return { available: false, currentVersion, remoteVersion: '', changelog: [], reason: 'fetch-failed' };
   }
 
   if (!isNewerVersion(currentVersion, remoteVersion)) {
@@ -84,11 +90,24 @@ export function checkForUpdates(packageRoot: string): PluginUpdateCheck {
 
   let changelog: string[] = [];
   try {
-    const logOutput = execSync('git log HEAD..origin/main --oneline', {
-      cwd: packageRoot,
-      stdio: 'pipe',
-    }).toString().trim();
-    changelog = logOutput.split('\n').filter((line) => line.length > 0);
+    const currentTag = `v${currentVersion}`;
+    const remoteTag = `v${remoteVersion}`;
+    // 현재 버전 태그가 존재하는지 확인
+    try {
+      execSync(`git rev-parse ${currentTag}`, { cwd: packageRoot, stdio: 'pipe' });
+      const logOutput = execSync(`git log ${currentTag}..${remoteTag} --oneline`, {
+        cwd: packageRoot,
+        stdio: 'pipe',
+      }).toString().trim();
+      changelog = logOutput.split('\n').filter((line) => line.length > 0);
+    } catch {
+      // 현재 버전 태그가 없으면 HEAD 기준
+      const logOutput = execSync(`git log HEAD..${remoteTag} --oneline`, {
+        cwd: packageRoot,
+        stdio: 'pipe',
+      }).toString().trim();
+      changelog = logOutput.split('\n').filter((line) => line.length > 0);
+    }
   } catch {
     changelog = [];
   }
@@ -101,16 +120,19 @@ export function checkForUpdates(packageRoot: string): PluginUpdateCheck {
   };
 }
 
-export function performUpdate(packageRoot: string): PluginUpdateResult {
+export function performUpdate(packageRoot: string, targetVersion: string): PluginUpdateResult {
   const previousRef = execSync('git rev-parse HEAD', {
     cwd: packageRoot,
     stdio: 'pipe',
   }).toString().trim();
 
-  execSync('git reset --hard origin/main', { cwd: packageRoot, stdio: 'pipe' });
+  execSync(`git checkout v${targetVersion}`, { cwd: packageRoot, stdio: 'pipe' });
 
   let buildOutput = '';
   try {
+    // npm install 추가 (의존성 변경 대응)
+    execSync('npm install', { cwd: packageRoot, stdio: 'pipe' });
+
     buildOutput = execSync('npm run build', {
       cwd: packageRoot,
       stdio: 'pipe',
@@ -130,7 +152,8 @@ export function performUpdate(packageRoot: string): PluginUpdateResult {
     };
   } catch (err) {
     try {
-      execSync(`git reset --hard ${previousRef}`, { cwd: packageRoot, stdio: 'pipe' });
+      execSync(`git checkout ${previousRef}`, { cwd: packageRoot, stdio: 'pipe' });
+      execSync('npm install', { cwd: packageRoot, stdio: 'pipe' });
       execSync('npm run build', { cwd: packageRoot, stdio: 'pipe' });
 
       return {

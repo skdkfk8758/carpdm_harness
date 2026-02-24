@@ -80,7 +80,7 @@ def git_check_version(repo_path, branch='main'):
 
     try:
         subprocess.check_output(
-            ['git', '-C', repo_path, 'fetch', 'origin'],
+            ['git', '-C', repo_path, 'fetch', '--tags', 'origin'],
             stderr=subprocess.DEVNULL, timeout=10
         )
     except:
@@ -92,17 +92,36 @@ def git_check_version(repo_path, branch='main'):
     except:
         current = '0.0.0'
 
+    # 태그 기반 최신 버전 확인
     remote = '0.0.0'
-    for b in [branch, 'main', 'master']:
-        try:
-            raw = subprocess.check_output(
-                ['git', '-C', repo_path, 'show', f'origin/{b}:package.json'],
-                stderr=subprocess.DEVNULL
-            ).decode()
-            remote = json.loads(raw).get('version', '0.0.0')
-            break
-        except:
-            continue
+    try:
+        tag_output = subprocess.check_output(
+            ['git', '-C', repo_path, 'tag', '--sort=-v:refname'],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+
+        if tag_output:
+            import re
+            for tag in tag_output.split('\n'):
+                tag = tag.strip()
+                if re.match(r'^v\d+\.\d+\.\d+$', tag):
+                    remote = tag.lstrip('v')
+                    break
+    except:
+        pass
+
+    # fallback: 태그가 없으면 기존 origin/branch 방식
+    if remote == '0.0.0':
+        for b in [branch, 'main', 'master']:
+            try:
+                raw = subprocess.check_output(
+                    ['git', '-C', repo_path, 'show', f'origin/{b}:package.json'],
+                    stderr=subprocess.DEVNULL
+                ).decode()
+                remote = json.loads(raw).get('version', '0.0.0')
+                break
+            except:
+                continue
 
     return current, remote, semver_newer(current, remote)
 
@@ -121,10 +140,20 @@ def check_plugin():
     lines.append(f'  실행: harness_update(projectRoot: "{project_root}", updatePlugin: true)')
 
     try:
-        log = subprocess.check_output(
-            ['git', '-C', plugin_root, 'log', 'HEAD..origin/main', '--oneline'],
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
+        # 태그 기반 changelog 시도
+        current_tag = f'v{current}'
+        remote_tag = f'v{remote}'
+        try:
+            log = subprocess.check_output(
+                ['git', '-C', plugin_root, 'log', f'{current_tag}..{remote_tag}', '--oneline'],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+        except:
+            # fallback: HEAD 기준
+            log = subprocess.check_output(
+                ['git', '-C', plugin_root, 'log', 'HEAD..origin/main', '--oneline'],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
         entries = [e for e in log.split('\n')[:5] if e]
         if entries:
             lines.append('  변경사항:')

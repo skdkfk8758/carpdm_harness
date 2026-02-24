@@ -76,7 +76,7 @@ export function registerUpdateTool(server: McpServer): void {
             if (pDryRun) {
               res.info('[DRY-RUN] 실제 업데이트는 수행하지 않습니다.');
             } else {
-              const result = performUpdate(packageRoot);
+              const result = performUpdate(packageRoot, check.remoteVersion);
 
               if (result.success) {
                 res.ok(`플러그인 업데이트 완료: ${result.previousRef.slice(0, 7)} → ${result.newRef.slice(0, 7)}`);
