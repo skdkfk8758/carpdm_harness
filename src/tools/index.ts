@@ -8,6 +8,10 @@ import { registerOntologyRefreshTool } from './ontology-refresh.js';
 import { registerInitTool } from './init.js';
 import { registerUpdateTool } from './update.js';
 import { registerMigrateTool } from './migrate.js';
+import { registerOntologyDomainWriteTool } from './ontology-domain-write.js';
+import { registerMemoryAddTool } from './memory-add.js';
+import { registerMemoryListTool } from './memory-list.js';
+import { registerDashboardTool } from './dashboard.js';
 
 export function registerAllTools(server: McpServer): void {
   registerListTool(server);
@@ -16,7 +20,11 @@ export function registerAllTools(server: McpServer): void {
   registerOntologyStatusTool(server);
   registerOntologyGenerateTool(server);
   registerOntologyRefreshTool(server);
+  registerOntologyDomainWriteTool(server);
   registerInitTool(server);
   registerUpdateTool(server);
   registerMigrateTool(server);
+  registerMemoryAddTool(server);
+  registerMemoryListTool(server);
+  registerDashboardTool(server);
 }

@@ -2,13 +2,14 @@
 # Hook: PreToolUse (Edit|Write) - TDD Guard
 # 소스 코드 수정 시 대응하는 테스트 파일 존재 여부 확인
 # 테스트 파일이 없으면 Block (exit 1) 또는 Warn (exit 0 + 경고)
+source "$(dirname "$0")/_harness-common.sh"
 
 # stdin에서 JSON 읽기
 INPUT=$(cat)
 
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
+harness_set_cwd
+harness_init_event_log "$INPUT"
 
 # === 1. TDD 활성화 확인 ===
 MEMORY_FILE=".omc/project-memory.json"
@@ -50,8 +51,8 @@ except:
     print('true')
 " 2>/dev/null)
 
-if [ "$SPEED_MODE_WARN" = "true" ] && [ -f ".omc/state/task-mode" ]; then
-    CURRENT_MODE=$(cat ".omc/state/task-mode" 2>/dev/null)
+if [ "$SPEED_MODE_WARN" = "true" ] && [ -f "$HARNESS_STATE_DIR/task-mode" ]; then
+    CURRENT_MODE=$(cat "$HARNESS_STATE_DIR/task-mode" 2>/dev/null)
     if [ "$CURRENT_MODE" = "Speed" ]; then
         TDD_MODE="warn"
     fi
@@ -212,6 +213,7 @@ esac
 
 # === 8. 결과 처리 ===
 if [ "$TEST_FOUND" = true ]; then
+    harness_log_event "tdd-guard" "PASS" "PreToolUse" "" "" "$REL_PATH"
     exit 0
 fi
 
@@ -236,6 +238,7 @@ EOF
     echo ""
     echo "  /tdd-cycle 커맨드로 Red-Green-Refactor 사이클을 시작할 수 있습니다."
     echo "  단순 1-2줄 수정이면 사유를 명시하고 진행하세요."
+    harness_log_event "tdd-guard" "BLOCK" "PreToolUse" "테스트 파일 미존재" "" "$REL_PATH"
     exit 1
 else
     cat <<EOF
@@ -244,5 +247,6 @@ else
   소스 파일: ${REL_PATH}
   권장: 작업 완료 후 테스트를 추가하세요.
 EOF
+    harness_log_event "tdd-guard" "WARN" "PreToolUse" "Speed Mode" "" "$REL_PATH"
     exit 0
 fi

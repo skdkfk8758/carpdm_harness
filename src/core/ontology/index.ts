@@ -9,11 +9,12 @@ import type {
   BuildResult,
   OntologyMetadata,
   LayerStatus,
+  DomainBuildContext,
 } from '../../types/ontology.js';
 import { PluginRegistry } from './plugin-registry.js';
 import { buildStructureLayer } from './structure-builder.js';
 import { buildSemanticsLayer } from './semantics-builder.js';
-import { buildDomainLayer } from './domain-builder.js';
+import { buildDomainLayer, collectDomainContext } from './domain-builder.js';
 import { renderOntologyMarkdown } from './markdown-renderer.js';
 import {
   loadOntologyCache,
@@ -154,20 +155,43 @@ export async function buildOntology(
 
   // ── Layer 3: Domain ──
   let domainData = null;
-  if (config.layers.domain.enabled && config.ai && structureData) {
-    logger.info('Layer 3: Domain 빌드 중...');
-    const result = await safeLayerBuild('domain', () =>
-      buildDomainLayer(
-        projectRoot,
-        structureData!,
-        semanticsData,
-        config.layers.domain,
-        config.ai!,
-      ),
-    );
-    results.push(result);
-    metadata.layerStatus.domain = updateLayerStatus(metadata.layerStatus.domain, result);
-    domainData = result.data;
+  let domainContext: DomainBuildContext | undefined;
+  if (config.layers.domain.enabled && structureData) {
+    if (config.ai?.provider === 'claude-code') {
+      // claude-code provider: context만 수집하여 반환 (Claude Code가 분석)
+      logger.info('Layer 3: Domain context 수집 중 (claude-code provider)...');
+      domainContext = collectDomainContext(projectRoot, structureData, semanticsData);
+      results.push({
+        layer: 'domain',
+        success: true,
+        duration: 0,
+        fileCount: 0,
+        warnings: ['claude-code provider: Claude Code에서 domain 분석을 수행하세요'],
+      });
+    } else if (!config.ai) {
+      logger.warn('Domain 레이어가 활성화되었으나 AI 설정이 없습니다. Domain 레이어를 건너뜁니다.');
+      results.push({
+        layer: 'domain',
+        success: true,
+        duration: 0,
+        fileCount: 0,
+        warnings: ['AI 설정 누락으로 Domain 레이어 스킵'],
+      });
+    } else {
+      logger.info('Layer 3: Domain 빌드 중...');
+      const result = await safeLayerBuild('domain', () =>
+        buildDomainLayer(
+          projectRoot,
+          structureData!,
+          semanticsData,
+          config.layers.domain,
+          config.ai!,
+        ),
+      );
+      results.push(result);
+      metadata.layerStatus.domain = updateLayerStatus(metadata.layerStatus.domain, result);
+      domainData = result.data;
+    }
   }
 
   // OntologyData 조합
@@ -200,7 +224,7 @@ export async function buildOntology(
   const totalDuration = Date.now() - startTime;
   logger.ok(`온톨로지 빌드 완료 (${totalDuration}ms)`);
 
-  return { results, totalDuration, outputFiles };
+  return { results, totalDuration, outputFiles, domainContext };
 }
 
 /**

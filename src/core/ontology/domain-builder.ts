@@ -13,6 +13,7 @@ import type {
   PatternInsight,
   ConventionInsight,
   GlossaryEntry,
+  DomainBuildContext,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -371,6 +372,39 @@ ${treeText}`;
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Domain 빌드용 context 데이터 수집 (API 호출 없이)
+ * claude-code provider에서 사용: context만 수집하여 Claude Code가 분석하도록 반환
+ */
+export function collectDomainContext(
+  projectRoot: string,
+  structureLayer: StructureLayer,
+  semanticsLayer: SemanticsLayer | null,
+): DomainBuildContext {
+  const directoryTree = summarizeDirectoryTree(structureLayer);
+  const packageJson = readPackageJson(projectRoot);
+
+  const entryPoints = structureLayer.modules
+    .filter((m) => m.source.includes('index') || m.source.includes('main') || m.source.includes('cli'))
+    .map((m) => m.source)
+    .slice(0, 10);
+
+  const externalDeps = semanticsLayer?.dependencies.external
+    .map((d) => `${d.name}@${d.version}`)
+    ?? [];
+
+  const symbolSamples = semanticsLayer
+    ? semanticsLayer.files
+        .flatMap((f) =>
+          f.exports.slice(0, 3).map((s) => `${f.path}:${s.line} — ${s.kind} ${s.name}`),
+        )
+        .slice(0, 30)
+        .join('\n')
+    : '';
+
+  return { directoryTree, packageJson, symbolSamples, entryPoints, externalDeps };
+}
+
+/**
  * Layer 3 전체 빌드
  * 4단계 AI 프롬프트로 도메인 지식을 추출합니다.
  * 캐시가 유효하면 AI 호출을 스킵합니다.
@@ -386,6 +420,25 @@ export async function buildDomainLayer(
   logger.info('Domain Layer 빌드 시작');
 
   const warnings: string[] = [];
+
+  // AI config null 체크 — graceful return
+  if (!aiConfig) {
+    logger.warn('AI 설정이 없어 Domain Layer를 건너뜁니다.');
+    return {
+      layer: 'domain',
+      success: true,
+      duration: Date.now() - startTime,
+      fileCount: 0,
+      warnings: ['AI 설정 누락으로 Domain Layer 스킵'],
+      data: {
+        projectSummary: '',
+        architecture: { style: 'unknown', layers: [], keyDecisions: [], entryPoints: [] },
+        patterns: [],
+        conventions: [],
+        glossary: [],
+      },
+    };
+  }
 
   // 입력 해시 계산 및 캐시 확인
   const inputHash = computeInputHash(structureLayer, semanticsLayer);

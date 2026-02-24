@@ -1,12 +1,13 @@
 #!/bin/bash
 # Hook: PostToolUse (Edit|Write) - Code Change Logger + Quality Reminder
 # 코드 변경 후: (1) 변경 기록 자동 저장, (2) 품질 체크 리마인더, (3) todo.md 갱신 알림
+source "$(dirname "$0")/_harness-common.sh"
 
 INPUT=$(cat)
 
 # Worktree-aware: CLAUDE_CWD → git worktree root → pwd
-CWD="${CLAUDE_CWD:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-cd "$CWD" 2>/dev/null || exit 0
+harness_set_cwd
+harness_init_event_log "$INPUT"
 
 # 수정된 파일 경로 추출
 FILE_PATH=$(echo "$INPUT" | python3 -c "
@@ -33,9 +34,9 @@ except:
 case "$FILE_PATH" in
     *.py|*.ts|*.tsx|*.js|*.jsx|*.go|*.rs|*.java|*.rb|*.swift|*.kt|*.c|*.cpp|*.cs|*.sql)
 
-        # === 1. 변경 기록 자동 저장 (.omc/change-log.md) ===
-        mkdir -p ".omc" 2>/dev/null
-        CHANGE_LOG=".omc/change-log.md"
+        # === 1. 변경 기록 자동 저장 (.harness/change-log.md) ===
+        mkdir -p ".harness" 2>/dev/null
+        CHANGE_LOG=".harness/change-log.md"
         TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
         DATE_HEADER=$(date '+%Y-%m-%d')
 
@@ -136,8 +137,8 @@ except:
     print('false')
 " 2>/dev/null)
             if [ "$TDD_ON" = "true" ]; then
-                mkdir -p ".omc/state" 2>/dev/null
-                TDD_ORDER_FILE=".omc/state/tdd-edit-order"
+                harness_ensure_state_dir
+                TDD_ORDER_FILE="$HARNESS_STATE_DIR/tdd-edit-order"
                 TDD_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
                 # 테스트 파일인지 소스 파일인지 판별
@@ -172,8 +173,9 @@ except:
 - DDD 확인: Model→Store→Service→Route 계층 준수
 - 명명 확인: Ubiquitous Language (docs/conventions.md)
 - 의사결정 기록: 설계 결정/트레이드오프 발생 시 .agent/context.md에 기록 (Think Before Coding)
-- 변경 기록: .omc/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}
+- 변경 기록: .harness/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}
 EOF
         ;;
 esac
+harness_log_event "code-change" "PASS" "PostToolUse" "$CHANGE_TYPE" "$TOOL_NAME" "$FILE_PATH"
 exit 0

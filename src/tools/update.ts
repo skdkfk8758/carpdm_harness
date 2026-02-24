@@ -1,10 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { join } from 'node:path';
+import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
 import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
 import { getAllModules } from '../core/module-registry.js';
 import { safeCopyFile, computeFileHash, backupFile } from '../core/file-ops.js';
+import { getAllModuleFiles } from '../core/template-engine.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { getPackageVersion } from '../utils/version.js';
 import { refreshOntology } from '../core/ontology/index.js';
@@ -38,6 +40,14 @@ export function registerUpdateTool(server: McpServer): void {
 
         res.header('carpdm-harness 업데이트');
 
+        // 레거시 상태 마이그레이션
+        if (!pDryRun) {
+          const migration = migrateLegacyState(pRoot);
+          if (migration.migrated > 0) {
+            res.info(`레거시 상태 마이그레이션: ${migration.migrated}/${migration.total}개 파일`);
+          }
+        }
+
         const changes = analyzeChanges(config, pRoot);
         const filteredChanges = targetModule
           ? changes.filter(c => c.module === (targetModule as string))
@@ -62,7 +72,7 @@ export function registerUpdateTool(server: McpServer): void {
           const mod = modules[change.module];
           if (!mod) continue;
 
-          const allFiles = [...mod.commands, ...mod.hooks, ...mod.docs];
+          const allFiles = getAllModuleFiles(mod);
           const modFile = allFiles.find(f => f.destination === change.relativePath);
           if (!modFile) continue;
 
@@ -143,4 +153,40 @@ export function registerUpdateTool(server: McpServer): void {
       }
     },
   );
+}
+
+function migrateLegacyState(projectRoot: string): { migrated: number; total: number } {
+  const legacyDir = join(projectRoot, '.omc', 'state');
+  const newDir = join(projectRoot, '.harness', 'state');
+
+  mkdirSync(newDir, { recursive: true });
+
+  const LEGACY_FILES = [
+    'task-mode', 'lessons-counter', 'todo-done-count',
+    'edit-counter', 'cross-verified', 'verify-result',
+    'verify-loop-result', 'tdd-result', 'tdd-edit-order',
+  ];
+
+  let migrated = 0;
+  const total = LEGACY_FILES.length;
+
+  for (const file of LEGACY_FILES) {
+    const src = join(legacyDir, file);
+    const dest = join(newDir, file);
+    if (existsSync(src) && !existsSync(dest)) {
+      copyFileSync(src, dest);
+      migrated++;
+    }
+  }
+
+  // change-log.md 마이그레이션
+  const legacyLog = join(projectRoot, '.omc', 'change-log.md');
+  const newLog = join(projectRoot, '.harness', 'change-log.md');
+  if (existsSync(legacyLog) && !existsSync(newLog)) {
+    mkdirSync(join(projectRoot, '.harness'), { recursive: true });
+    copyFileSync(legacyLog, newLog);
+    migrated++;
+  }
+
+  return { migrated, total: total + 1 };
 }
