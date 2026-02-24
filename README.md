@@ -168,6 +168,18 @@ sequenceDiagram
 | `acceptAll` | boolean | `false` | 모든 변경 자동 수락 |
 | `refreshOntology` | boolean | `false` | 온톨로지 갱신 |
 
+## 슬래시 커맨드
+
+`harness_init` 실행 시 `~/.claude/commands/`에 글로벌 커맨드가 자동 설치됩니다. Claude Code에서 `/커맨드명`으로 사용합니다.
+
+| 커맨드 | 설명 |
+|--------|------|
+| `/harness-init` | `harness_init` MCP 도구를 호출하여 워크플로우 설치 |
+| `/harness-update` | `harness_update` MCP 도구를 호출하여 템플릿 업데이트 |
+| `/project-setup` | 새 프로젝트에 AI 협업 환경 원스톱 구축 (플러그인 + MCP + 스킬 + 워크플로우) |
+| `/project-init` | 기존 프로젝트에 AI 협업 환경 적용 (코드베이스 자동 분석) |
+| `/project-setup-simple` | 초보자용 간소화 세팅 (4문항 인터뷰) |
+
 ## 모듈 시스템
 
 7개 모듈로 구성되며, 각 모듈은 커맨드(`.claude/commands/`), 훅(`.claude/hooks/`), 문서 템플릿을 포함합니다.
