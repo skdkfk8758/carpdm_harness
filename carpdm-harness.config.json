@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "installedAt": "2026-02-24T00:00:00Z",
+  "updatedAt": "2026-02-24T00:00:00Z",
+  "preset": "full",
+  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology"],
+  "globalCommandsInstalled": false,
+  "options": {
+    "agentDir": ".agent",
+    "docsTemplatesDir": "docs/templates",
+    "hooksRegistered": true
+  },
+  "files": {},
+  "ontology": {
+    "enabled": true,
+    "outputDir": ".agent/ontology",
+    "layers": {
+      "structure": { "enabled": true, "maxDepth": 10, "excludePatterns": ["node_modules", ".git", "dist", "build", "coverage", ".next", ".cache", ".omc", ".serena", ".agent"] },
+      "semantics": { "enabled": true, "languages": ["typescript"] },
+      "domain": { "enabled": false, "provider": "anthropic", "model": "claude-sonnet-4-20250514", "maxTokens": 4096 }
+    },
+    "autoUpdate": {
+      "enabled": true,
+      "gitHook": "post-commit",
+      "debounceMs": 5000,
+      "incrementalOnly": true
+    },
+    "plugins": ["typescript"],
+    "ai": null
+  }
+}
