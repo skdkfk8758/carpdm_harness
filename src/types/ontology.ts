@@ -23,11 +23,19 @@ export interface AutoUpdateConfig {
 }
 
 export interface AIProviderConfig {
-  provider: 'openai' | 'anthropic' | 'custom';
+  provider: 'openai' | 'anthropic' | 'claude-code' | 'custom';
   apiKeyEnv: string;
   model: string;
   maxTokensPerRequest: number;
   rateLimitMs: number;
+}
+
+export interface DomainBuildContext {
+  directoryTree: string;
+  packageJson: string;
+  symbolSamples: string;
+  entryPoints: string[];
+  externalDeps: string[];
 }
 
 // === 온톨로지 데이터 모델 ===
@@ -231,6 +239,7 @@ export interface OntologyBuildReport {
   results: BuildResult[];
   totalDuration: number;
   outputFiles: string[];
+  domainContext?: DomainBuildContext;
 }
 
 // === 점진적 갱신 ===
@@ -254,12 +263,24 @@ export interface OntologyCache {
 
 // === 기본값 ===
 
+export const ONTOLOGY_LANGUAGE_PRESETS: Record<string, string[]> = {
+  typescript: ['typescript'],
+  javascript: ['javascript'],
+  python: ['python'],
+  go: ['go'],
+  rust: ['rust'],
+  java: ['java'],
+  frontend: ['typescript', 'javascript'],
+  backend: ['python', 'go', 'java', 'rust'],
+  fullstack: ['typescript', 'javascript', 'python'],
+};
+
 export const DEFAULT_ONTOLOGY_CONFIG: OntologyConfig = {
   enabled: false,
   outputDir: '.agent/ontology',
   layers: {
     structure: { enabled: true, maxDepth: 10, excludePatterns: ['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache'] },
-    semantics: { enabled: true, languages: ['typescript'] },
+    semantics: { enabled: true, languages: [] },
     domain:    { enabled: false, provider: 'anthropic', model: 'claude-sonnet-4-20250514', maxTokens: 4096 },
   },
   autoUpdate: {
@@ -268,6 +289,6 @@ export const DEFAULT_ONTOLOGY_CONFIG: OntologyConfig = {
     debounceMs: 5000,
     incrementalOnly: true,
   },
-  plugins: ['typescript'],
+  plugins: [],
   ai: null,
 };

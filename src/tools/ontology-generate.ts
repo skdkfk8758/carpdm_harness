@@ -68,6 +68,31 @@ export function registerOntologyGenerateTool(server: McpServer): void {
           }
         }
 
+        if (report.domainContext) {
+          res.blank();
+          res.header('Domain 레이어 분석 요청');
+          res.line('아래 context를 분석하여 harness_ontology_domain_write 도구로 domain 레이어를 생성하세요.');
+          res.blank();
+          res.info('디렉토리 구조:');
+          res.line(report.domainContext.directoryTree);
+          res.blank();
+          res.info('package.json:');
+          res.line(report.domainContext.packageJson);
+          if (report.domainContext.symbolSamples) {
+            res.blank();
+            res.info('심볼 샘플:');
+            res.line(report.domainContext.symbolSamples);
+          }
+          if (report.domainContext.entryPoints.length > 0) {
+            res.blank();
+            res.info(`진입점: ${report.domainContext.entryPoints.join(', ')}`);
+          }
+          if (report.domainContext.externalDeps.length > 0) {
+            res.blank();
+            res.info(`외부 의존성: ${report.domainContext.externalDeps.join(', ')}`);
+          }
+        }
+
         return res.toResult();
       } catch (err) {
         return errorResult(`온톨로지 생성 실패: ${String(err)}`);
