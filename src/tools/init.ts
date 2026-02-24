@@ -154,7 +154,7 @@ function installGlobalCommands(): void {
 
   ensureDir(globalDir);
 
-  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md'];
+  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md'];
   for (const file of globalFiles) {
     const src = join(globalTemplates, file);
     const dest = join(globalDir, file);
