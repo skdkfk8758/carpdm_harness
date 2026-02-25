@@ -5,6 +5,7 @@ import { buildOntology } from '../core/ontology/index.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import type { OntologyConfig } from '../types/ontology.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
+import { syncOntologyToOmc } from '../core/state-sync.js';
 
 export function registerOntologyGenerateTool(server: McpServer): void {
   server.tool(
@@ -68,6 +69,20 @@ export function registerOntologyGenerateTool(server: McpServer): void {
           }
         }
 
+        // @MX 어노테이션 요약
+        if (report.annotationSummary) {
+          const s = report.annotationSummary;
+          res.blank();
+          res.header('@MX 어노테이션');
+          res.table([
+            ['ANCHOR', `${s.byTag['ANCHOR'] ?? 0}개`],
+            ['WARN', `${s.byTag['WARN'] ?? 0}개`],
+            ['NOTE', `${s.byTag['NOTE'] ?? 0}개`],
+            ['TODO', `${s.byTag['TODO'] ?? 0}개`],
+            ['합계', `${s.total}개`],
+          ]);
+        }
+
         if (report.domainContext) {
           res.blank();
           res.header('Domain 레이어 분석 요청');
@@ -90,6 +105,19 @@ export function registerOntologyGenerateTool(server: McpServer): void {
           if (report.domainContext.externalDeps.length > 0) {
             res.blank();
             res.info(`외부 의존성: ${report.domainContext.externalDeps.join(', ')}`);
+          }
+        }
+
+        // OMC project-memory 동기화
+        if (!dryRun) {
+          try {
+            const syncResult = syncOntologyToOmc(projectRoot as string);
+            if (syncResult.synced > 0) {
+              res.blank();
+              res.ok(`OMC project-memory 동기화: ${syncResult.synced}개 항목`);
+            }
+          } catch {
+            // OMC 동기화 실패는 무시
           }
         }
 

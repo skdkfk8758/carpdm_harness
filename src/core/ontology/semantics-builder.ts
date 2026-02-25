@@ -13,7 +13,9 @@ import type {
   DirectoryNode,
   ModuleRelation,
 } from '../../types/ontology.js';
+import type { CapabilityResult } from '../../types/capabilities.js';
 import { PluginRegistry } from './plugin-registry.js';
+import { generateAnnotations } from './annotation-analyzer.js';
 
 // ────────────────────────────────────────────────────────────────────────────
 // 내부 유틸
@@ -157,6 +159,7 @@ export async function buildSemanticsLayer(
   structureLayer: StructureLayer,
   config: OntologyLayerConfig['semantics'],
   pluginRegistry: PluginRegistry,
+  capabilities?: CapabilityResult,
 ): Promise<BuildResult & { data: SemanticsLayer }> {
   const startTime = Date.now();
   logger.info('Semantics Layer 빌드 시작');
@@ -191,8 +194,23 @@ export async function buildSemanticsLayer(
     [], // package.json 외부 의존성은 structure-builder에서 별도 읽음
   );
 
+  // SemanticsLayer 조합
+  const semanticsData: SemanticsLayer = { files, symbols, dependencies };
+
+  // @MX 어노테이션 분석 및 부착
+  const annotationResult = generateAnnotations(semanticsData, projectRoot);
+  semanticsData.annotationSummary = annotationResult.summary;
+
   const duration = Date.now() - startTime;
-  logger.ok(`Semantics Layer 빌드 완료 — 파일 ${files.length}개, 심볼 ${symbols.totalCount}개 (${duration}ms)`);
+  logger.ok(`Semantics Layer 빌드 완료 — 파일 ${files.length}개, 심볼 ${symbols.totalCount}개, 어노테이션 ${annotationResult.summary.total}개 (${duration}ms)`);
+
+  // Serena 감지 시 LSP 심볼 보강 힌트 추가
+  if (capabilities?.tools?.serena?.detected) {
+    warnings.push(
+      '[힌트] Serena가 감지되었습니다. lsp_document_symbols로 심볼 정보를 보강할 수 있습니다.',
+    );
+    logger.dim('Serena 감지됨 — LSP 심볼 보강 힌트 추가');
+  }
 
   return {
     layer: 'semantics',
@@ -200,7 +218,7 @@ export async function buildSemanticsLayer(
     duration,
     fileCount: files.length,
     warnings,
-    data: { files, symbols, dependencies },
+    data: semanticsData,
   };
 }
 
@@ -260,8 +278,15 @@ export async function updateSemanticsIncremental(
     external: existing.dependencies.external,
   };
 
+  // SemanticsLayer 조합
+  const semanticsData: SemanticsLayer = { files: mergedFiles, symbols, dependencies };
+
+  // @MX 어노테이션 재계산
+  const annotationResult = generateAnnotations(semanticsData, projectRoot);
+  semanticsData.annotationSummary = annotationResult.summary;
+
   const duration = Date.now() - startTime;
-  logger.ok(`Semantics Layer 점진적 갱신 완료 — 파일 ${mergedFiles.length}개 (${duration}ms)`);
+  logger.ok(`Semantics Layer 점진적 갱신 완료 — 파일 ${mergedFiles.length}개, 어노테이션 ${annotationResult.summary.total}개 (${duration}ms)`);
 
   return {
     layer: 'semantics',
@@ -269,6 +294,6 @@ export async function updateSemanticsIncremental(
     duration,
     fileCount: mergedFiles.length,
     warnings,
-    data: { files: mergedFiles, symbols, dependencies },
+    data: semanticsData,
   };
 }

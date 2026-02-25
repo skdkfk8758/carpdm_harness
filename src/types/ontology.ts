@@ -100,12 +100,32 @@ export interface StructureStats {
   byExtension: Record<string, number>;
 }
 
+// === @MX 어노테이션 ===
+
+export type MxTag = 'ANCHOR' | 'WARN' | 'NOTE' | 'TODO';
+
+export interface MxAnnotation {
+  tag: MxTag;
+  message: string;
+  line?: number;
+  symbolName?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AnnotationSummary {
+  total: number;
+  byTag: Record<string, number>;
+  topAnchors: Array<{ symbol: string; file: string; fanIn: number }>;
+  warnings: Array<{ symbol: string; file: string; reason: string }>;
+}
+
 // === Layer 2: Code Semantics ===
 
 export interface SemanticsLayer {
   files: SemanticFile[];
   symbols: SymbolIndex;
   dependencies: DependencyGraph;
+  annotationSummary?: AnnotationSummary;
 }
 
 export interface SemanticFile {
@@ -117,6 +137,7 @@ export interface SemanticFile {
   functions: FunctionEntry[];
   interfaces: InterfaceEntry[];
   types: TypeAliasEntry[];
+  annotations?: MxAnnotation[];
 }
 
 export interface SymbolEntry {
@@ -126,6 +147,7 @@ export interface SymbolEntry {
   exported: boolean;
   signature?: string;
   jsdoc?: string;
+  annotations?: MxAnnotation[];
 }
 
 export type SymbolKind =
@@ -240,6 +262,7 @@ export interface OntologyBuildReport {
   totalDuration: number;
   outputFiles: string[];
   domainContext?: DomainBuildContext;
+  annotationSummary?: AnnotationSummary;
 }
 
 // === 점진적 갱신 ===
