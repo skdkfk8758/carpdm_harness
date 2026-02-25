@@ -1,0 +1,72 @@
+name: Bug Report
+description: 버그를 신고합니다
+title: "[Bug] "
+labels: ["fix"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 버그 설명
+      description: 어떤 문제가 발생했는지 설명해 주세요
+      placeholder: 예상 동작과 실제 동작을 포함하세요
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법
+      description: 버그를 재현하는 단계를 작성하세요
+      placeholder: |
+        1. '...'로 이동
+        2. '...'을 클릭
+        3. '...'까지 스크롤
+        4. 에러 발생
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      options:
+        - P0-critical (서비스 불가)
+        - P1-high (핵심 기능 장애)
+        - P2-medium (불편하지만 우회 가능)
+        - P3-low (사소한 문제)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: 도메인
+      description: 관련된 코드 영역을 선택하세요
+      options:
+        - web (프론트엔드)
+        - api (백엔드)
+        - shared (공용 모듈)
+        - infra (인프라/CI/CD)
+        - other
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 환경 정보
+      description: 브라우저, OS, Node 버전 등
+      placeholder: |
+        - OS: macOS 15.x
+        - Browser: Chrome 131
+        - Node: 22.x
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 에러 로그 / 스크린샷
+      description: 관련 에러 메시지나 스크린샷을 첨부하세요
+    validations:
+      required: false
