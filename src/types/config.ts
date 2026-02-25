@@ -1,5 +1,8 @@
 import type { FileHash } from './common.js';
 import type { OntologyConfig } from './ontology.js';
+import type { CapabilityResult } from './capabilities.js';
+import type { QualityGateConfig } from './quality-gate.js';
+import type { WorkflowEngineConfig } from './workflow-engine.js';
 
 export interface HarnessConfig {
   version: string;
@@ -14,6 +17,11 @@ export interface HarnessConfig {
   eventRetentionDays?: number;
   pluginVersion?: string;
   lastPluginUpdateAt?: string;
+  capabilities?: CapabilityResult;
+  planGuard?: 'block' | 'warn';
+  qualityGate?: QualityGateConfig;
+  workflowEngine?: WorkflowEngineConfig;
+  omcConfig?: OmcConfig;
 }
 
 export interface ConfigOptions {
@@ -35,6 +43,21 @@ export const DEFAULT_CONFIG: HarnessConfig = {
     agentDir: '.agent',
   },
   files: {},
+  planGuard: 'block',
 };
 
 export const CONFIG_FILENAME = 'carpdm-harness.config.json';
+
+export interface OmcConfig {
+  autoSync: boolean;
+  workflowIntegration: boolean;
+  agentPipelineHints: boolean;
+  ontologySync: boolean;
+}
+
+export const DEFAULT_OMC_CONFIG: OmcConfig = {
+  autoSync: true,
+  workflowIntegration: true,
+  agentPipelineHints: true,
+  ontologySync: true,
+};

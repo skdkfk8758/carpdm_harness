@@ -1,5 +1,6 @@
 {
   "name": "secure",
-  "description": "보안 중심 — core + quality + security + ship",
-  "modules": ["core", "quality", "security", "ship"]
+  "description": "보안 중심 — core + quality + security + ship + team-memory",
+  "modules": ["core", "quality", "security", "ship", "team-memory"],
+  "recommendedCapabilities": ["serena", "codex"]
 }

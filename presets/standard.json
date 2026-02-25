@@ -1,5 +1,6 @@
 {
   "name": "standard",
-  "description": "추천 구성 — core + quality + ship",
-  "modules": ["core", "quality", "ship"]
+  "description": "OMC 통합 기본 구성 — core + quality + ship + team-memory",
+  "modules": ["core", "quality", "ship", "team-memory"],
+  "recommendedCapabilities": ["context7"]
 }
