@@ -1,17 +1,27 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-export type MemoryCategory = 'conventions' | 'patterns' | 'decisions' | 'mistakes';
+export type MemoryCategory = 'conventions' | 'patterns' | 'decisions' | 'mistakes' | 'bugs';
 export type ConventionSubcategory = 'naming' | 'structure' | 'error-handling' | 'other';
+export type BugSubcategory = 'ui' | 'data' | 'api' | 'perf' | 'crash' | 'logic' | 'other';
+export type BugStatus = 'open' | 'resolved' | 'wontfix';
+export type BugSeverity = 'critical' | 'high' | 'medium' | 'low';
 
 export interface MemoryEntry {
   id: string;
   category: MemoryCategory;
-  subcategory?: ConventionSubcategory;
+  subcategory?: ConventionSubcategory | BugSubcategory;
   title: string;
   content: string;
   evidence?: string[];
   addedAt: string;
+  // Bug tracking fields (bugs 카테고리 전용, backward compatible)
+  status?: BugStatus;
+  severity?: BugSeverity;
+  rootCause?: string;
+  resolution?: string;
+  linkedIssue?: string;
+  affectedFiles?: string[];
 }
 
 export interface TeamMemoryStore {
@@ -27,6 +37,7 @@ const RULE_PATHS: Record<MemoryCategory, string> = {
   patterns:    '.claude/rules/patterns.md',
   decisions:   '.claude/rules/decisions.md',
   mistakes:    '.claude/rules/mistakes.md',
+  bugs:        '.claude/rules/bugs.md',
 };
 
 const MARKERS: Record<string, string> = {
@@ -37,6 +48,7 @@ const MARKERS: Record<string, string> = {
   'patterns':                  '<!-- harness:patterns:list -->',
   'decisions':                 '<!-- harness:decisions:list -->',
   'mistakes':                  '<!-- harness:mistakes:list -->',
+  'bugs':                      '<!-- harness:bugs:list -->',
 };
 
 function markerKey(entry: MemoryEntry): string {
@@ -72,10 +84,16 @@ export function addEntry(
   projectRoot: string,
   params: {
     category: MemoryCategory;
-    subcategory?: ConventionSubcategory;
+    subcategory?: ConventionSubcategory | BugSubcategory;
     title: string;
     content: string;
     evidence?: string[];
+    status?: BugStatus;
+    severity?: BugSeverity;
+    rootCause?: string;
+    resolution?: string;
+    linkedIssue?: string;
+    affectedFiles?: string[];
   },
 ): MemoryEntry {
   const store = loadStore(projectRoot);
@@ -87,6 +105,12 @@ export function addEntry(
     content: params.content,
     evidence: params.evidence,
     addedAt: new Date().toISOString(),
+    ...(params.status && { status: params.status }),
+    ...(params.severity && { severity: params.severity }),
+    ...(params.rootCause && { rootCause: params.rootCause }),
+    ...(params.resolution && { resolution: params.resolution }),
+    ...(params.linkedIssue && { linkedIssue: params.linkedIssue }),
+    ...(params.affectedFiles && { affectedFiles: params.affectedFiles }),
   };
   store.entries.push(entry);
   saveStore(projectRoot, store);
@@ -98,10 +122,17 @@ export function addEntry(
 export function listEntries(
   projectRoot: string,
   category: MemoryCategory | 'all',
+  filters?: { status?: BugStatus; severity?: BugSeverity },
 ): MemoryEntry[] {
   const store = loadStore(projectRoot);
-  if (category === 'all') return store.entries;
-  return store.entries.filter(e => e.category === category);
+  let entries = category === 'all' ? store.entries : store.entries.filter(e => e.category === category);
+  if (filters?.status) {
+    entries = entries.filter(e => e.status === filters.status);
+  }
+  if (filters?.severity) {
+    entries = entries.filter(e => e.severity === filters.severity);
+  }
+  return entries;
 }
 
 /**
@@ -150,7 +181,7 @@ export function syncMemoryMd(projectRoot: string, store: TeamMemoryStore): void 
 
   let content = readFileSync(memoryPath, 'utf-8');
 
-  const categories: MemoryCategory[] = ['conventions', 'patterns', 'decisions', 'mistakes'];
+  const categories: MemoryCategory[] = ['conventions', 'patterns', 'decisions', 'mistakes', 'bugs'];
 
   for (const category of categories) {
     const startMarker = `<!-- team-memory:${category}:start -->`;
@@ -187,12 +218,26 @@ function categoryLabel(category: MemoryCategory): string {
     patterns: '패턴',
     decisions: '결정',
     mistakes: '실수',
+    bugs: '버그',
   };
   return labels[category];
 }
 
 function renderEntry(entry: MemoryEntry): string {
   const lines: string[] = [`### ${entry.title}`, '', entry.content];
+  // Bug tracking metadata
+  if (entry.category === 'bugs') {
+    const meta: string[] = [];
+    if (entry.severity) meta.push(`심각도: ${entry.severity}`);
+    if (entry.status) meta.push(`상태: ${entry.status}`);
+    if (entry.linkedIssue) meta.push(`이슈: ${entry.linkedIssue}`);
+    if (meta.length > 0) lines.push('', `> ${meta.join(' | ')}`);
+    if (entry.rootCause) lines.push('', `**원인**: ${entry.rootCause}`);
+    if (entry.resolution) lines.push('', `**해결**: ${entry.resolution}`);
+    if (entry.affectedFiles && entry.affectedFiles.length > 0) {
+      lines.push('', `_영향 파일: ${entry.affectedFiles.join(', ')}_`);
+    }
+  }
   if (entry.evidence && entry.evidence.length > 0) {
     lines.push('', `_근거: ${entry.evidence.join(', ')}_`);
   }

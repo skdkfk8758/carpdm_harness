@@ -8,6 +8,7 @@ export interface ModuleDefinition {
   rules?: ModuleFile[];
   agents?: ModuleFile[];
   agentFiles?: ModuleFile[];
+  github?: ModuleFile[];
 }
 
 export interface ModuleFile {

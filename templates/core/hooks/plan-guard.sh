@@ -59,13 +59,16 @@ case "$FILE_PATH" in
         # plan-guard 모드 결정: config + task-mode
         GUARD_MODE=$(harness_get_plan_guard_mode)
 
-        # BugFix/Speed 모드는 warn으로 완화
+        # BugFix/Speed 모드는 warn으로 완화 (BugFixPlan은 인터뷰 권장이므로 완화하지 않음)
         TASK_MODE=""
         if [ -f "$HARNESS_STATE_DIR/task-mode" ]; then
             TASK_MODE=$(cat "$HARNESS_STATE_DIR/task-mode" 2>/dev/null)
         fi
         if [ "$TASK_MODE" = "BugFix" ] || [ "$TASK_MODE" = "Speed" ]; then
             GUARD_MODE="warn"
+        elif [ "$TASK_MODE" = "BugFixPlan" ]; then
+            # 구조적 버그: guard 모드 유지하되, 인터뷰 안내 추가
+            echo "[PLAN GUARD] 구조적 버그 수정 감지 — /plan-gate 인터뷰로 원인 분석 후 수정을 권장합니다."
         fi
 
         # plan.md 확인

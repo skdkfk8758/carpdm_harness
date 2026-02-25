@@ -1,0 +1,61 @@
+name: Feature Request
+description: 새 기능이나 개선을 제안합니다
+title: "[Feat] "
+labels: ["feat"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결하려는 문제
+      description: 이 기능이 필요한 배경/문제를 설명하세요
+      placeholder: 현재 ...할 때 ...가 불편합니다
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 제안하는 해결 방법
+      description: 원하는 기능이나 동작을 설명하세요
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 우선순위
+      options:
+        - P1-high (핵심 기능)
+        - P2-medium (있으면 좋음)
+        - P3-low (나중에 해도 됨)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: 도메인
+      options:
+        - web (프론트엔드)
+        - api (백엔드)
+        - shared (공용 모듈)
+        - infra (인프라/CI/CD)
+        - other
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 대안
+      description: 고려한 대안이 있다면 설명하세요
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 추가 컨텍스트
+      description: 스크린샷, 목업, 참고 자료 등
+    validations:
+      required: false

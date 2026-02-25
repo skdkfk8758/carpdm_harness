@@ -89,18 +89,23 @@ README 업데이트가 필요한 변경이 있는지 검사한다:
 #### 커밋 메시지 컨벤션
 
 ```
-<type>: <설명 (영문, 소문자 시작, 현재형)>
+<type>(scope): <설명 (영문, 소문자 시작, 현재형)> (#이슈번호)
 
 <한국어 상세 설명 (2-3줄)>
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
+**이슈 연동 규칙:**
+- 관련 이슈가 있으면 반드시 커밋 메시지에 `(#이슈번호)` 포함
+- fix 커밋은 원인 태그 권장: `fix(web): [UI] prevent callback recreation (#42)`
+- 태그: `[UI]`, `[Data]`, `[API]`, `[Perf]`, `[Crash]`, `[Logic]`, `[Security]`, `[Config]`
+
 **type 규칙:**
 | type | 사용 | 예시 |
 |------|------|------|
-| `feat` | 새 기능 | feat: add user profile page |
-| `fix` | 버그 수정 | fix: resolve null pointer in payment |
+| `feat` | 새 기능 | feat(web): add user profile page (#3) |
+| `fix` | 버그 수정 | fix(api): [Data] resolve null pointer in payment (#4) |
 | `refactor` | 리팩토링 | refactor: extract auth middleware |
 | `docs` | 문서 | docs: update API reference |
 | `test` | 테스트 | test: add integration tests for cart |
@@ -219,14 +224,18 @@ Task(subagent_type="oh-my-claudecode:verifier", prompt="
 git push -u origin <branch-name>
 
 # 2. PR 생성
+# 이슈 번호가 있으면 Related Issues에 closes #N 포함 (머지 시 이슈 자동 닫힘)
 gh pr create --title "<PR 제목>" --body "$(cat <<'EOF'
 ## Summary
 <1-3줄 요약>
 
+## Related Issues
+closes #<이슈번호>
+
 ## Changes
 | 커밋 | 내용 |
 |------|------|
-| `<type>: <msg>` | <설명> |
+| `<type>(scope): <msg> (#N)` | <설명> |
 | ... | ... |
 
 ## Test plan
@@ -258,6 +267,9 @@ PR: <URL>
 ## Rules
 - main/master 브랜치에 직접 커밋하지 않는다 (feature 브랜치 필수)
 - 커밋 메시지는 반드시 Co-Authored-By를 포함한다
+- 관련 이슈가 있으면 커밋 메시지에 `(#이슈번호)` 포함
+- PR body에 `closes #N`으로 이슈 자동 닫기 연동
+- fix 커밋에는 원인 태그 권장: `[UI]`, `[Data]`, `[API]`, `[Perf]`, `[Crash]`
 - 분류 결과를 사용자에게 보여주고 확인 후 진행한다
 - .env, credentials 등 민감 파일은 커밋하지 않는다
 - 커밋 전 `git status`로 의도하지 않은 파일이 포함되지 않았는지 확인한다

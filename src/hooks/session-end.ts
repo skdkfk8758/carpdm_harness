@@ -759,6 +759,21 @@ function checkTeamMemorySync(cwd: string): string | null {
 // CLAUDE.md auto-sync check
 // ============================================================
 
+/** Bug Mode 세션 종료 시 버그 기록 제안 */
+function checkBugModeCompletion(cwd: string): string | null {
+  const stateDir = harnessStateDirFn(cwd);
+  const taskModePath = join(stateDir, 'task-mode');
+  if (!existsSync(taskModePath)) return null;
+
+  try {
+    const mode = readFileSync(taskModePath, 'utf-8').trim();
+    if (!mode.startsWith('BugFix')) return null;
+    return '[harness-session-end] Bug Mode 세션이 종료됩니다. 수정한 버그가 있다면 harness_bug_report 또는 harness_memory_add(category:"bugs")로 기록하면 팀 추적이 가능합니다.';
+  } catch {
+    return null;
+  }
+}
+
 function checkClaudeMdSync(cwd: string): string | null {
   const configPath = join(cwd, 'carpdm-harness.config.json');
   if (!existsSync(configPath)) return null;
@@ -819,7 +834,7 @@ function main(): void {
     // On persistent mode error, fall through to team-memory sync
   }
 
-  // Step 2: Team-memory sync check + CLAUDE.md sync check (only when not blocking)
+  // Step 2: Team-memory sync check + CLAUDE.md sync check + Bug Mode check (only when not blocking)
   const cwd = input.cwd || input.directory || process.cwd();
   const messages: string[] = [];
 
@@ -828,6 +843,9 @@ function main(): void {
 
   const claudeMessage = checkClaudeMdSync(cwd);
   if (claudeMessage) messages.push(claudeMessage);
+
+  const bugMessage = checkBugModeCompletion(cwd);
+  if (bugMessage) messages.push(bugMessage);
 
   if (messages.length > 0) {
     process.stdout.write(JSON.stringify({

@@ -120,11 +120,12 @@ function main(): void {
     warnings.push('Secured: [OK] 시크릿 미감지');
   }
 
-  // Trackable: 최근 커밋 메시지 컨벤션 (커밋 진행 중이므로 --amend인 경우만 체크 가능)
-  // 브랜치명 컨벤션 체크
+  // Trackable: 브랜치 컨벤션 + 이슈 번호 참조 확인
   try {
     const branch = execSync('git branch --show-current', { cwd, stdio: 'pipe' }).toString().trim();
     const branchConvention = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|hotfix|release|main|master|develop|dev)\//;
+    const issueRefPattern = /(?:#\d+|[A-Z]{2,}-\d+)/;
+
     if (branch && branch !== 'main' && branch !== 'master' && branch !== 'develop' && branch !== 'dev') {
       if (branchConvention.test(branch)) {
         warnings.push(`Trackable: [OK] 브랜치 컨벤션 준수 (${branch})`);
@@ -133,6 +134,11 @@ function main(): void {
       }
     } else {
       warnings.push(`Trackable: [WARN] 기본 브랜치(${branch})에 직접 커밋 — /work-start로 feature 브랜치 생성을 권장합니다`);
+    }
+
+    // 이슈 번호 참조 확인
+    if (!issueRefPattern.test(branch)) {
+      warnings.push('Trackable: [WARN] 브랜치에 이슈 번호 미포함 — 커밋 메시지에 (#이슈번호)를 포함하세요');
     }
   } catch {
     warnings.push('Trackable: [INFO] 브랜치 확인 실패');

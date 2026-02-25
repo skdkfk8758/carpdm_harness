@@ -38,8 +38,21 @@ elif echo "$USER_TEXT" | grep -qiE '배포|운영|프로덕션|릴리스|deploy|
 fi
 
 # Bug Fix Mode 감지 (Autonomous Bug Fixing)
+BUG_TAG=""
 if echo "$USER_TEXT" | grep -qiE '버그|에러|오류|실패|안.?되|깨짐|크래시|bug|error|fail|broken|crash|500|404|exception|CI.*실패'; then
     IS_BUG_FIX=true
+    # 버그 유형 자동 분류
+    if echo "$USER_TEXT" | grep -qiE 'UI|화면|렌더|레이아웃|스타일|CSS|display|표시'; then
+        BUG_TAG="UI"
+    elif echo "$USER_TEXT" | grep -qiE '성능|느림|메모리|CPU|perf|slow|lag|memory|leak'; then
+        BUG_TAG="Perf"
+    elif echo "$USER_TEXT" | grep -qiE '크래시|crash|exception|segfault|패닉|panic|SIGKILL|SIGTERM'; then
+        BUG_TAG="Crash"
+    elif echo "$USER_TEXT" | grep -qiE 'API|엔드포인트|라우트|route|endpoint|서버|server|요청|응답'; then
+        BUG_TAG="API"
+    elif echo "$USER_TEXT" | grep -qiE '데이터|DB|쿼리|저장|fetch|database'; then
+        BUG_TAG="Data"
+    fi
 fi
 
 # === 파일 경로 탐색 (.agent/ 우선, 루트 fallback) ===
@@ -143,9 +156,27 @@ fi
 # Mode를 task-mode 파일에 기록 (tdd-guard.sh 연동, plan-guard.sh 연동)
 harness_ensure_state_dir
 echo "$MODE" > "$HARNESS_STATE_DIR/task-mode"
-# Bug Fix 감지 시 task-mode를 BugFix으로 덮어씀 (plan-guard 완화용)
+# Bug Fix 감지 시 task-mode 결정: 단순 버그 vs 구조적 버그
 if [ "$IS_BUG_FIX" = true ]; then
-    echo "BugFix" > "$HARNESS_STATE_DIR/task-mode"
+    # 크리티컬/구조적 버그 또는 이슈 번호+구현 키워드 → BugFixPlan (인터뷰 권장)
+    IS_COMPLEX_BUG=false
+    if echo "$USER_TEXT" | grep -qiE '크리티컬|critical|심각|구조.?변경|아키텍처|architecture|회귀|regression|데이터.?손실|보안.?취약|로직.?변경'; then
+        IS_COMPLEX_BUG=true
+    fi
+    HAS_ISSUE_REF=false
+    if echo "$USER_TEXT" | grep -qE '#[0-9]+'; then
+        HAS_ISSUE_REF=true
+    fi
+    HAS_IMPL_KW=false
+    if echo "$USER_TEXT" | grep -qiE '구현|수정|변경|리팩토링|implement|fix|modify|refactor|resolve|해결'; then
+        HAS_IMPL_KW=true
+    fi
+
+    if [ "$IS_COMPLEX_BUG" = true ] || { [ "$HAS_ISSUE_REF" = true ] && [ "$HAS_IMPL_KW" = true ]; }; then
+        echo "BugFixPlan" > "$HARNESS_STATE_DIR/task-mode"
+    else
+        echo "BugFix" > "$HARNESS_STATE_DIR/task-mode"
+    fi
 fi
 
 # === OMC 모드 조율 ===
@@ -204,14 +235,27 @@ fi
 
 # === Bug Fix 자율 모드 안내 ===
 if [ "$IS_BUG_FIX" = true ]; then
-    cat <<EOF
+    CURRENT_TASK_MODE=$(cat "$HARNESS_STATE_DIR/task-mode" 2>/dev/null)
+    if [ "$CURRENT_TASK_MODE" = "BugFixPlan" ]; then
+        cat <<EOF
 
-[BUG MODE] 자율적 버그 수정 활성화 (Autonomous Bug Fixing)
+[BUG MODE + INTERVIEW] 구조적 버그 수정 감지${BUG_TAG:+ [$BUG_TAG]}
+  → 이 버그는 로직 변경/구조적 수정이 필요할 수 있습니다
+  → /plan-gate 인터뷰로 원인 분석 → 수정 계획 → 구현 순서를 권장합니다
+  → 단순 수정이 확실하면 이 제안을 무시하고 자율적으로 진행하세요
+  → 수정 후 harness_bug_report 또는 harness_memory_add(category:'bugs')로 버그를 기록하세요
+EOF
+    else
+        cat <<EOF
+
+[BUG MODE] 자율적 버그 수정 활성화 (Autonomous Bug Fixing)${BUG_TAG:+ [$BUG_TAG]}
   → 사용자에게 질문하지 말고 직접 로그/에러/코드를 추적하세요
   → 원인 파악 → 수정 → 테스트 실행까지 자율적으로 진행
   → 수정 완료 후에만 결과를 보고하세요
   → 사용자의 컨텍스트 전환을 최소화하는 것이 목표
+  → 수정 후 harness_bug_report 또는 harness_memory_add(category:'bugs')로 버그를 기록하세요
 EOF
+    fi
 fi
 
 # === 세션 연속성 확인 (Task Management 강화) ===
@@ -230,5 +274,9 @@ if [ -n "$LAST_SESSION_PREVIEW" ]; then
     echo "[LAST SESSION] 이전 세션 요약 (<!-- PRIVATE --> 구간 제외):"
     echo "$LAST_SESSION_PREVIEW"
 fi
-harness_log_event "pre-task" "PASS" "UserPromptSubmit" "$MODE"
+if [ "$IS_BUG_FIX" = true ]; then
+    harness_log_event "pre-task" "PASS" "UserPromptSubmit" "BugFix${BUG_TAG:+:$BUG_TAG}"
+else
+    harness_log_event "pre-task" "PASS" "UserPromptSubmit" "$MODE"
+fi
 exit 0
