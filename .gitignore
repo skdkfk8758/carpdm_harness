@@ -4,7 +4,7 @@ dist/
 .DS_Store
 .env
 *.log
-.agent/ontology/
+.agent/
 .harness/
 .omc/
 .serena/
