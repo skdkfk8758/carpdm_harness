@@ -32,6 +32,48 @@ fi
 2. Run `git diff --stat HEAD` to understand the scope of changes.
 3. Run `git log --oneline -5` to see the recent commit style.
 
+### Phase 0.5: README 최신화 확인
+
+커밋 전에 README.md가 현재 변경사항을 반영하고 있는지 확인한다.
+
+#### 확인 대상
+
+변경된 파일 중 아래 조건에 해당하면 README 최신화 필요:
+  - 훅 파일 변경 (`.claude/hooks/*.sh`, `hooks/hooks.json`) → README 훅 테이블 확인
+  - 커맨드 파일 추가/삭제 (`.claude/commands/*.md`) → README 구조도/스킬 목록 확인
+  - 프로젝트 설정 변경 (`carpdm-harness.config.json`) → README 설명 확인
+  - 새 기능/모듈 도입 → README 해당 섹션 확인
+  - 빌드/엔트리포인트 변경 (`tsup.config.ts`) → README 아키텍처 섹션 확인
+  - 템플릿 구조 변경 (`templates/`) → README 구조도 확인
+
+#### 검사 로직
+
+1. 변경 파일 목록에서 위 대상 파일이 있는지 확인
+2. README.md가 존재하면 주요 키워드/수치가 실제 코드와 일치하는지 교차 확인:
+   - 훅 개수 ↔ 실제 `hooks/hooks.json` 이벤트 수
+   - 스킬 개수 ↔ 실제 `skills/` 디렉토리 수
+   - 모듈 개수 ↔ 실제 `presets/full.json` 모듈 수
+   - 파일 구조도 ↔ 실제 디렉토리 구조
+3. 불일치 항목이 있으면 README 업데이트를 먼저 수행하고 변경 파일에 포함
+
+#### 결과 처리
+
+```
+[README 최신화 확인]
+
+✅ 불일치 없음 → 다음 Phase로 진행
+⚠️ 불일치 발견:
+   - 훅 개수: README "8개" ↔ 실제 9개
+   - 스킬 목록에 update-check 누락
+   → README.md를 먼저 업데이트한 후 변경 파일에 포함
+
+📋 README와 무관한 변경만 있음 → 다음 Phase로 진행
+```
+
+- 불일치 발견 시: README.md를 업데이트하고 별도 `docs:` 커밋 또는 관련 커밋에 포함
+- README.md가 없는 프로젝트는 이 Phase를 건너뛴다
+- 사소한 코드 변경(버그 수정, 스타일 등)만 있으면 이 Phase를 건너뛴다
+
 4. **Analyze and group** the changes into logical units based on:
    - **Layer**: DB schema/migrations, domain models, backend stores/services, API routes, tests, frontend config/infra, frontend components
    - **Feature**: Group files that implement the same feature together
