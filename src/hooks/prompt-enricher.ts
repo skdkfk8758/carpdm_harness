@@ -584,6 +584,42 @@ function detectWorkKeywords(prompt: string, cwd: string): string | null {
     return createHarnessSkillInvocation('plan-gate', prompt);
   }
 
+  // ── 버그/이슈 수정 시 인터뷰 자동 트리거 ────────────────────────────────────
+  const bugFixKw = /\b(버그|에러|오류|실패|깨짐|크래시|bug|error|fail|broken|crash|exception)\b/i;
+  const issueRef = /#\d+/;
+  const complexBugKw = /\b(크리티컬|critical|심각|구조\s*변경|아키텍처|architecture|회귀|regression|데이터\s*손실|data\s*loss|보안\s*취약|security|vulnerability|로직\s*변경|logic\s*change)\b/i;
+  const implKw = /\b(구현|수정|변경|리팩토링|개선|implement|fix|modify|refactor|resolve|해결)\b/i;
+
+  const hasBug = bugFixKw.test(cleanPrompt);
+  const hasIssue = issueRef.test(cleanPrompt);
+  const isComplex = complexBugKw.test(cleanPrompt);
+  const hasImpl = implKw.test(cleanPrompt);
+
+  // 크리티컬/구조적 버그 → 인터뷰 강제 (원인 분석 필수)
+  if (hasBug && isComplex) {
+    return createHarnessSkillInvocation('plan-gate', prompt);
+  }
+
+  // 이슈 번호 + 버그 + 구현 키워드 → 인터뷰 제안 (추적 가능 이슈는 계획 권장)
+  if (hasBug && hasIssue && hasImpl) {
+    const matchedIssue = cleanPrompt.match(issueRef)?.[0] ?? '';
+    return createWorkSuggestion(
+      'plan-gate',
+      `이슈(${matchedIssue}) 연결 버그 수정에 로직 변경이 포함됩니다. 원인 분석 → 수정 계획 → 구현을 위해 인터뷰를 권장합니다.`,
+      prompt,
+    );
+  }
+
+  // 이슈 번호 + 구현 키워드 (버그 아님) → 인터뷰 제안
+  if (hasIssue && hasImpl && !hasBug) {
+    const matchedIssue = cleanPrompt.match(issueRef)?.[0] ?? '';
+    return createWorkSuggestion(
+      'plan-gate',
+      `이슈(${matchedIssue}) 해결에 구현이 필요합니다. 요구사항 정리를 위해 인터뷰를 권장합니다.`,
+      prompt,
+    );
+  }
+
   // ── 브랜치 기반 작업 감지 ──────────────────────────────────────────────────
   const branch = getCurrentBranch(cwd);
   if (!branch) return null;
