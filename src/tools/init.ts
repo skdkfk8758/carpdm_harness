@@ -12,6 +12,7 @@ import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
 import { getPackageVersion } from '../utils/version.js';
 import { syncClaudeMd } from '../core/claudemd-sync.js';
+import { setupGithubLabels } from '../core/github-labels.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
@@ -304,6 +305,28 @@ export function registerInitTool(server: McpServer): void {
           const claudeResult = syncClaudeMd(pRoot);
           if (claudeResult.updated) {
             res.ok('CLAUDE.md 자동 섹션 갱신 완료');
+          }
+
+          // GitHub Labels 자동 생성 (ship 모듈 포함 시)
+          if (resolvedModules.includes('ship')) {
+            try {
+              const labelResult = setupGithubLabels(pRoot);
+              if (!labelResult.ghAvailable) {
+                res.warn('gh CLI 미인증 — GitHub 라벨 자동 생성 건너뜀 (gh auth login 후 harness_github_setup으로 재시도)');
+              } else if (labelResult.created.length > 0) {
+                res.ok(`GitHub 라벨 ${labelResult.created.length}개 생성: ${labelResult.created.join(', ')}`);
+                if (labelResult.skipped.length > 0) {
+                  res.info(`기존 라벨 ${labelResult.skipped.length}개 유지`);
+                }
+              } else {
+                res.ok(`GitHub 라벨 이미 모두 존재 (${labelResult.skipped.length}개)`);
+              }
+              for (const e of labelResult.errors) {
+                res.warn(`라벨 생성 실패: ${e}`);
+              }
+            } catch (err) {
+              res.warn(`GitHub 라벨 설정 실패 (무시하고 계속): ${String(err)}`);
+            }
           }
         }
 

@@ -17,6 +17,8 @@ import { registerWorkflowTool } from './workflow.js';
 import { registerSyncTool } from './sync.js';
 import { registerQualityCheckTool } from './quality-check.js';
 import { registerOntologyAnnotationsTool } from './ontology-annotations.js';
+import { registerBugReportTool } from './bug-report.js';
+import { registerGithubSetupTool } from './github-setup.js';
 
 export function registerAllTools(server: McpServer): void {
   registerListTool(server);
@@ -37,4 +39,6 @@ export function registerAllTools(server: McpServer): void {
   registerSyncTool(server);
   registerQualityCheckTool(server);
   registerOntologyAnnotationsTool(server);
+  registerBugReportTool(server);
+  registerGithubSetupTool(server);
 }
