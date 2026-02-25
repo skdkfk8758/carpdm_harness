@@ -5,13 +5,20 @@ import { logger } from '../utils/logger.js';
 import { omcConfigPath, omcStateDir } from './omc-compat.js';
 
 interface SettingsLocalJson {
-  hooks?: Record<string, HookConfig[]>;
+  hooks?: Record<string, HookEntry[]>;
   [key: string]: unknown;
 }
 
-interface HookConfig {
-  type: string;
-  command: string;
+/** Claude Code 신 포맷: { matcher: { tools?: string[] }, hooks: [{ type, command }] } */
+interface HookEntry {
+  matcher?: { tools?: string[] };
+  hooks?: Array<{ type: string; command: string }>;
+}
+
+/** 구 포맷 항목 (마이그레이션용) */
+interface LegacyHookConfig {
+  type?: string;
+  command?: string;
   matcher?: string;
 }
 
@@ -62,6 +69,9 @@ export function registerHooks(
     settings.hooks = {};
   }
 
+  // 구 포맷 키 마이그레이션 (예: "PreToolUse:Edit|Write" → "PreToolUse")
+  migrateLegacyHooks(settings.hooks);
+
   const warnings: string[] = [];
   const omcDetected = existsSync(omcConfigPath());
 
@@ -74,22 +84,37 @@ export function registerHooks(
     const hooks = getModuleHooks(moduleName);
     for (const hook of hooks) {
       total++;
-      const eventKey = hook.pattern ? `${hook.event}:${hook.pattern}` : hook.event;
+      const eventKey = hook.event;
+      const tools = hook.pattern ? hook.pattern.split('|') : undefined;
 
       if (!settings.hooks[eventKey]) {
         settings.hooks[eventKey] = [];
       }
 
-      const existing = settings.hooks[eventKey].find(
-        (h: HookConfig) => h.command === hook.command
-      );
+      // 동일한 matcher(tools 배열)를 가진 기존 엔트리 탐색
+      const matchingEntry = settings.hooks[eventKey].find((entry: HookEntry) => {
+        const entryTools = entry.matcher?.tools;
+        if (!tools && (!entryTools || entryTools.length === 0)) return true;
+        if (!tools || !entryTools) return false;
+        return JSON.stringify([...entryTools].sort()) === JSON.stringify([...tools].sort());
+      });
 
-      if (!existing) {
-        settings.hooks[eventKey].push({
-          type: 'command',
-          command: hook.command,
-          ...(hook.pattern ? { matcher: hook.pattern } : {}),
-        });
+      if (matchingEntry) {
+        if (!matchingEntry.hooks) matchingEntry.hooks = [];
+        const cmdExists = matchingEntry.hooks.some(h => h.command === hook.command);
+        if (!cmdExists) {
+          matchingEntry.hooks.push({ type: 'command', command: hook.command });
+          registered++;
+          if (!dryRun) {
+            logger.fileAction('create', `훅 등록: ${eventKey} → ${hook.command}`);
+          }
+        }
+      } else {
+        const newEntry: HookEntry = {
+          matcher: tools ? { tools } : {},
+          hooks: [{ type: 'command', command: hook.command }],
+        };
+        settings.hooks[eventKey].push(newEntry);
         registered++;
         if (!dryRun) {
           logger.fileAction('create', `훅 등록: ${eventKey} → ${hook.command}`);
@@ -97,7 +122,6 @@ export function registerHooks(
       }
 
       if (omcDetected && OMC_EVENTS.has(hook.event)) {
-        // OMC 활성 모드 확인하여 조율 안내
         const modeHint = getOmcModeHint(projectRoot);
         if (modeHint) {
           warnings.push(
@@ -118,6 +142,57 @@ export function registerHooks(
   }
 
   return { registered, total, warnings };
+}
+
+/**
+ * 구 포맷 키("PreToolUse:Edit|Write" 등)를 신 포맷으로 마이그레이션.
+ * 콜론이 포함된 키를 파싱하여 기본 이벤트명 아래 matcher 구조로 변환한다.
+ */
+function migrateLegacyHooks(hooks: Record<string, unknown[]>): void {
+  const legacyKeys = Object.keys(hooks).filter(k => k.includes(':'));
+
+  for (const legacyKey of legacyKeys) {
+    const [event, pattern] = legacyKey.split(':', 2);
+    const tools = pattern ? pattern.split('|') : undefined;
+    const legacyEntries = hooks[legacyKey] as LegacyHookConfig[];
+
+    if (!hooks[event]) {
+      hooks[event] = [];
+    }
+
+    const targetEntries = hooks[event] as HookEntry[];
+
+    // 구 포맷 항목들을 신 포맷 엔트리로 변환
+    const commands = legacyEntries
+      .filter(e => e.command)
+      .map(e => ({ type: 'command' as const, command: e.command! }));
+
+    if (commands.length > 0) {
+      // 동일 matcher를 가진 기존 엔트리에 병합 시도
+      const existing = targetEntries.find((entry: HookEntry) => {
+        const entryTools = entry.matcher?.tools;
+        if (!tools && (!entryTools || entryTools.length === 0)) return true;
+        if (!tools || !entryTools) return false;
+        return JSON.stringify([...entryTools].sort()) === JSON.stringify([...tools].sort());
+      });
+
+      if (existing) {
+        if (!existing.hooks) existing.hooks = [];
+        for (const cmd of commands) {
+          if (!existing.hooks.some(h => h.command === cmd.command)) {
+            existing.hooks.push(cmd);
+          }
+        }
+      } else {
+        targetEntries.push({
+          matcher: tools ? { tools } : {},
+          hooks: commands,
+        });
+      }
+    }
+
+    delete hooks[legacyKey];
+  }
 }
 
 function getOmcModeHint(projectRoot: string): string | null {
