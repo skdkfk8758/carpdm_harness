@@ -5,20 +5,24 @@
 # === 상태 경로 상수 ===
 HARNESS_STATE_DIR=".harness/state"
 
+# === OMC 경로 상수 ===
+OMC_STATE_DIR=".omc/state"
+OMC_CONFIG_PATH="$HOME/.claude/.omc-config.json"
+
 # === OMC 감지 함수 ===
 
 # OMC가 설치되어 있는지 확인 (config 또는 디렉토리 존재)
 harness_omc_installed() {
-    [ -f "$HOME/.claude/.omc-config.json" ] || [ -d ".omc" ]
+    [ -f "$OMC_CONFIG_PATH" ] || [ -d ".omc" ]
 }
 
 # OMC 모드가 현재 활성 상태인지 확인
 # .omc/state/ 하위에 *-state.json 파일이 존재하고 "active": true 포함 시 true
 harness_omc_mode_active() {
-    if [ ! -d ".omc/state" ]; then
+    if [ ! -d "$OMC_STATE_DIR" ]; then
         return 1
     fi
-    for state_file in .omc/state/*-state.json; do
+    for state_file in "$OMC_STATE_DIR"/*-state.json; do
         if [ -f "$state_file" ] && grep -q '"active": true' "$state_file" 2>/dev/null; then
             return 0
         fi
@@ -29,11 +33,11 @@ harness_omc_mode_active() {
 # OMC 활성 모드 이름 반환 (autopilot, ralph, ultrawork, team, pipeline 등)
 # 활성 모드가 없으면 빈 문자열 반환
 harness_omc_active_mode() {
-    if [ ! -d ".omc/state" ]; then
+    if [ ! -d "$OMC_STATE_DIR" ]; then
         echo ""
         return
     fi
-    for state_file in .omc/state/*-state.json; do
+    for state_file in "$OMC_STATE_DIR"/*-state.json; do
         if [ -f "$state_file" ] && grep -q '"active": true' "$state_file" 2>/dev/null; then
             # 파일명에서 모드 추출: autopilot-state.json → autopilot
             local mode

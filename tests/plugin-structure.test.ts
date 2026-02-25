@@ -89,7 +89,8 @@ describe('플러그인 구조 검증', () => {
       expect(h).toHaveProperty('SubagentStop');
       expect(h).toHaveProperty('PreCompact');
       expect(h).toHaveProperty('Stop');
-      expect(Object.keys(h).length).toBe(8);
+      expect(h).toHaveProperty('PostToolUseFailure');
+      expect(Object.keys(h).length).toBe(9);
     });
   });
 

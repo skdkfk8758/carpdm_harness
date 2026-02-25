@@ -53,6 +53,21 @@
         "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/quality-gate.js\"",
         "timeout": 10000
       }]
+    }, {
+      "matcher": "Task",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/remember-handler.js\"",
+        "timeout": 3000
+      }]
+    }],
+    "PostToolUseFailure": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/tool-failure-tracker.js\"",
+        "timeout": 3000
+      }]
     }],
     "SubagentStop": [{
       "matcher": "*",

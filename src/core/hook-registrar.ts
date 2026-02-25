@@ -1,8 +1,8 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import type { HookRegistration } from '../types/module.js';
 import { logger } from '../utils/logger.js';
+import { omcConfigPath, omcStateDir } from './omc-compat.js';
 
 interface SettingsLocalJson {
   hooks?: Record<string, HookConfig[]>;
@@ -63,8 +63,7 @@ export function registerHooks(
   }
 
   const warnings: string[] = [];
-  const omcConfigPath = join(homedir(), '.claude', '.omc-config.json');
-  const omcDetected = existsSync(omcConfigPath);
+  const omcDetected = existsSync(omcConfigPath());
 
   const OMC_EVENTS = new Set(['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop']);
 
@@ -122,14 +121,14 @@ export function registerHooks(
 }
 
 function getOmcModeHint(projectRoot: string): string | null {
-  const omcStateDir = join(projectRoot, '.omc', 'state');
-  if (!existsSync(omcStateDir)) return null;
+  const stateDir = omcStateDir(projectRoot);
+  if (!existsSync(stateDir)) return null;
 
   try {
-    const files = readdirSync(omcStateDir).filter((f: string) => f.endsWith('-state.json'));
+    const files = readdirSync(stateDir).filter((f: string) => f.endsWith('-state.json'));
     for (const file of files) {
       try {
-        const state = JSON.parse(readFileSync(join(omcStateDir, file), 'utf-8'));
+        const state = JSON.parse(readFileSync(join(stateDir, file), 'utf-8'));
         if (state.active) {
           return file.replace('-state.json', '');
         }

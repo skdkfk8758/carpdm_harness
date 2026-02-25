@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { omcStateDir } from '../core/omc-compat.js';
 
 // === 공통 인터페이스 ===
 
@@ -105,14 +106,14 @@ export function loadActiveWorkflowFromFiles(cwd: string): {
  * OMC 활성 모드를 감지합니다.
  */
 export function detectOmcMode(cwd: string): string | null {
-  const omcStateDir = join(cwd, '.omc', 'state');
-  if (!existsSync(omcStateDir)) return null;
+  const stateDir = omcStateDir(cwd);
+  if (!existsSync(stateDir)) return null;
 
   try {
-    const stateFiles = readdirSync(omcStateDir).filter(f => f.endsWith('-state.json'));
+    const stateFiles = readdirSync(stateDir).filter(f => f.endsWith('-state.json'));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join(omcStateDir, file), 'utf-8')) as { active?: boolean };
+        const state = JSON.parse(readFileSync(join(stateDir, file), 'utf-8')) as { active?: boolean };
         if (state.active) {
           return file.replace('-state.json', '');
         }

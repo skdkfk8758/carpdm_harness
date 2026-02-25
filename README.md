@@ -151,19 +151,21 @@ idle → running → waiting_checkpoint → completed
 
 ## 훅 시스템
 
-8개 이벤트에 걸쳐 10개 훅이 등록됩니다.
+9개 이벤트에 걸쳐 11개 훅이 등록됩니다.
 
 | 이벤트 | 훅 | 역할 |
 |--------|-----|------|
 | SessionStart | session-start | 세션 초기화 + 환경 감지 |
-| UserPromptSubmit | prompt-enricher | 워크플로우 상태 요약 + 다음 액션 힌트 |
+| UserPromptSubmit | prompt-enricher | OMC 키워드 감지 + 워크플로우 상태 요약 |
 | SubagentStart | subagent-context | 워크플로우 단계 컨텍스트 주입 |
 | PreToolUse | workflow-guard (x2) | 워크플로우/harness 도구 가드 |
 | PostToolUse | event-logger | harness 도구 이벤트 로깅 |
 | PostToolUse | quality-gate | git commit 감지 → TRUST 검증 |
+| PostToolUse | remember-handler | Task 응답의 `<remember>` 태그 → notepad 자동 저장 |
+| PostToolUseFailure | tool-failure-tracker | 도구 실패 추적 + 재시도 카운트 |
 | SubagentStop | subagent-complete | 완료 이벤트 로깅 + 다음 단계 힌트 |
 | PreCompact | pre-compact | 컴팩션 전 워크플로우/메모리 보존 |
-| Stop | session-end | 세션 종료 처리 |
+| Stop | session-end | 세션 종료 처리 + OMC 모드 영속 |
 
 ---
 

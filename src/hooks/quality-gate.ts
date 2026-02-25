@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
+import { omcStateDir, OMC_TEAM_MODES } from '../core/omc-compat.js';
 
 interface HookInput {
   tool_name?: string;
@@ -155,17 +156,17 @@ function main(): void {
 
 /** OMC team/swarm 모드 활성 여부 확인 */
 function isOmcTeamMode(cwd: string): boolean {
-  const omcStateDir = join(cwd, '.omc', 'state');
-  if (!existsSync(omcStateDir)) return false;
+  const stateDir = omcStateDir(cwd);
+  if (!existsSync(stateDir)) return false;
 
   try {
-    const stateFiles = readdirSync(omcStateDir).filter(f => f.endsWith('-state.json'));
+    const stateFiles = readdirSync(stateDir).filter(f => f.endsWith('-state.json'));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join(omcStateDir, file), 'utf-8')) as { active?: boolean };
+        const state = JSON.parse(readFileSync(join(stateDir, file), 'utf-8')) as { active?: boolean };
         if (state.active) {
           const mode = file.replace('-state.json', '');
-          if (mode === 'team' || mode === 'swarm' || mode === 'ultrapilot') {
+          if ((OMC_TEAM_MODES as readonly string[]).includes(mode)) {
             return true;
           }
         }

@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveModules, getModule, getPresetModules } from '../core/module-registry.js';
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
@@ -14,6 +14,7 @@ import { getPackageVersion } from '../utils/version.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
 import { requireOmc, detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
+import { bootstrapProjectSettings, getCapabilityAllowRules } from '../core/settings-bootstrap.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -113,11 +114,30 @@ export function registerInitTool(server: McpServer): void {
           config.options.hooksRegistered = true;
         }
 
-        // security deny 규칙 자동 적용
-        if (resolvedModules.includes('security') && !pDryRun) {
-          res.info('보안 deny 규칙 적용 중...');
-          const denyResult = applySecurityDenyRules(pRoot);
-          res.ok(`deny 규칙 ${denyResult.added}/${denyResult.total}개 추가`);
+        // 필수 설정 부트스트랩 (모든 프리셋에 적용)
+        if (!pDryRun) {
+          res.info('필수 설정 부트스트랩 중...');
+
+          // capabilities 기반 추가 allow 규칙
+          let extraAllow: string[] = [];
+          try {
+            const caps = detectCapabilities(pRoot);
+            extraAllow = getCapabilityAllowRules(caps);
+          } catch {
+            // 감지 실패 시 빈 배열
+          }
+
+          const bsResult = bootstrapProjectSettings(pRoot, {
+            includeSecurityModule: resolvedModules.includes('security'),
+            extraAllow,
+          });
+
+          res.ok(`settings.local.json 부트스트랩 완료`);
+          res.line(`  allow: +${bsResult.allowAdded} (총 ${bsResult.totalAllow})`);
+          res.line(`  deny: +${bsResult.denyAdded} (총 ${bsResult.totalDeny})`);
+          if (bsResult.askAdded > 0) res.line(`  ask: +${bsResult.askAdded}`);
+          if (bsResult.envAdded > 0) res.line(`  env: +${bsResult.envAdded}`);
+          if (bsResult.languageSet) res.line(`  language: Korea`);
         }
 
         if (!pDryRun) {
@@ -287,86 +307,4 @@ export function registerInitTool(server: McpServer): void {
   );
 }
 
-function applySecurityDenyRules(projectRoot: string): { added: number; total: number } {
-  const settingsPath = join(projectRoot, '.claude', 'settings.local.json');
-  let settings: Record<string, unknown> = {};
-
-  if (existsSync(settingsPath)) {
-    try {
-      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
-    } catch {
-      settings = {};
-    }
-  }
-
-  if (!settings.permissions) {
-    settings.permissions = {};
-  }
-  const permissions = settings.permissions as Record<string, unknown>;
-  if (!Array.isArray(permissions.deny)) {
-    permissions.deny = [];
-  }
-  const deny = permissions.deny as string[];
-
-  const SECURITY_DENY_RULES = [
-    // 파괴적 파일 작업
-    'Bash(rm -rf /)*',
-    'Bash(rm -rf ~)*',
-    'Bash(rm -rf .)*',
-    'Bash(rm -rf *)*',
-    'Bash(sudo:*)',
-    'Bash(chmod 777:*)',
-    'Bash(>/dev/*)',
-    // 외부 코드 실행
-    'Bash(curl*|*sh)*',
-    'Bash(wget*|*sh)*',
-    'Bash(eval *)*',
-    'Bash(bash -c *)*',
-    'Bash(sh -c *)*',
-    'Bash(node -e *)*',
-    'Bash(perl -e *)*',
-    'Bash(python3 -c *import os*)*',
-    // 환경/프로필 보호
-    'Bash(*>~/.ssh/*)',
-    'Bash(*>~/.zshrc)*',
-    'Bash(*>~/.bashrc)*',
-    'Bash(*>~/.profile)*',
-    'Bash(*>~/.zprofile)*',
-    // Git 위험 명령
-    'Bash(git push --force*main)*',
-    'Bash(git push -f*main)*',
-    'Bash(git push --force*master)*',
-    'Bash(git push -f*master)*',
-    'Bash(git reset --hard origin/*)*',
-    'Bash(git clean -f*)*',
-    'Bash(git checkout -- .)*',
-    'Bash(git restore .)*',
-    // 패키지 배포
-    'Bash(npm publish)*',
-    'Bash(pnpm publish)*',
-    'Bash(yarn publish)*',
-    // 시스템 명령
-    'Bash(osascript*)*',
-    'Bash(crontab*)*',
-    'Bash(launchctl*)*',
-    'Bash(docker system prune)*',
-    'Bash(mkfs*)*',
-    'Bash(dd if=*)*',
-  ];
-
-  let added = 0;
-  for (const rule of SECURITY_DENY_RULES) {
-    if (!deny.includes(rule)) {
-      deny.push(rule);
-      added++;
-    }
-  }
-
-  if (added > 0) {
-    mkdirSync(join(projectRoot, '.claude'), { recursive: true });
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-  }
-
-  return { added, total: SECURITY_DENY_RULES.length };
-}
 
