@@ -93,7 +93,9 @@ npm test 2>&1
 6. **For each logical group**, in order from lowest to highest layer:
    - Stage only the files belonging to that group using `git add <specific files>`
    - Write a clear commit message following Conventional Commits format
-   - First line: `type: concise description` (under 72 chars)
+   - First line: `type(scope): concise description (#이슈번호)` (under 72 chars)
+   - fix 커밋 시 원인 태그 추가 권장: `fix(web): [UI] prevent callback recreation (#42)`
+   - 태그 종류: `[UI]`, `[Data]`, `[API]`, `[Perf]`, `[Crash]`, `[Logic]`, `[Security]`, `[Config]`
    - Body: 2-3 lines explaining what and why
    - End with: `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
    - Use a HEREDOC for the message: `git commit -m "$(cat <<'EOF' ... EOF)"`
@@ -102,7 +104,7 @@ npm test 2>&1
 
 ## Commit Message Types
 - `feat:` new feature
-- `fix:` bug fix
+- `fix:` bug fix (원인 태그 권장: `fix(scope): [UI] description (#이슈번호)`)
 - `test:` adding/updating tests
 - `chore:` maintenance, config, deps
 - `refactor:` code restructuring
