@@ -11,6 +11,8 @@ import { buildOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
 import { getPackageVersion } from '../utils/version.js';
+import { syncClaudeMd } from '../core/claudemd-sync.js';
+import { getTemplatesDir } from '../utils/paths.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
 import { requireOmc, detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
@@ -282,6 +284,27 @@ export function registerInitTool(server: McpServer): void {
           }
 
           saveConfig(pRoot, config);
+
+          // CLAUDE.md 생성 (없을 때만) + 마커 영역 자동 갱신
+          const claudeMdPath = join(pRoot, 'CLAUDE.md');
+          if (!existsSync(claudeMdPath)) {
+            try {
+              const templatePath = join(getTemplatesDir(), 'core', 'CLAUDE.md.template');
+              if (existsSync(templatePath)) {
+                const projectName = pRoot.split('/').pop() || 'my-project';
+                const template = readFileSync(templatePath, 'utf-8');
+                const content = template.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+                safeWriteFile(claudeMdPath, content);
+                res.ok('CLAUDE.md 기본 템플릿 생성');
+              }
+            } catch (err) {
+              res.warn(`CLAUDE.md 생성 실패: ${String(err)}`);
+            }
+          }
+          const claudeResult = syncClaudeMd(pRoot);
+          if (claudeResult.updated) {
+            res.ok('CLAUDE.md 자동 섹션 갱신 완료');
+          }
         }
 
         const coreLog = logger.flush();
