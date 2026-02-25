@@ -59,7 +59,7 @@
     },
     "ship": {
       "name": "ship",
-      "description": "논리 커밋 + PR 생성 + 릴리스 자동화",
+      "description": "논리 커밋 + PR 생성 + 릴리스 자동화 + GitHub 이슈/PR 템플릿",
       "dependencies": ["core"],
       "commands": [
         { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
@@ -67,7 +67,12 @@
         { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" }
       ],
       "hooks": [],
-      "docs": []
+      "docs": [],
+      "github": [
+        { "source": "ship/github/ISSUE_TEMPLATE/bug-report.yml", "destination": ".github/ISSUE_TEMPLATE/bug-report.yml" },
+        { "source": "ship/github/ISSUE_TEMPLATE/feature-request.yml", "destination": ".github/ISSUE_TEMPLATE/feature-request.yml" },
+        { "source": "ship/github/pull_request_template.md", "destination": ".github/pull_request_template.md" }
+      ]
     },
     "maintenance": {
       "name": "maintenance",
@@ -135,7 +140,8 @@
         { "source": "team-memory/rules/conventions.md", "destination": ".claude/rules/conventions.md" },
         { "source": "team-memory/rules/patterns.md", "destination": ".claude/rules/patterns.md" },
         { "source": "team-memory/rules/decisions.md", "destination": ".claude/rules/decisions.md" },
-        { "source": "team-memory/rules/mistakes.md", "destination": ".claude/rules/mistakes.md" }
+        { "source": "team-memory/rules/mistakes.md", "destination": ".claude/rules/mistakes.md" },
+        { "source": "team-memory/rules/bugs.md", "destination": ".claude/rules/bugs.md" }
       ],
       "agents": [
         { "source": "team-memory/agents/team-memory-keeper.md", "destination": ".claude/agents/team-memory-keeper.md" }
