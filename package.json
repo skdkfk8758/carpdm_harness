@@ -21,7 +21,6 @@
     "hooks",
     "agents",
     ".claude-plugin",
-    ".mcp.json",
     "README.md",
     "LICENSE"
   ],

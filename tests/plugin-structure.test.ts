@@ -46,14 +46,16 @@ describe('플러그인 구조 검증', () => {
     });
   });
 
-  // ─── .mcp.json ───
-  describe('.mcp.json', () => {
-    it('파일이 존재한다', () => {
-      expect(existsSync(join(ROOT, '.mcp.json'))).toBe(true);
+  // ─── mcpServers 인라인 검증 ───
+  describe('plugin.json mcpServers', () => {
+    it('mcpServers가 인라인으로 정의되어 있다', () => {
+      const plugin = readJson('.claude-plugin/plugin.json');
+      const servers = plugin.mcpServers as Record<string, unknown>;
+      expect(servers).toHaveProperty('carpdm-harness');
     });
 
     it('${CLAUDE_PLUGIN_ROOT} 변수를 사용한다', () => {
-      const content = readFileSync(join(ROOT, '.mcp.json'), 'utf-8');
+      const content = readFileSync(join(ROOT, '.claude-plugin/plugin.json'), 'utf-8');
       expect(content).toContain('${CLAUDE_PLUGIN_ROOT}');
     });
   });
