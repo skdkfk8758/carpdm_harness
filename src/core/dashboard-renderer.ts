@@ -1,4 +1,5 @@
 import type { DashboardData, EventEntry } from '../types/dashboard.js';
+import { renderOntologyDashboardHtml, renderOntologyChartScript } from './ontology/dashboard-snippet.js';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -264,6 +265,8 @@ export function renderDashboard(data: DashboardData): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>harness Dashboard \\u2014 ${esc(data.projectName)}</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"><\/script>
+  <script>mermaid.initialize({startOnLoad:true,theme:'dark',themeVariables:{primaryColor:'#0070f3',primaryTextColor:'#ededed',primaryBorderColor:'#262626',lineColor:'#a1a1a1',secondaryColor:'#1a1a1a',tertiaryColor:'#111111'}});<\/script>
   <style>${renderStyles()}</style>
 </head>
 <body>
@@ -275,6 +278,7 @@ export function renderDashboard(data: DashboardData): string {
       <button class="tab-btn" data-tab="sessions">Sessions</button>
       <button class="tab-btn" data-tab="modules">Modules</button>
       <button class="tab-btn" data-tab="analytics">Analytics</button>
+      <button class="tab-btn" data-tab="ontology">Ontology</button>
     </div>
     <div class="header-meta">
       <span>${esc(data.projectName)}</span>
@@ -287,9 +291,11 @@ export function renderDashboard(data: DashboardData): string {
     <div id="tab-sessions" class="tab-content">${renderSessionsTab(data)}</div>
     <div id="tab-modules" class="tab-content">${renderModulesTab(data)}</div>
     <div id="tab-analytics" class="tab-content">${renderAnalyticsTab(data)}</div>
+    <div id="tab-ontology" class="tab-content">${data.ontologyDetail ? renderOntologyDashboardHtml(data.ontologyDetail) : '<div class="empty-state">온톨로지 데이터 없음</div>'}</div>
   </main>
   ${renderInteractionScript(data)}
   ${renderChartScript(data)}
+  ${data.ontologyDetail ? `<script>${renderOntologyChartScript(data.ontologyDetail)}<\/script>` : ''}
 </body>
 </html>`;
 }

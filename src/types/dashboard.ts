@@ -66,5 +66,6 @@ export interface DashboardData {
   integrity: { original: number; modified: number; missing: number };
   teamMemory: { categories: Record<string, number> } | null;
   ontologyStatus: { enabled: boolean; layers: string[]; lastBuilt: string | null } | null;
+  ontologyDetail?: import('../core/ontology/dashboard-snippet.js').OntologyDashboardData;
   hookMap: { event: string; hooks: string[] }[];
 }
