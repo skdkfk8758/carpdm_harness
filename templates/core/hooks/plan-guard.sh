@@ -37,17 +37,35 @@ elif [ -f "plan.md" ]; then PLAN_FILE="plan.md"; fi
 # 소스 코드 파일인지 확인
 case "$FILE_PATH" in
     *.py|*.ts|*.tsx|*.js|*.jsx|*.sql)
-        # OMC 모드 활성 시 경고를 hint 수준으로 완화
-        if harness_omc_mode_active; then
+        # OMC 팀 모드 활성 시 차단 없이 로깅만
+        if harness_omc_team_mode; then
+            harness_log_event "plan-guard" "SKIP" "PreToolUse" "omc-team-mode" "" "$FILE_PATH"
+            exit 0
+        fi
+
+        # OMC 계획 관리 모드 (autopilot/ralph/ultrapilot/ultrawork) 시 경고를 hint 수준으로 완화
+        if harness_omc_manages_planning; then
             if [ -z "$PLAN_FILE" ]; then
-                echo "[PLAN GUARD] plan.md가 없습니다. OMC 모드 활성 중 — 작업 후 plan.md 작성을 고려하세요."
+                echo "[PLAN GUARD] plan.md가 없습니다. OMC $(harness_omc_active_mode) 모드가 계획을 관리 중 — 작업 후 plan.md 작성을 고려하세요."
             else
                 STATUS=$(grep -oE 'DRAFT|APPROVED|IN_PROGRESS|COMPLETED' "$PLAN_FILE" 2>/dev/null | head -1)
                 if [ "$STATUS" = "DRAFT" ]; then
-                    echo "[PLAN GUARD] plan.md가 DRAFT 상태입니다. OMC 모드 활성 중 — 승인 후 진행을 권장합니다."
+                    echo "[PLAN GUARD] plan.md가 DRAFT 상태입니다. OMC $(harness_omc_active_mode) 모드 활성 중 — 승인 후 진행을 권장합니다."
                 fi
             fi
             exit 0
+        fi
+
+        # plan-guard 모드 결정: config + task-mode
+        GUARD_MODE=$(harness_get_plan_guard_mode)
+
+        # BugFix/Speed 모드는 warn으로 완화
+        TASK_MODE=""
+        if [ -f "$HARNESS_STATE_DIR/task-mode" ]; then
+            TASK_MODE=$(cat "$HARNESS_STATE_DIR/task-mode" 2>/dev/null)
+        fi
+        if [ "$TASK_MODE" = "BugFix" ] || [ "$TASK_MODE" = "Speed" ]; then
+            GUARD_MODE="warn"
         fi
 
         # plan.md 확인
@@ -58,6 +76,10 @@ Plan-First 원칙: 코드 수정 전에 .agent/plan.md를 작성하고 사용자
 - .agent/plan.md 초안 작성 → 사용자 OK → 그 후 코드 수정
 - 단순 1-2줄 버그 수정은 예외 (사유를 명시하세요)
 EOF
+            if [ "$GUARD_MODE" = "block" ]; then
+                harness_log_event "plan-guard" "BLOCK" "PreToolUse" "no-plan" "" "$FILE_PATH"
+                exit 1
+            fi
         else
             STATUS=$(grep -oE 'DRAFT|APPROVED|IN_PROGRESS|COMPLETED' "$PLAN_FILE" 2>/dev/null | head -1)
             if [ "$STATUS" = "DRAFT" ]; then
@@ -65,6 +87,10 @@ EOF
 ⚠️ [PLAN GUARD] plan.md가 DRAFT 상태입니다. 아직 승인되지 않았습니다.
 사용자에게 plan을 제시하고 OK를 받은 후 코드를 수정하세요.
 EOF
+                if [ "$GUARD_MODE" = "block" ]; then
+                    harness_log_event "plan-guard" "BLOCK" "PreToolUse" "draft-plan" "" "$FILE_PATH"
+                    exit 1
+                fi
             elif [ "$STATUS" = "APPROVED" ] || [ "$STATUS" = "IN_PROGRESS" ]; then
                 cat <<'EOF'
 💡 [SPEC-FIRST] 수정 작업이라면 plan.md(Spec)를 먼저 업데이트했는지 확인하세요.

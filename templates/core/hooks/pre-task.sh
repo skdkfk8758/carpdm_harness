@@ -140,9 +140,21 @@ except:
     fi
 fi
 
-# Mode를 task-mode 파일에 기록 (tdd-guard.sh 연동)
+# Mode를 task-mode 파일에 기록 (tdd-guard.sh 연동, plan-guard.sh 연동)
 harness_ensure_state_dir
 echo "$MODE" > "$HARNESS_STATE_DIR/task-mode"
+# Bug Fix 감지 시 task-mode를 BugFix으로 덮어씀 (plan-guard 완화용)
+if [ "$IS_BUG_FIX" = true ]; then
+    echo "BugFix" > "$HARNESS_STATE_DIR/task-mode"
+fi
+
+# === OMC 모드 조율 ===
+# 팀 모드: 최소 컨텍스트만 주입
+if harness_omc_team_mode; then
+    echo "[HARNESS] plan: ${PLAN_STATUS} | todo: ${TODO_STATUS:-NONE} | mode: Team (간소화)"
+    harness_log_event "pre-task" "PASS" "UserPromptSubmit" "team-mode"
+    exit 0
+fi
 
 # === 출력 ===
 cat <<EOF
@@ -181,6 +193,14 @@ Rules:
 11. 요청된 코드만 수정 — 주변 코드 리팩토링/스타일 개선 금지 (Surgical Changes)
 12. 작업을 검증 가능 목표로 변환: "Step → verify: 검증방법" (Goal-Driven Execution)
 EOF
+
+# === 워크플로우 선택 키워드 감지 ===
+if echo "$USER_TEXT" | grep -qiE '어떤.?워크플로우|워크플로우.?추천|어떻게.?시작|workflow.?recommend|which.?workflow'; then
+    echo ""
+    echo "[AGENT SUGGEST] 워크플로우 선택이 필요하시면:"
+    echo "  harness_workflow 도구로 사용 가능한 워크플로우를 확인하거나,"
+    echo "  agents/workflow-guide.md를 참조하세요."
+fi
 
 # === Bug Fix 자율 모드 안내 ===
 if [ "$IS_BUG_FIX" = true ]; then

@@ -26,6 +26,47 @@ harness_omc_mode_active() {
     return 1
 }
 
+# OMC 활성 모드 이름 반환 (autopilot, ralph, ultrawork, team, pipeline 등)
+# 활성 모드가 없으면 빈 문자열 반환
+harness_omc_active_mode() {
+    if [ ! -d ".omc/state" ]; then
+        echo ""
+        return
+    fi
+    for state_file in .omc/state/*-state.json; do
+        if [ -f "$state_file" ] && grep -q '"active": true' "$state_file" 2>/dev/null; then
+            # 파일명에서 모드 추출: autopilot-state.json → autopilot
+            local mode
+            mode=$(basename "$state_file" | sed 's/-state\.json$//')
+            echo "$mode"
+            return
+        fi
+    done
+    echo ""
+}
+
+# OMC가 계획을 관리하는 모드인지 확인 (autopilot, ralph, ultrapilot)
+# 이 모드들에서는 plan-guard를 완화해야 함
+harness_omc_manages_planning() {
+    local mode
+    mode=$(harness_omc_active_mode)
+    case "$mode" in
+        autopilot|ralph|ultrapilot|ultrawork) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# OMC 팀 모드인지 확인 (team, swarm)
+# 팀 모드에서는 차단 훅을 비활성화하고 로깅만 유지
+harness_omc_team_mode() {
+    local mode
+    mode=$(harness_omc_active_mode)
+    case "$mode" in
+        team|swarm) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # === 공통 유틸리티 함수 ===
 
 # CLAUDE_CWD → git worktree root → pwd 순서로 작업 디렉토리 설정
@@ -69,4 +110,61 @@ harness_log_event() {
     [ -n "$file" ] && printf ',"file":"%s"' "$file" \
         >> "$CWD/$HARNESS_EVENTS_DIR/${HARNESS_SESSION_ID}.jsonl" 2>/dev/null
     printf '}\n' >> "$CWD/$HARNESS_EVENTS_DIR/${HARNESS_SESSION_ID}.jsonl" 2>/dev/null || true
+}
+
+# === plan-guard 설정 읽기 ===
+
+# plan-guard 모드 읽기 (block | warn)
+harness_get_plan_guard_mode() {
+    local config_file="${CWD:-$(pwd)}/carpdm-harness.config.json"
+    if [ ! -f "$config_file" ]; then
+        echo "block"
+        return
+    fi
+    local mode
+    mode=$(python3 -c "
+import json
+try:
+    data = json.load(open('$config_file'))
+    print(data.get('planGuard', 'block'))
+except:
+    print('block')
+" 2>/dev/null)
+    # python3 폴백: grep
+    if [ -z "$mode" ]; then
+        mode=$(grep -o '"planGuard"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" 2>/dev/null | grep -o '"[^"]*"$' | tr -d '"')
+        [ -z "$mode" ] && mode="block"
+    fi
+    echo "$mode"
+}
+
+# === capabilities 읽기 ===
+
+# capabilities.json에서 도구 감지 여부 확인
+harness_has_capability() {
+    local tool_name="$1"
+    local caps_file="${CWD:-$(pwd)}/.harness/capabilities.json"
+    if [ ! -f "$caps_file" ]; then
+        return 1
+    fi
+    local detected
+    detected=$(python3 -c "
+import json
+try:
+    data = json.load(open('$caps_file'))
+    tools = data.get('tools', {})
+    tool = tools.get('$tool_name', {})
+    print('true' if tool.get('detected', False) else 'false')
+except:
+    print('false')
+" 2>/dev/null)
+    # python3 폴백: grep
+    if [ -z "$detected" ]; then
+        if grep -q "\"$tool_name\"" "$caps_file" 2>/dev/null && grep -A2 "\"$tool_name\"" "$caps_file" 2>/dev/null | grep -q '"detected"[[:space:]]*:[[:space:]]*true'; then
+            detected="true"
+        else
+            detected="false"
+        fi
+    fi
+    [ "$detected" = "true" ] && return 0 || return 1
 }
