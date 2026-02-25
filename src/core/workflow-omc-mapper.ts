@@ -1,5 +1,6 @@
 import type { StepState, WorkflowInstance } from '../types/workflow-engine.js';
 import { writeOmcProjectMemory, readOmcProjectMemory } from './omc-bridge.js';
+import { AGENT_SKILL_MAP } from './omc-compat.js';
 
 export interface OmcAction {
   skill?: string;
@@ -7,22 +8,6 @@ export interface OmcAction {
   description: string;
   capabilities?: string[];
 }
-
-const AGENT_SKILL_MAP: Record<string, { skill?: string; model: string }> = {
-  analyst:              { skill: '/oh-my-claudecode:analyze',          model: 'opus' },
-  planner:              { skill: '/oh-my-claudecode:plan',             model: 'opus' },
-  architect:            { skill: undefined,                            model: 'opus' },
-  executor:             { skill: '/oh-my-claudecode:autopilot',        model: 'sonnet' },
-  'deep-executor':      { skill: '/oh-my-claudecode:autopilot',        model: 'opus' },
-  'test-engineer':      { skill: '/oh-my-claudecode:tdd',              model: 'sonnet' },
-  verifier:             { skill: undefined,                            model: 'sonnet' },
-  'git-master':         { skill: '/oh-my-claudecode:git-master',       model: 'sonnet' },
-  explore:              { skill: '/oh-my-claudecode:deepsearch',        model: 'haiku' },
-  debugger:             { skill: '/oh-my-claudecode:analyze',          model: 'sonnet' },
-  'quality-reviewer':   { skill: '/oh-my-claudecode:code-review',      model: 'sonnet' },
-  'security-reviewer':  { skill: '/oh-my-claudecode:security-review',  model: 'sonnet' },
-  'qa-tester':          { skill: undefined,                            model: 'sonnet' },
-};
 
 /**
  * 파이프라인 단계에 대응하는 OMC 액션을 결정합니다.

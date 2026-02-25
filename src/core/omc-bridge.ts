@@ -1,14 +1,22 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { readFileContent, safeWriteFile, ensureDir } from './file-ops.js';
+import {
+  omcStatePath,
+  omcStateDir,
+  omcProjectMemoryPath,
+  omcNotepadPath,
+  omcWorkflowStatePath,
+  omcDir,
+  omcConfigPath,
+} from './omc-compat.js';
 
 /**
  * OMC 상태 파일을 읽습니다.
  */
 export function readOmcState(projectRoot: string, mode: string): Record<string, unknown> | null {
   try {
-    const statePath = join(projectRoot, '.omc', 'state', `${mode}-state.json`);
+    const statePath = omcStatePath(projectRoot, mode);
     const content = readFileContent(statePath);
     if (!content) return null;
     return JSON.parse(content) as Record<string, unknown>;
@@ -22,13 +30,13 @@ export function readOmcState(projectRoot: string, mode: string): Record<string, 
  */
 export function getActiveOmcMode(projectRoot: string): string | null {
   try {
-    const stateDir = join(projectRoot, '.omc', 'state');
+    const stateDir = omcStateDir(projectRoot);
     if (!existsSync(stateDir)) return null;
 
     const files = readdirSync(stateDir).filter((f) => f.endsWith('-state.json'));
 
     for (const file of files) {
-      const content = readFileContent(join(stateDir, file));
+      const content = readFileContent(join(stateDir, file)); // stateDir은 이미 omcStateDir() 결과
       if (!content) continue;
 
       try {
@@ -53,7 +61,7 @@ export function getActiveOmcMode(projectRoot: string): string | null {
  */
 export function readOmcProjectMemory(projectRoot: string): Record<string, unknown> | null {
   try {
-    const memoryPath = join(projectRoot, '.omc', 'project-memory.json');
+    const memoryPath = omcProjectMemoryPath(projectRoot);
     const content = readFileContent(memoryPath);
     if (!content) return null;
     return JSON.parse(content) as Record<string, unknown>;
@@ -67,8 +75,8 @@ export function readOmcProjectMemory(projectRoot: string): Record<string, unknow
  */
 export function writeOmcProjectMemory(projectRoot: string, data: Record<string, unknown>): void {
   try {
-    const memoryPath = join(projectRoot, '.omc', 'project-memory.json');
-    ensureDir(join(projectRoot, '.omc'));
+    const memoryPath = omcProjectMemoryPath(projectRoot);
+    ensureDir(omcDir(projectRoot));
     safeWriteFile(memoryPath, JSON.stringify(data, null, 2) + '\n');
   } catch {
     // 쓰기 실패는 무시
@@ -80,7 +88,7 @@ export function writeOmcProjectMemory(projectRoot: string, data: Record<string, 
  */
 export function readOmcNotepad(projectRoot: string): string | null {
   try {
-    const notepadPath = join(projectRoot, '.omc', 'notepad.md');
+    const notepadPath = omcNotepadPath(projectRoot);
     return readFileContent(notepadPath);
   } catch {
     return null;
@@ -96,8 +104,8 @@ export function writeOmcWorkflowState(
   data: Record<string, unknown>,
 ): void {
   try {
-    const statePath = join(projectRoot, '.omc', 'state', 'workflow-state.json');
-    ensureDir(join(projectRoot, '.omc', 'state'));
+    const statePath = omcWorkflowStatePath(projectRoot);
+    ensureDir(omcStateDir(projectRoot));
     safeWriteFile(statePath, JSON.stringify(data, null, 2) + '\n');
   } catch {
     // 쓰기 실패는 무시
@@ -111,7 +119,7 @@ export function readOmcWorkflowState(
   projectRoot: string,
 ): Record<string, unknown> | null {
   try {
-    const statePath = join(projectRoot, '.omc', 'state', 'workflow-state.json');
+    const statePath = omcWorkflowStatePath(projectRoot);
     const content = readFileContent(statePath);
     if (!content) return null;
     return JSON.parse(content) as Record<string, unknown>;
@@ -125,7 +133,7 @@ export function readOmcWorkflowState(
  */
 export function getOmcVersion(): string | null {
   try {
-    const configPath = join(homedir(), '.claude', '.omc-config.json');
+    const configPath = omcConfigPath();
     const content = readFileContent(configPath);
     if (!content) return null;
 

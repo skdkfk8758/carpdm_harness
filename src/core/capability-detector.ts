@@ -1,16 +1,17 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import type { CapabilityResult, OmcStatus, ToolCapability } from '../types/capabilities.js';
 import { DEFAULT_CAPABILITY_RESULT } from '../types/capabilities.js';
 import { readFileContent, safeWriteFile, ensureDir } from './file-ops.js';
+import { omcConfigPath, harnessCapabilitiesPath } from './omc-compat.js';
 
 /**
  * OMC(oh-my-claudecode) 설치 여부와 버전을 감지합니다.
  */
 export function detectOmc(): OmcStatus {
   try {
-    const configPath = join(homedir(), '.claude', '.omc-config.json');
+    const configPath = omcConfigPath();
     if (!existsSync(configPath)) {
       return { installed: false };
     }
@@ -105,7 +106,7 @@ export function detectCapabilities(projectRoot: string): CapabilityResult {
  */
 export function getCachedCapabilities(projectRoot: string): CapabilityResult | null {
   try {
-    const cachePath = join(projectRoot, '.harness', 'capabilities.json');
+    const cachePath = harnessCapabilitiesPath(projectRoot);
     const content = readFileContent(cachePath);
     if (!content) return null;
     return JSON.parse(content) as CapabilityResult;
@@ -119,8 +120,8 @@ export function getCachedCapabilities(projectRoot: string): CapabilityResult | n
  */
 export function cacheCapabilities(projectRoot: string, result: CapabilityResult): void {
   try {
-    const cachePath = join(projectRoot, '.harness', 'capabilities.json');
-    ensureDir(join(projectRoot, '.harness'));
+    const cachePath = harnessCapabilitiesPath(projectRoot);
+    ensureDir(dirname(cachePath));
     safeWriteFile(cachePath, JSON.stringify(result, null, 2) + '\n');
   } catch {
     // 캐시 저장 실패는 무시

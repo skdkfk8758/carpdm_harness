@@ -13,6 +13,8 @@ export default defineConfig({
     'src/hooks/subagent-context.ts',
     'src/hooks/subagent-complete.ts',
     'src/hooks/pre-compact.ts',
+    'src/hooks/remember-handler.ts',
+    'src/hooks/tool-failure-tracker.ts',
   ],
   format: ['esm'],
   target: 'node18',

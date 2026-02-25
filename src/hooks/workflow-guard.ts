@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { omcStateDir } from '../core/omc-compat.js';
 
 interface HookInput {
   tool_name?: string;
@@ -155,19 +156,19 @@ function main(): void {
 }
 
 function checkOmcActiveMode(cwd: string): void {
-  const omcStateDir = join(cwd, '.omc', 'state');
-  if (!existsSync(omcStateDir)) {
+  const stateDirPath = omcStateDir(cwd);
+  if (!existsSync(stateDirPath)) {
     outputResult('continue');
     return;
   }
 
   try {
-    const stateFiles = readdirSync(omcStateDir)
+    const stateFiles = readdirSync(stateDirPath)
       .filter(f => f.endsWith('-state.json'));
 
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join(omcStateDir, file), 'utf-8'));
+        const state = JSON.parse(readFileSync(join(stateDirPath, file), 'utf-8'));
         if (state.active) {
           const mode = file.replace('-state.json', '');
           outputResult(
