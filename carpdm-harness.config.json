@@ -1,9 +1,9 @@
 {
   "version": "1.0.0",
   "installedAt": "2026-02-24T00:00:00Z",
-  "updatedAt": "2026-02-24T00:00:00Z",
+  "updatedAt": "2026-02-25T00:00:00Z",
   "preset": "full",
-  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology"],
+  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology", "security", "team-memory"],
   "globalCommandsInstalled": false,
   "options": {
     "agentDir": ".agent",

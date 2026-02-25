@@ -8,5 +8,10 @@
   "license": "MIT",
   "keywords": ["claude-code", "ai-workflow", "plan-first", "ddd", "sparc", "ontology", "team-memory"],
   "skills": "./skills/",
-  "mcpServers": "../.mcp.json"
+  "mcpServers": {
+    "carpdm-harness": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/server.js"]
+    }
+  }
 }

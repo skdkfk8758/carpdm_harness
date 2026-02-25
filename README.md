@@ -149,6 +149,56 @@ idle → running → waiting_checkpoint → completed
 
 ---
 
+## 워크플로우 자동화
+
+사용자 프롬프트만으로 전체 워크플로우가 자동 트리거됩니다. 슬래시 커맨드 없이도 동작합니다.
+
+### 프롬프트 → 워크플로우 매핑
+
+```mermaid
+flowchart TD
+    A[사용자 프롬프트] --> B{prompt-enricher}
+    B -->|OMC 키워드| C[OMC 스킬]
+    B -->|계획/설계 키워드| D["/plan-gate"]
+    B -->|main + 작업 키워드| E["/work-start"]
+    B -->|feature + 완료/PR 키워드| F["/work-finish"]
+    B -->|feature + 커밋 키워드| G["/logical-commit"]
+    B -->|일반 프롬프트| H[기본 처리]
+
+    D --> I[인터뷰 5단계]
+    I --> J[SPARC plan.md 작성]
+    J --> K[승인 후 구현]
+
+    E --> L[feature 브랜치 생성]
+    L --> K
+
+    K --> M{plan-guard 훅}
+    M -->|plan 승인됨| N[코드 수정]
+    M -->|plan 없음| O[경고/차단]
+
+    N --> G
+    G --> P{quality-gate 훅}
+    P -->|시크릿 감지| Q[차단]
+    P -->|통과| R[커밋 완료]
+
+    R --> F
+    F --> S[PR 생성]
+```
+
+### 자동 감지 키워드
+
+| 키워드 | 트리거 스킬 | 조건 |
+|--------|-------------|------|
+| "계획 세워줘", "설계해줘", "플래닝", "인터뷰 시작", "SPARC" | `/plan-gate` | 브랜치 무관 |
+| "작업 시작", "work start", "새 작업" | `/work-start` | main 브랜치 |
+| 이슈번호(#N) + 코딩 동사 | `/work-start` | main 브랜치 |
+| "작업 완료", "PR 올려", "create PR" | `/work-finish` | feature 브랜치 |
+| "커밋해줘", "logical commit" | `/logical-commit` | feature 브랜치 |
+| "ship", "머지", "release" | `/work-finish` (제안) | feature 브랜치 |
+| 코딩 동사 ("구현해줘", "추가해줘") | `/work-start` (제안) | main 브랜치 |
+
+---
+
 ## 훅 시스템
 
 9개 이벤트에 걸쳐 11개 훅이 등록됩니다.

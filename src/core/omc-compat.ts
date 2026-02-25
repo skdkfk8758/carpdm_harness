@@ -217,3 +217,9 @@ export const OMC_NPM_PACKAGE = 'oh-my-claude-sisyphus' as const;
 
 /** npm 레지스트리 URL (버전 체크용) */
 export const OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest` as const;
+
+/** carpdm-harness npm 패키지 이름 */
+export const HARNESS_NPM_PACKAGE = 'carpdm-harness' as const;
+
+/** carpdm-harness npm 레지스트리 URL (버전 체크용) */
+export const HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest` as const;

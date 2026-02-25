@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import {
   omcConfigPath,
@@ -9,6 +9,7 @@ import {
   harnessOnboardedMarkerPath,
   harnessCapabilitiesPath,
   OMC_REGISTRY_URL,
+  HARNESS_REGISTRY_URL,
 } from '../core/omc-compat.js';
 
 interface HookInput {
@@ -57,24 +58,32 @@ function compareVersions(v1: string, v2: string): number {
   return 0;
 }
 
-async function checkOmcUpdates(currentVersion: string): Promise<{ latestVersion: string; currentVersion: string } | null> {
+interface UpdateCheckResult {
+  latestVersion: string;
+  currentVersion: string;
+}
+
+async function checkNpmUpdates(
+  registryUrl: string,
+  currentVersion: string,
+  cacheKey: string,
+): Promise<UpdateCheckResult | null> {
   const cacheFile = harnessUpdateCheckPath();
   const now = Date.now();
   const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
-  const cached = readJsonFile(cacheFile);
-  if (cached && typeof cached.timestamp === 'number' && (now - cached.timestamp) < CACHE_DURATION) {
-    return cached.updateAvailable
-      ? { latestVersion: cached.latestVersion as string, currentVersion: cached.currentVersion as string }
+  const cached = readJsonFile(cacheFile) as Record<string, unknown> | null;
+  const cacheEntry = cached?.[cacheKey] as Record<string, unknown> | undefined;
+  if (cacheEntry && typeof cacheEntry.timestamp === 'number' && (now - cacheEntry.timestamp) < CACHE_DURATION) {
+    return cacheEntry.updateAvailable
+      ? { latestVersion: cacheEntry.latestVersion as string, currentVersion: cacheEntry.currentVersion as string }
       : null;
   }
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch(OMC_REGISTRY_URL, {
-      signal: controller.signal,
-    });
+    const response = await fetch(registryUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!response.ok) return null;
@@ -83,11 +92,21 @@ async function checkOmcUpdates(currentVersion: string): Promise<{ latestVersion:
     const latestVersion = data.version;
     const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
 
-    writeJsonFile(cacheFile, { timestamp: now, latestVersion, currentVersion, updateAvailable });
+    const updatedCache = { ...(cached || {}), [cacheKey]: { timestamp: now, latestVersion, currentVersion, updateAvailable } };
+    writeJsonFile(cacheFile, updatedCache);
 
     return updateAvailable ? { latestVersion, currentVersion } : null;
   } catch {
     return null;
+  }
+}
+
+function countFiles(dir: string, ext: string): number {
+  try {
+    if (!existsSync(dir)) return 0;
+    return readdirSync(dir).filter(f => f.endsWith(ext)).length;
+  } catch {
+    return 0;
   }
 }
 
@@ -192,18 +211,106 @@ async function main(): Promise<void> {
     }
   }
 
-  // ── 2. OMC 업데이트 체크 ──────────────────────────────────────────────────
+  // ── 1.5. 브랜치 상태 + /work-start 안내 ─────────────────────────────────────
+  try {
+    const { execSync } = await import('node:child_process');
+    const branch = execSync('git branch --show-current', { cwd, stdio: 'pipe' }).toString().trim();
+    if (branch) {
+      const isMain = branch === 'main' || branch === 'master';
+      const branchInfo = isMain
+        ? `브랜치: ${branch} (기본) — 새 작업 시작: /work-start "<작업 설명>"`
+        : `브랜치: ${branch} — 작업 완료: /work-finish`;
+
+      // 기존 harness 정보 블록에 브랜치 정보 추가
+      const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+      if (infoIdx >= 0) {
+        messages[infoIdx] = messages[infoIdx].replace(
+          '</session-restore>',
+          `${branchInfo}\n\n</session-restore>`,
+        );
+      }
+    }
+  } catch {
+    // git 미설치 또는 비 git 프로젝트 — 무시
+  }
+
+  // ── 2. 업데이트 체크 (harness + OMC) ────────────────────────────────────────
+  const updateLines: string[] = [];
+
+  // 2-1. carpdm-harness 자체 업데이트
+  try {
+    const harnessConfig = existsSync(configPath)
+      ? JSON.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>
+      : null;
+    const harnessVersion = (harnessConfig?.version as string) || '0.0.0';
+    // package.json에서 실제 설치 버전 확인
+    const pkgPath = join(cwd, 'node_modules', 'carpdm-harness', 'package.json');
+    const installedVersion = existsSync(pkgPath)
+      ? (JSON.parse(readFileSync(pkgPath, 'utf-8')) as Record<string, unknown>).version as string
+      : harnessVersion;
+    const harnessUpdate = await checkNpmUpdates(HARNESS_REGISTRY_URL, installedVersion || '0.0.0', 'harness');
+    if (harnessUpdate) {
+      updateLines.push(`  harness: v${harnessUpdate.currentVersion} → v${harnessUpdate.latestVersion}`);
+    }
+  } catch {
+    // 무시
+  }
+
+  // 2-2. OMC 업데이트
   try {
     const omcConfig = readJsonFile(omcConfigPath());
     const currentVersion = (omcConfig?.version as string) || '0.0.0';
-    const updateInfo = await checkOmcUpdates(currentVersion);
-    if (updateInfo) {
-      messages.push(
-        `<session-restore>\n\n[OMC UPDATE AVAILABLE]\n\nA new version of oh-my-claudecode is available: v${updateInfo.latestVersion} (current: v${updateInfo.currentVersion})\n\nTo update, run: omc update\n\n</session-restore>\n\n---\n`,
-      );
+    const omcUpdate = await checkNpmUpdates(OMC_REGISTRY_URL, currentVersion, 'omc');
+    if (omcUpdate) {
+      updateLines.push(`  OMC: v${omcUpdate.currentVersion} → v${omcUpdate.latestVersion}`);
     }
   } catch {
-    // 업데이트 체크 실패 — 무시
+    // 무시
+  }
+
+  if (updateLines.length > 0) {
+    messages.push(
+      `<session-restore>\n\n[UPDATES AVAILABLE]\n\n${updateLines.join('\n')}\n\n업데이트: /update-all 실행\n확인만: /update-check 실행\n\n</session-restore>\n\n---\n`,
+    );
+  }
+
+  // ── 2-3. 설치 컴포넌트 요약 ────────────────────────────────────────────────
+  try {
+    const componentLines: string[] = [];
+    const commandsDir = join(cwd, '.claude', 'commands');
+    const hooksDir = join(cwd, '.claude', 'hooks');
+    const skillCount = countFiles(commandsDir, '.md');
+    const hookCount = countFiles(hooksDir, '.sh');
+
+    if (skillCount > 0) componentLines.push(`Skills: ${skillCount}개`);
+    if (hookCount > 0) componentLines.push(`Hooks: ${hookCount}개`);
+
+    // MCP 서버 확인 (plugin.json 또는 .mcp.json)
+    const pluginJsonPath = join(cwd, '.claude-plugin', 'plugin.json');
+    if (existsSync(pluginJsonPath)) {
+      try {
+        const plugin = JSON.parse(readFileSync(pluginJsonPath, 'utf-8')) as Record<string, unknown>;
+        const servers = plugin.mcpServers as Record<string, unknown> | string | undefined;
+        if (servers && typeof servers === 'object') {
+          componentLines.push(`MCP: ${Object.keys(servers).join(', ')}`);
+        }
+      } catch {
+        // 무시
+      }
+    }
+
+    if (componentLines.length > 0) {
+      const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+      if (infoIdx >= 0) {
+        // 기존 harness 정보 블록에 컴포넌트 요약 추가
+        messages[infoIdx] = messages[infoIdx].replace(
+          '</session-restore>',
+          `컴포넌트: ${componentLines.join(' | ')}\n\n</session-restore>`,
+        );
+      }
+    }
+  } catch {
+    // 무시
   }
 
   // ── 3. ultrawork/ralph 세션 복원 ──────────────────────────────────────────
