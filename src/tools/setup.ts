@@ -84,7 +84,20 @@ export function registerSetupTool(server: McpServer): void {
           res.ok('capabilities 캐시 저장 완료');
         }
 
-        // Step 7: OMC 연동 안내
+        // Step 7: 부트스트랩 안내
+        res.blank();
+        res.header('자동 부트스트랩');
+        res.line('`harness_init` 실행 시 다음 설정이 자동 생성됩니다:');
+        res.table([
+          ['permissions.allow', '핵심 도구 + Git + Node.js 기본 명령어'],
+          ['permissions.deny', '파괴적 명령 차단 (보안 기본선)'],
+          ['permissions.ask', '위험 명령 승인 요청 (rm, sudo 등)'],
+          ['env', 'AGENT_TEAMS 활성화'],
+          ['language', 'Korea'],
+        ]);
+        res.line('→ `.claude/settings.local.json`에 저장됩니다.');
+
+        // Step 8: OMC 연동 안내
         res.blank();
         res.header('OMC 연동 안내');
         res.line('설치 완료 후 `harness_sync`로 OMC project-memory와 동기화하세요.');
