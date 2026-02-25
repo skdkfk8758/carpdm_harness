@@ -14,6 +14,8 @@ BUMP_TYPE="${1:-patch}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGIN_JSON="$PROJECT_ROOT/.claude-plugin/plugin.json"
+MARKETPLACE_JSON="$PROJECT_ROOT/.claude-plugin/marketplace.json"
+SERVER_TS="$PROJECT_ROOT/src/server.ts"
 
 # 색상
 RED='\033[0;31m'
@@ -92,11 +94,42 @@ else
     warn "plugin.json을 찾을 수 없습니다: $PLUGIN_JSON"
 fi
 
+# ─── marketplace.json 버전 동기화 ───
+
+if [ -f "$MARKETPLACE_JSON" ]; then
+    info "marketplace.json 버전 동기화 중..."
+    node -e "
+        const fs = require('fs');
+        const path = '$MARKETPLACE_JSON';
+        const pkg = JSON.parse(fs.readFileSync(path, 'utf-8'));
+        if (pkg.plugins && pkg.plugins.length > 0) {
+            pkg.plugins[0].version = '$NEW_VERSION';
+        }
+        fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+    "
+    ok "marketplace.json 동기화 완료: v$NEW_VERSION"
+else
+    warn "marketplace.json을 찾을 수 없습니다: $MARKETPLACE_JSON"
+fi
+
+# ─── src/server.ts 버전 동기화 ───
+
+if [ -f "$SERVER_TS" ]; then
+    info "src/server.ts 버전 동기화 중..."
+    sed -i.bak "s/version: '[0-9]*\.[0-9]*\.[0-9]*'/version: '$NEW_VERSION'/" "$SERVER_TS"
+    rm -f "${SERVER_TS}.bak"
+    ok "src/server.ts 동기화 완료: v$NEW_VERSION"
+else
+    warn "src/server.ts를 찾을 수 없습니다: $SERVER_TS"
+fi
+
 # ─── Git commit + tag ───
 
 info "변경사항 커밋 중..."
 git add package.json
 [ -f "$PLUGIN_JSON" ] && git add "$PLUGIN_JSON"
+[ -f "$MARKETPLACE_JSON" ] && git add "$MARKETPLACE_JSON"
+[ -f "$SERVER_TS" ] && git add "$SERVER_TS"
 
 git commit -m "$(cat <<EOF
 release: v$NEW_VERSION
@@ -104,6 +137,8 @@ release: v$NEW_VERSION
 버전 $CURRENT_VERSION → $NEW_VERSION ($BUMP_TYPE release)
 - package.json 버전 업데이트
 - plugin.json 버전 동기화
+- marketplace.json 버전 동기화
+- src/server.ts 버전 동기화
 EOF
 )"
 
@@ -138,6 +173,6 @@ echo -e "  새 버전:    ${BLUE}v${NEW_VERSION}${NC}"
 echo -e "  Bump type:  ${BLUE}${BUMP_TYPE}${NC}"
 echo -e "  릴리스:     ${BLUE}${RELEASE_URL}${NC}"
 echo ""
-echo -e "  ${YELLOW}다른 프로젝트 업데이트:${NC}"
-echo -e "  Claude 대화에서 /harness-sync 실행"
+echo -e "  ${YELLOW}플러그인 업데이트:${NC}"
+echo -e "  claude plugin update carpdm-harness"
 echo ""

@@ -21,6 +21,37 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate plugin structure
+        run: |
+          echo "플러그인 구조 검증 중..."
+          # 필수 파일 존재 확인
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json; do
+            if [ ! -f "$f" ]; then
+              echo "ERROR: 필수 파일 누락: $f"
+              exit 1
+            fi
+          done
+          # 필수 디렉토리 존재 확인
+          for d in skills hooks agents; do
+            if [ ! -d "$d" ]; then
+              echo "ERROR: 필수 디렉토리 누락: $d"
+              exit 1
+            fi
+          done
+          # 버전 동기화 확인
+          PKG_VER=$(node -p "require('./package.json').version")
+          PLUGIN_VER=$(node -p "require('./.claude-plugin/plugin.json').version")
+          MKT_VER=$(node -p "require('./.claude-plugin/marketplace.json').plugins[0].version")
+          if [ "$PKG_VER" != "$PLUGIN_VER" ]; then
+            echo "ERROR: 버전 불일치 — package.json($PKG_VER) vs plugin.json($PLUGIN_VER)"
+            exit 1
+          fi
+          if [ "$PKG_VER" != "$MKT_VER" ]; then
+            echo "ERROR: 버전 불일치 — package.json($PKG_VER) vs marketplace.json($MKT_VER)"
+            exit 1
+          fi
+          echo "플러그인 구조 검증 완료: v$PKG_VER"
+
       - name: Build
         run: npm run build
 
