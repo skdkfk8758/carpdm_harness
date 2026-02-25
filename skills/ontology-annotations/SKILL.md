@@ -1,5 +1,5 @@
 ---
-name: ontology-annotations
+name: harness-ontology-annotations
 description: '@MX 어노테이션을 조회/필터링합니다. "어노테이션 조회", "MX 태그", "annotations"를 요청할 때 사용합니다.'
 ---
 
@@ -22,5 +22,5 @@ harness_ontology_annotations({ projectRoot: "<감지된 프로젝트 루트>" })
 - fan_in 필터: `harness_ontology_annotations({ projectRoot: "...", tag: "ANCHOR", minFanIn: 5 })`
 
 ## 후속 안내
-- 온톨로지가 없으면 `/carpdm-harness:ontology-generate`를 먼저 실행하도록 안내하세요.
+- 온톨로지가 없으면 `/carpdm-harness:harness-ontology-generate`를 먼저 실행하도록 안내하세요.
 - WARN 태그가 많으면 해당 파일의 리팩토링을 권장하세요.

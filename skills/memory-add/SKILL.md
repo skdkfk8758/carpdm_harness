@@ -1,5 +1,5 @@
 ---
-name: memory-add
+name: harness-memory-add
 description: 팀 공유 메모리에 항목을 추가합니다. "메모리 추가", "팀 메모리 기록"을 요청할 때 사용합니다.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: info
+name: harness-info
 description: 현재 프로젝트의 harness 설치 상태를 조회합니다. "harness 상태", "설치 정보"를 요청할 때 사용합니다.
 ---
 
