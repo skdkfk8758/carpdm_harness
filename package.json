@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git rev-parse --git-dir > /dev/null 2>&1 && git config core.hooksPath .githooks || true"
   },
   "files": [
     "dist",
@@ -21,11 +21,12 @@
     "hooks",
     "agents",
     ".claude-plugin",
+    ".mcp.json",
     "README.md",
     "LICENSE"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "keywords": [
     "claude-code",
@@ -44,15 +45,14 @@
     "url": "https://github.com/skdkfk8758/carpdm_harness.git"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "diff": "^7.0.0",
-    "zod": "^3.24.4"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "diff": "^8.0.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@types/diff": "^6.0.0",
-    "@types/node": "^20.14.0",
-    "tsup": "^8.2.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
   }
 }
