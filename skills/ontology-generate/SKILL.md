@@ -1,5 +1,5 @@
 ---
-name: harness-ontology-generate
+name: ontology-generate
 description: 3계층 온톨로지를 생성합니다. "온톨로지 생성", "ontology generate"를 요청할 때 사용합니다.
 ---
 

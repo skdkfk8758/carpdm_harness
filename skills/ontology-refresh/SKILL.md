@@ -1,5 +1,5 @@
 ---
-name: harness-ontology-refresh
+name: ontology-refresh
 description: 온톨로지를 점진적으로 갱신합니다. "온톨로지 갱신", "ontology refresh"를 요청할 때 사용합니다.
 ---
 

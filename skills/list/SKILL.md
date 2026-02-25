@@ -1,5 +1,5 @@
 ---
-name: harness-list
+name: list
 description: 사용 가능한 모듈과 프리셋 목록을 조회합니다. "모듈 목록", "프리셋 목록"을 요청할 때 사용합니다.
 ---
 

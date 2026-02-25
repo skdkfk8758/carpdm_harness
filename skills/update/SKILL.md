@@ -1,5 +1,5 @@
 ---
-name: harness-update
+name: update
 description: 설치된 워크플로우 템플릿을 diff 기반으로 업데이트합니다. "harness 업데이트", "템플릿 업데이트"를 요청할 때 사용합니다.
 ---
 

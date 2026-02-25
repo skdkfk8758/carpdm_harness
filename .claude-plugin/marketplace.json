@@ -5,7 +5,7 @@
   "plugins": [{
     "name": "carpdm-harness",
     "source": "./",
-    "description": "OMC 통합 AI 협업 워크플로우 — 9개 모듈, 16개 도구, 15개 스킬",
+    "description": "OMC 통합 AI 협업 워크플로우 — 9개 모듈, 18개 도구, 20개 스킬",
     "version": "4.0.0",
     "category": "productivity",
     "tags": ["ai-workflow", "plan-first", "tdd", "ontology", "team-memory"]

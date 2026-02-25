@@ -1,5 +1,5 @@
 ---
-name: harness-workflow
+name: workflow
 description: OMC 워크플로우 오케스트레이션. "워크플로우", "workflow", "파이프라인"을 요청할 때 사용합니다.
 ---
 

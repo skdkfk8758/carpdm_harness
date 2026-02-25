@@ -1,5 +1,5 @@
 ---
-name: harness-memory-list
+name: memory-list
 description: 팀 공유 메모리를 조회합니다. "메모리 조회", "팀 메모리 보기"를 요청할 때 사용합니다.
 ---
 

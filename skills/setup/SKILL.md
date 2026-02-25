@@ -1,5 +1,5 @@
 ---
-name: harness-setup
+name: setup
 description: OMC 기반 원스톱 프로젝트 셋업. "harness 셋업", "프로젝트 셋업", "setup"을 요청할 때 사용합니다.
 ---
 
@@ -21,5 +21,5 @@ harness_setup({ projectRoot: "<감지된 프로젝트 루트>" })
 
 ## 후속 안내
 셋업 완료 후:
-1. `/carpdm-harness:harness-doctor`로 건강 진단
-2. `/carpdm-harness:harness-workflow`로 사용 가능한 워크플로우 확인
+1. `/carpdm-harness:doctor`로 건강 진단
+2. `/carpdm-harness:workflow`로 사용 가능한 워크플로우 확인
