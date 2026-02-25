@@ -28,7 +28,11 @@ Claude Code 플러그인으로 설치하여 AI 협업 워크플로우(모듈화,
 ### Claude Code 플러그인 설치 (권장)
 
 ```bash
-claude plugin install https://github.com/skdkfk8758/carpdm_harness
+# 1. 마켓플레이스 등록
+claude plugin marketplace add https://github.com/skdkfk8758/carpdm_harness
+
+# 2. 플러그인 설치
+claude plugin install carpdm-harness@carpdm-harness
 ```
 
 ### 수동 설치
