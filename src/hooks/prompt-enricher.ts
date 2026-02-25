@@ -19,6 +19,12 @@ import {
   OMC_KEYWORD_PRIORITY,
   MCP_DELEGATION_KEYWORDS,
 } from '../core/omc-compat.js';
+import {
+  loadTriggers,
+  matchTriggers,
+  resolveMessage,
+} from '../core/skill-trigger-engine.js';
+import type { MatchContext } from '../core/skill-trigger-engine.js';
 
 interface PromptEnricherInput {
   cwd?: string;
@@ -563,131 +569,36 @@ ${originalPrompt}`;
 
 /**
  * 프롬프트에서 harness 워크플로우 키워드를 감지합니다.
- * - 계획/설계 키워드: /plan-gate 트리거 (브랜치 무관)
- * - main/master/develop: /work-start 트리거
- * - feature 브랜치: /work-finish, /logical-commit 트리거
+ * triggers.json 매니페스트 기반으로 동작하며, 새 스킬 추가 시
+ * triggers.json에 항목만 추가하면 자동 통합됩니다.
  */
 function detectWorkKeywords(prompt: string, cwd: string): string | null {
   const cleanPrompt = sanitizeForKeywordDetection(prompt);
-
-  // ── 계획 수립 키워드 (브랜치 무관) ──────────────────────────────────────────
-  // NOTE: OMC "plan this" / "plan the"는 1단계에서 이미 처리됨 → 여기선 harness 전용 키워드만
-  const explicitPlan = /\b(계획\s*(세워|수립|작성)|플래닝|설계\s*(해|부터|먼저)|인터뷰\s*(시작|먼저|해)|요구사항\s*(정리|분석|수집)|스펙\s*(정리|작성|먼저))\b/i;
-  const explicitPlanEn = /\b(plan[\s-]*gate|interview\s*first|start\s*interview|sparc\s*plan|design\s*first|spec\s*first)\b/i;
-
-  if (explicitPlan.test(cleanPrompt) || explicitPlanEn.test(cleanPrompt)) {
-    return createHarnessSkillInvocation('plan-gate', prompt);
-  }
-
-  // "계획" + 요청형 어미 → 강제 호출
-  if (/(계획|설계|플랜).*(해\s*줘|해\s*주세요|하자|합시다|부터)/.test(cleanPrompt)) {
-    return createHarnessSkillInvocation('plan-gate', prompt);
-  }
-
-  // ── 버그/이슈 수정 시 인터뷰 자동 트리거 ────────────────────────────────────
-  const bugFixKw = /\b(버그|에러|오류|실패|깨짐|크래시|bug|error|fail|broken|crash|exception)\b/i;
-  const issueRef = /#\d+/;
-  const complexBugKw = /\b(크리티컬|critical|심각|구조\s*변경|아키텍처|architecture|회귀|regression|데이터\s*손실|data\s*loss|보안\s*취약|security|vulnerability|로직\s*변경|logic\s*change)\b/i;
-  const implKw = /\b(구현|수정|변경|리팩토링|개선|implement|fix|modify|refactor|resolve|해결)\b/i;
-
-  const hasBug = bugFixKw.test(cleanPrompt);
-  const hasIssue = issueRef.test(cleanPrompt);
-  const isComplex = complexBugKw.test(cleanPrompt);
-  const hasImpl = implKw.test(cleanPrompt);
-
-  // 크리티컬/구조적 버그 → 인터뷰 강제 (원인 분석 필수)
-  if (hasBug && isComplex) {
-    return createHarnessSkillInvocation('plan-gate', prompt);
-  }
-
-  // 이슈 번호 + 버그 + 구현 키워드 → 인터뷰 제안 (추적 가능 이슈는 계획 권장)
-  if (hasBug && hasIssue && hasImpl) {
-    const matchedIssue = cleanPrompt.match(issueRef)?.[0] ?? '';
-    return createWorkSuggestion(
-      'plan-gate',
-      `이슈(${matchedIssue}) 연결 버그 수정에 로직 변경이 포함됩니다. 원인 분석 → 수정 계획 → 구현을 위해 인터뷰를 권장합니다.`,
-      prompt,
-    );
-  }
-
-  // 이슈 번호 + 구현 키워드 (버그 아님) → 인터뷰 제안
-  if (hasIssue && hasImpl && !hasBug) {
-    const matchedIssue = cleanPrompt.match(issueRef)?.[0] ?? '';
-    return createWorkSuggestion(
-      'plan-gate',
-      `이슈(${matchedIssue}) 해결에 구현이 필요합니다. 요구사항 정리를 위해 인터뷰를 권장합니다.`,
-      prompt,
-    );
-  }
-
-  // ── 브랜치 기반 작업 감지 ──────────────────────────────────────────────────
   const branch = getCurrentBranch(cwd);
-  if (!branch) return null;
 
-  const isMainBranch = branch === 'main' || branch === 'master' || branch === 'develop' || branch === 'dev';
+  // 조건 맵 구성
+  const conditions: Record<string, boolean> = {
+    'no-active-work': !hasActiveWork(cwd),
+  };
 
-  if (isMainBranch) {
-    // 이미 진행 중인 작업이 있으면 스킵 (중복 트리거 방지)
-    if (hasActiveWork(cwd)) return null;
+  // 트리거 매니페스트 로드 + 매칭
+  const manifest = loadTriggers(cwd);
+  if (manifest.triggers.length === 0) return null;
 
-    // 명시적 시작 키워드 → 강제 호출
-    if (/\b(작업\s*시작|work\s*start|새\s*작업|new\s*task|start\s*working)\b/i.test(cleanPrompt)) {
-      return createHarnessSkillInvocation('work-start', prompt);
-    }
+  const ctx: MatchContext = { prompt: cleanPrompt, branch, conditions };
+  const match = matchTriggers(manifest, ctx);
+  if (!match) return null;
 
-    // 작업성 한국어 프롬프트: 코딩 동사 + 요청형 어미
-    const koreanTask = /(추가|구현|만들|개발|생성|작성|변경|수정|리팩토링|최적화|개선|삭제|제거|이동|분리|통합|연동|적용).*(해\s*줘|하자|해\s*주세요|합시다|하겠)/;
-    // 영문 작업 패턴: 코딩 동사 + 대상
-    const englishTask = /\b(implement|build|create|develop|add|write|refactor|optimize)\b.+\b(feature|function|module|component|page|api|endpoint|service|hook|skill)/i;
-    // 이슈 참조
-    const hasIssue = /#\d+/.test(cleanPrompt);
-
-    const isTask = koreanTask.test(cleanPrompt) || englishTask.test(cleanPrompt);
-
-    if (hasIssue && isTask) {
-      // 이슈 번호 + 작업 동사 → 강제 트리거
-      return createHarnessSkillInvocation('work-start', prompt);
-    }
-
-    if (isTask) {
-      // 작업 동사만 → 소프트 제안
-      return createWorkSuggestion(
-        'work-start',
-        `현재 ${branch} 브랜치에서 작업 중입니다. 코드 변경 작업이라면 feature 브랜치 생성을 권장합니다.`,
-        prompt,
-      );
-    }
-
-    return null;
+  // 매칭 결과를 스킬 호출/제안으로 변환
+  if (match.rule.mode === 'force') {
+    return createHarnessSkillInvocation(match.skill, prompt);
   }
 
-  // feature 브랜치에서는 작업 완료/커밋 감지
-
-  // 명시적 완료 키워드 → 강제 호출
-  if (/\b(작업\s*완료|작업\s*마무리|작업\s*끝|work\s*finish|finish\s*work|done\s*with\s*this)\b/i.test(cleanPrompt)) {
-    return createHarnessSkillInvocation('work-finish', prompt);
-  }
-
-  // PR 생성 키워드 → 강제 호출
-  if (/\b(pr\s*(생성|올려|만들|제출|작성)|create\s*pr|open\s*pr|submit\s*pr|make\s*a?\s*pr)\b/i.test(cleanPrompt)) {
-    return createHarnessSkillInvocation('work-finish', prompt);
-  }
-
-  // 논리 커밋 키워드 → 강제 호출
-  if (/\b(논리\s*커밋|logical\s*commit|커밋\s*정리|커밋해\s*줘|commit\s*this)\b/i.test(cleanPrompt)) {
-    return createHarnessSkillInvocation('logical-commit', prompt);
-  }
-
-  // ship/merge 키워드 → 소프트 제안
-  if (/\b(ship|머지|merge|릴리스|release)\b/i.test(cleanPrompt)) {
-    return createWorkSuggestion(
-      'work-finish',
-      `현재 feature 브랜치(${branch})에서 작업 중입니다. 작업을 마무리하고 PR을 생성하시겠습니까?`,
-      prompt,
-    );
-  }
-
-  return null;
+  // suggest 모드
+  const message = match.rule.message
+    ? resolveMessage(match.rule.message, match.extracts)
+    : `/${match.skill}을 실행하시겠습니까?`;
+  return createWorkSuggestion(match.skill, message, prompt);
 }
 
 // ===== 기존 워크플로우 컨텍스트 주입 =====

@@ -147,6 +147,19 @@ export function registerInitTool(server: McpServer): void {
           ensureDir(join(pRoot, '.agent'));
           ensureDir(join(pRoot, '.harness', 'state'));
 
+          // triggers.json 설치 (스킬 트리거 매니페스트)
+          try {
+            const triggersSrc = join(getTemplatesDir(), 'triggers.json');
+            if (existsSync(triggersSrc)) {
+              const triggersDest = join(pRoot, '.harness', 'triggers.json');
+              const content = readFileSync(triggersSrc, 'utf-8');
+              writeFileSync(triggersDest, content);
+              res.ok('스킬 트리거 매니페스트 설치');
+            }
+          } catch (err) {
+            res.warn(`triggers.json 설치 실패: ${String(err)}`);
+          }
+
           // .gitignore에 .harness/ 추가
           const gitignorePath = join(pRoot, '.gitignore');
           if (existsSync(gitignorePath)) {
