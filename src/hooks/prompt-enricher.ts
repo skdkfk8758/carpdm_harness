@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { execSync } from 'node:child_process';
 import {
   parseHookInput,
   outputResult,
@@ -501,6 +502,158 @@ function detectKeywords(
   }
 }
 
+// ===== 작업 워크플로우 자동 감지 =====
+
+/**
+ * 현재 git 브랜치를 반환합니다.
+ */
+function getCurrentBranch(cwd: string): string | null {
+  try {
+    return execSync('git branch --show-current', { cwd, stdio: 'pipe' }).toString().trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 진행 중인 작업 컨텍스트(.harness/state/current-work.json)가 있는지 확인합니다.
+ */
+function hasActiveWork(cwd: string): boolean {
+  try {
+    const workStatePath = join(cwd, '.harness', 'state', 'current-work.json');
+    if (!existsSync(workStatePath)) return false;
+    const state = JSON.parse(readFileSync(workStatePath, 'utf-8')) as { completedAt?: string };
+    return !state.completedAt;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * harness 워크플로우 스킬 호출 메시지를 생성합니다 (강제 호출).
+ */
+function createHarnessSkillInvocation(skillName: string, originalPrompt: string): string {
+  return `[HARNESS WORKFLOW: ${skillName.toUpperCase()}]
+
+You MUST invoke the harness workflow skill using the Skill tool:
+
+Skill: ${skillName}
+Arguments: ${originalPrompt}
+
+User request:
+${originalPrompt}
+
+IMPORTANT: Invoke the /${skillName} skill IMMEDIATELY using the Skill tool. Do not proceed without loading the skill instructions first.`;
+}
+
+/**
+ * 작업 워크플로우 제안 메시지를 생성합니다 (강제 호출이 아닌 소프트 제안).
+ */
+function createWorkSuggestion(skillName: string, message: string, originalPrompt: string): string {
+  return `[HARNESS WORKFLOW SUGGESTION]
+
+${message}
+
+권장: /${skillName} "${originalPrompt.slice(0, 60)}"
+직접 진행하려면 이 제안을 무시하고 사용자의 요청을 처리하세요.
+
+User request:
+${originalPrompt}`;
+}
+
+/**
+ * 프롬프트에서 harness 워크플로우 키워드를 감지합니다.
+ * - 계획/설계 키워드: /plan-gate 트리거 (브랜치 무관)
+ * - main/master/develop: /work-start 트리거
+ * - feature 브랜치: /work-finish, /logical-commit 트리거
+ */
+function detectWorkKeywords(prompt: string, cwd: string): string | null {
+  const cleanPrompt = sanitizeForKeywordDetection(prompt);
+
+  // ── 계획 수립 키워드 (브랜치 무관) ──────────────────────────────────────────
+  // NOTE: OMC "plan this" / "plan the"는 1단계에서 이미 처리됨 → 여기선 harness 전용 키워드만
+  const explicitPlan = /\b(계획\s*(세워|수립|작성)|플래닝|설계\s*(해|부터|먼저)|인터뷰\s*(시작|먼저|해)|요구사항\s*(정리|분석|수집)|스펙\s*(정리|작성|먼저))\b/i;
+  const explicitPlanEn = /\b(plan[\s-]*gate|interview\s*first|start\s*interview|sparc\s*plan|design\s*first|spec\s*first)\b/i;
+
+  if (explicitPlan.test(cleanPrompt) || explicitPlanEn.test(cleanPrompt)) {
+    return createHarnessSkillInvocation('plan-gate', prompt);
+  }
+
+  // "계획" + 요청형 어미 → 강제 호출
+  if (/(계획|설계|플랜).*(해\s*줘|해\s*주세요|하자|합시다|부터)/.test(cleanPrompt)) {
+    return createHarnessSkillInvocation('plan-gate', prompt);
+  }
+
+  // ── 브랜치 기반 작업 감지 ──────────────────────────────────────────────────
+  const branch = getCurrentBranch(cwd);
+  if (!branch) return null;
+
+  const isMainBranch = branch === 'main' || branch === 'master' || branch === 'develop' || branch === 'dev';
+
+  if (isMainBranch) {
+    // 이미 진행 중인 작업이 있으면 스킵 (중복 트리거 방지)
+    if (hasActiveWork(cwd)) return null;
+
+    // 명시적 시작 키워드 → 강제 호출
+    if (/\b(작업\s*시작|work\s*start|새\s*작업|new\s*task|start\s*working)\b/i.test(cleanPrompt)) {
+      return createHarnessSkillInvocation('work-start', prompt);
+    }
+
+    // 작업성 한국어 프롬프트: 코딩 동사 + 요청형 어미
+    const koreanTask = /(추가|구현|만들|개발|생성|작성|변경|수정|리팩토링|최적화|개선|삭제|제거|이동|분리|통합|연동|적용).*(해\s*줘|하자|해\s*주세요|합시다|하겠)/;
+    // 영문 작업 패턴: 코딩 동사 + 대상
+    const englishTask = /\b(implement|build|create|develop|add|write|refactor|optimize)\b.+\b(feature|function|module|component|page|api|endpoint|service|hook|skill)/i;
+    // 이슈 참조
+    const hasIssue = /#\d+/.test(cleanPrompt);
+
+    const isTask = koreanTask.test(cleanPrompt) || englishTask.test(cleanPrompt);
+
+    if (hasIssue && isTask) {
+      // 이슈 번호 + 작업 동사 → 강제 트리거
+      return createHarnessSkillInvocation('work-start', prompt);
+    }
+
+    if (isTask) {
+      // 작업 동사만 → 소프트 제안
+      return createWorkSuggestion(
+        'work-start',
+        `현재 ${branch} 브랜치에서 작업 중입니다. 코드 변경 작업이라면 feature 브랜치 생성을 권장합니다.`,
+        prompt,
+      );
+    }
+
+    return null;
+  }
+
+  // feature 브랜치에서는 작업 완료/커밋 감지
+
+  // 명시적 완료 키워드 → 강제 호출
+  if (/\b(작업\s*완료|작업\s*마무리|작업\s*끝|work\s*finish|finish\s*work|done\s*with\s*this)\b/i.test(cleanPrompt)) {
+    return createHarnessSkillInvocation('work-finish', prompt);
+  }
+
+  // PR 생성 키워드 → 강제 호출
+  if (/\b(pr\s*(생성|올려|만들|제출|작성)|create\s*pr|open\s*pr|submit\s*pr|make\s*a?\s*pr)\b/i.test(cleanPrompt)) {
+    return createHarnessSkillInvocation('work-finish', prompt);
+  }
+
+  // 논리 커밋 키워드 → 강제 호출
+  if (/\b(논리\s*커밋|logical\s*commit|커밋\s*정리|커밋해\s*줘|commit\s*this)\b/i.test(cleanPrompt)) {
+    return createHarnessSkillInvocation('logical-commit', prompt);
+  }
+
+  // ship/merge 키워드 → 소프트 제안
+  if (/\b(ship|머지|merge|릴리스|release)\b/i.test(cleanPrompt)) {
+    return createWorkSuggestion(
+      'work-finish',
+      `현재 feature 브랜치(${branch})에서 작업 중입니다. 작업을 마무리하고 PR을 생성하시겠습니까?`,
+      prompt,
+    );
+  }
+
+  return null;
+}
+
 // ===== 기존 워크플로우 컨텍스트 주입 =====
 
 /**
@@ -601,6 +754,19 @@ function main(): void {
     }
   } catch {
     // 키워드 감지 실패 시 워크플로우 컨텍스트 주입으로 폴백
+  }
+
+  // 1.5단계: 작업 워크플로우 키워드 감지 (브랜치 기반)
+  try {
+    if (prompt) {
+      const workContext = detectWorkKeywords(prompt, cwd);
+      if (workContext !== null) {
+        outputResult('continue', workContext);
+        return;
+      }
+    }
+  } catch {
+    // 작업 키워드 감지 실패 시 계속 진행
   }
 
   // 2단계: 활성 워크플로우 컨텍스트 주입
