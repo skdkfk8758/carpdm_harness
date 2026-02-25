@@ -85,6 +85,10 @@ export function syncHarnessToOmc(projectRoot: string, dryRun = false): SyncResul
         noteItems.push(`[decision] ${title}: ${content ?? ''}`);
       } else if (category === 'mistakes') {
         noteItems.push(`[mistake] ${title}: ${content ?? ''}`);
+      } else if (category === 'bugs') {
+        const sev = (entry.severity as string) ?? '';
+        const st = (entry.status as string) ?? '';
+        noteItems.push(`[bug:${sev}:${st}] ${title}: ${content ?? ''}`);
       }
 
       result.synced++;
@@ -181,6 +185,9 @@ export function syncOmcToHarness(projectRoot: string, dryRun = false): SyncResul
         } else if (line.startsWith('[mistake] ')) {
           category = 'mistakes';
           content = line.replace('[mistake] ', '');
+        } else if (line.startsWith('[bug')) {
+          category = 'bugs';
+          content = line.replace(/^\[bug[^\]]*\]\s*/, '');
         }
 
         if (!category) continue;
