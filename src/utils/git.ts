@@ -38,3 +38,53 @@ export function getMainWorktreeRoot(cwd: string): string | null {
     return null;
   }
 }
+
+export function listWorktrees(cwd: string): Array<{ path: string; branch: string; bare: boolean }> {
+  try {
+    const output = execSync('git worktree list --porcelain', { cwd, stdio: 'pipe' }).toString();
+    const worktrees: Array<{ path: string; branch: string; bare: boolean }> = [];
+    let current: { path: string; branch: string; bare: boolean } = { path: '', branch: '', bare: false };
+
+    for (const line of output.split('\n')) {
+      if (line.startsWith('worktree ')) {
+        if (current.path) worktrees.push(current);
+        current = { path: line.slice(9), branch: '', bare: false };
+      } else if (line.startsWith('branch ')) {
+        current.branch = line.slice(7).replace('refs/heads/', '');
+      } else if (line === 'bare') {
+        current.bare = true;
+      }
+    }
+    if (current.path) worktrees.push(current);
+
+    return worktrees;
+  } catch {
+    return [];
+  }
+}
+
+export function createWorktree(
+  cwd: string,
+  worktreePath: string,
+  branchName: string,
+  baseBranch: string = 'main',
+): { success: boolean; message: string } {
+  try {
+    execSync(`git worktree add -b "${branchName}" "${worktreePath}" "${baseBranch}"`, {
+      cwd,
+      stdio: 'pipe',
+    });
+    return { success: true, message: `Worktree created: ${worktreePath} (${branchName})` };
+  } catch (err) {
+    return { success: false, message: `Failed to create worktree: ${String(err)}` };
+  }
+}
+
+export function removeWorktree(cwd: string, worktreePath: string): { success: boolean; message: string } {
+  try {
+    execSync(`git worktree remove "${worktreePath}"`, { cwd, stdio: 'pipe' });
+    return { success: true, message: `Worktree removed: ${worktreePath}` };
+  } catch (err) {
+    return { success: false, message: `Failed to remove worktree: ${String(err)}` };
+  }
+}
