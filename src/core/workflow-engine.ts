@@ -8,10 +8,12 @@ import type {
   NextAction,
   StepState,
   ActiveWorkflow,
+  DispatchHint,
 } from '../types/workflow-engine.js';
 import { TRANSITION_TABLE, DEFAULT_ENGINE_CONFIG } from '../types/workflow-engine.js';
 import { WORKFLOW_DEFINITIONS } from '../types/workflow.js';
 import type { PipelineStep } from '../types/workflow.js';
+import { OMC_AGENT_PREFIX, AGENT_SKILL_MAP } from './omc-compat.js';
 import {
   loadActiveWorkflowId,
   saveActiveWorkflowId,
@@ -76,12 +78,17 @@ export function resolveNextAction(instance: WorkflowInstance): NextAction {
     return { type: 'workflow_complete', action: '워크플로우가 완료되었습니다.' };
   }
 
+  const hint = instance.config.autoDispatch
+    ? generateDispatchHint(currentStep, instance.context)
+    : undefined;
+
   if (currentStep.omcSkill) {
     return {
       type: 'run_omc_skill',
       skill: currentStep.omcSkill,
       agent: currentStep.agent,
       action: currentStep.action,
+      dispatchHint: hint,
     };
   }
 
@@ -89,6 +96,43 @@ export function resolveNextAction(instance: WorkflowInstance): NextAction {
     type: 'manual_action',
     agent: currentStep.agent,
     action: currentStep.action,
+    dispatchHint: hint,
+  };
+}
+
+/**
+ * autoDispatch 힌트를 생성합니다.
+ * 현재 단계의 에이전트를 기반으로 OMC 에이전트 타입, 스킬, 모델, 프롬프트를 결정합니다.
+ */
+export function generateDispatchHint(
+  step: StepState,
+  context?: WorkflowContext,
+): DispatchHint {
+  const mapping = AGENT_SKILL_MAP[step.agent];
+  const model = mapping?.model ?? 'sonnet';
+  const skill = step.omcSkill ?? mapping?.skill;
+  const agentType = `${OMC_AGENT_PREFIX}${step.agent}`;
+
+  // 프롬프트 구성: 액션 + 컨텍스트
+  const parts: string[] = [`작업: ${step.action}`];
+  if (context?.description) {
+    parts.push(`설명: ${context.description}`);
+  }
+  if (context?.branch) {
+    parts.push(`브랜치: ${context.branch}`);
+  }
+  if (context?.relatedIssue) {
+    parts.push(`관련 이슈: ${context.relatedIssue}`);
+  }
+  if (step.checkpoint) {
+    parts.push(`체크포인트: ${step.checkpoint}`);
+  }
+
+  return {
+    agentType,
+    skill: skill ?? undefined,
+    model,
+    prompt: parts.join('\n'),
   };
 }
 
