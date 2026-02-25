@@ -45,6 +45,8 @@ fi
   - 새 기능/모듈 도입 → README 해당 섹션 확인
   - 빌드/엔트리포인트 변경 (`tsup.config.ts`) → README 아키텍처 섹션 확인
   - 템플릿 구조 변경 (`templates/`) → README 구조도 확인
+  - **prompt-enricher 변경** (`src/hooks/prompt-enricher.ts`) → README "워크플로우 자동화" 섹션 확인
+  - **워크플로우 스킬 변경** (`work-start.md`, `work-finish.md`, `plan-gate.md`) → README 자동 감지 키워드 테이블 확인
 
 #### 검사 로직
 
@@ -54,6 +56,8 @@ fi
    - 스킬 개수 ↔ 실제 `skills/` 디렉토리 수
    - 모듈 개수 ↔ 실제 `presets/full.json` 모듈 수
    - 파일 구조도 ↔ 실제 디렉토리 구조
+   - 워크플로우 자동 감지 키워드 테이블 ↔ 실제 `prompt-enricher.ts` 키워드 패턴
+   - 워크플로우 다이어그램 (mermaid) ↔ 실제 훅 체인 흐름
 3. 불일치 항목이 있으면 README 업데이트를 먼저 수행하고 변경 파일에 포함
 
 #### 결과 처리
