@@ -1,5 +1,0 @@
-{
-  "name": "minimal",
-  "description": "최소 구성 — core만",
-  "modules": ["core"]
-}

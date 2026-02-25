@@ -19,10 +19,6 @@ export function getPresetsDir(): string {
   return join(getPackageRoot(), 'presets');
 }
 
-export function getGlobalCommandsDir(): string {
-  const home = process.env.HOME || process.env.USERPROFILE || '~';
-  return join(home, '.claude', 'commands');
-}
 
 export function getProjectRoot(cwd?: string): string {
   return cwd || process.cwd();

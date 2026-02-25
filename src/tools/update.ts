@@ -7,8 +7,7 @@ import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
 import { getAllModules } from '../core/module-registry.js';
 import { safeCopyFile, computeFileHash, backupFile, safeWriteFile, ensureDir } from '../core/file-ops.js';
 import { getAllModuleFiles } from '../core/template-engine.js';
-import { getTemplatesDir, getPackageRoot } from '../utils/paths.js';
-import { checkForUpdates, performUpdate, recordUpdateHistory } from '../core/self-update.js';
+import { getTemplatesDir } from '../utils/paths.js';
 import { getPackageVersion } from '../utils/version.js';
 import { refreshOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
@@ -20,17 +19,15 @@ import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 export function registerUpdateTool(server: McpServer): void {
   server.tool(
     'harness_update',
-    '플러그인 자체 및 설치된 템플릿을 diff 기반으로 업데이트합니다',
+    '설치된 템플릿을 diff 기반으로 업데이트합니다',
     {
       projectRoot: z.string().describe('프로젝트 루트 경로'),
       module: z.string().optional().describe('특정 모듈만 업데이트'),
       dryRun: z.boolean().optional().describe('diff만 표시'),
       acceptAll: z.boolean().optional().describe('모든 변경 자동 수락'),
       refreshOntology: z.boolean().optional().describe('온톨로지 갱신'),
-      updatePlugin: z.boolean().optional().describe('플러그인 자체 업데이트 실행'),
-      skipTemplates: z.boolean().optional().describe('템플릿 업데이트 건너뜀 (Phase 0만)'),
     },
-    async ({ projectRoot, module: targetModule, dryRun, acceptAll, refreshOntology: doRefreshOntology, updatePlugin, skipTemplates }) => {
+    async ({ projectRoot, module: targetModule, dryRun, acceptAll, refreshOntology: doRefreshOntology }) => {
       try {
         logger.clear();
         const res = new McpResponseBuilder();
@@ -44,103 +41,6 @@ export function registerUpdateTool(server: McpServer): void {
         }
 
         res.header('carpdm-harness 업데이트');
-
-        // ── Phase 0: 플러그인 자체 업데이트 ──
-        if (updatePlugin === true) {
-          const packageRoot = getPackageRoot();
-          const check = checkForUpdates(packageRoot);
-
-          res.header('Phase 0: 플러그인 업데이트');
-          res.table([
-            ['현재 버전', check.currentVersion],
-            ['원격 버전', check.remoteVersion || '(확인 불가)'],
-          ]);
-
-          if (check.reason === 'not-git-repo') {
-            res.warn('플러그인이 Git 저장소가 아닙니다. 플러그인 업데이트를 건너뜁니다.');
-          } else if (check.reason === 'fetch-failed') {
-            res.warn('원격 저장소 확인 실패. 네트워크를 확인하세요. 플러그인 업데이트를 건너뜁니다.');
-          } else if (check.reason === 'already-latest') {
-            res.ok('플러그인이 최신 버전입니다.');
-          } else if (check.available) {
-            res.info(`업데이트 가능: ${check.currentVersion} → ${check.remoteVersion}`);
-            if (check.changelog.length > 0) {
-              res.blank();
-              res.line('변경 내역:');
-              for (const entry of check.changelog) {
-                res.line(`  - ${entry}`);
-              }
-            }
-            res.blank();
-
-            if (pDryRun) {
-              res.info('[DRY-RUN] 실제 업데이트는 수행하지 않습니다.');
-            } else {
-              const result = performUpdate(packageRoot, check.remoteVersion);
-
-              if (result.success) {
-                res.ok(`플러그인 업데이트 완료: ${result.previousRef.slice(0, 7)} → ${result.newRef.slice(0, 7)}`);
-
-                recordUpdateHistory(packageRoot, {
-                  timestamp: new Date().toISOString(),
-                  previousVersion: check.currentVersion,
-                  newVersion: check.remoteVersion,
-                  previousRef: result.previousRef,
-                  newRef: result.newRef,
-                  rolledBack: false,
-                });
-
-                config.pluginVersion = check.remoteVersion;
-                config.lastPluginUpdateAt = new Date().toISOString();
-              } else if (result.rolledBack) {
-                res.error(`빌드 실패로 롤백되었습니다: ${result.error}`);
-                res.ok(`이전 버전(${result.previousRef.slice(0, 7)})으로 복원 완료.`);
-
-                recordUpdateHistory(packageRoot, {
-                  timestamp: new Date().toISOString(),
-                  previousVersion: check.currentVersion,
-                  newVersion: check.remoteVersion,
-                  previousRef: result.previousRef,
-                  newRef: result.newRef,
-                  rolledBack: true,
-                });
-
-                if (!pDryRun) {
-                  saveConfig(pRoot, config);
-                }
-                return res.toResult(true);
-              } else {
-                res.error(`심각: 빌드 실패 + 롤백 실패. 수동 복구가 필요합니다.`);
-                res.line(`  이전 커밋: ${result.previousRef}`);
-                res.line(`  복구 명령: cd ${packageRoot} && git reset --hard ${result.previousRef} && npm run build`);
-
-                recordUpdateHistory(packageRoot, {
-                  timestamp: new Date().toISOString(),
-                  previousVersion: check.currentVersion,
-                  newVersion: check.remoteVersion,
-                  previousRef: result.previousRef,
-                  newRef: result.newRef,
-                  rolledBack: false,
-                });
-
-                return res.toResult(true);
-              }
-            }
-          }
-
-          res.blank();
-
-          if (skipTemplates === true) {
-            res.info('템플릿 업데이트를 건너뜁니다 (skipTemplates).');
-            res.info('도구 스키마 변경은 MCP 서버 재시작 후 적용됩니다.');
-            if (!pDryRun) {
-              saveConfig(pRoot, config);
-            }
-            return res.toResult();
-          }
-
-          res.header('Phase 1: 템플릿 업데이트');
-        }
 
         // 레거시 상태 마이그레이션
         if (!pDryRun) {
