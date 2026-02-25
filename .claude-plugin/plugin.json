@@ -1,6 +1,6 @@
 {
   "name": "carpdm-harness",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "AI 협업 워크플로우 MCP 플러그인 — Plan-First + DDD + SPARC",
   "author": { "name": "carpdm" },
   "repository": "https://github.com/skdkfk8758/carpdm_harness",
