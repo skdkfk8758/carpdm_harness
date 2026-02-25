@@ -1,5 +1,5 @@
 ---
-name: workflow-status
+name: harness-workflow-status
 description: 현재 워크플로우 진행 상태를 확인합니다. "워크플로우 상태", "workflow status"를 요청할 때 사용합니다.
 ---
 

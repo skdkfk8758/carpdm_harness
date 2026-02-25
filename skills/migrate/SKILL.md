@@ -1,5 +1,5 @@
 ---
-name: migrate
+name: harness-migrate
 description: 레거시 상태를 마이그레이션합니다. "harness 마이그레이션", "migrate"를 요청할 때 사용합니다.
 ---
 

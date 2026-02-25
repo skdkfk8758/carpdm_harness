@@ -1,5 +1,5 @@
 ---
-name: sync
+name: harness-sync
 description: 플러그인 업데이트 + 프로젝트 템플릿 동기화를 원스톱으로 실행합니다. "플러그인 업데이트", "harness 동기화", "sync"를 요청할 때 사용합니다.
 ---
 

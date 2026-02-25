@@ -1,5 +1,5 @@
 ---
-name: ontology-domain-write
+name: harness-ontology-domain-write
 description: Domain 레이어 분석 결과를 저장합니다. "도메인 레이어 저장", "domain write"를 요청할 때 사용합니다.
 ---
 

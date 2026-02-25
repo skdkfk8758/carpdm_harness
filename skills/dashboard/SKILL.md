@@ -1,5 +1,5 @@
 ---
-name: dashboard
+name: harness-dashboard
 description: 워크플로우 대시보드를 생성합니다. "대시보드", "dashboard"를 요청할 때 사용합니다.
 ---
 

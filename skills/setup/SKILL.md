@@ -1,5 +1,5 @@
 ---
-name: setup
+name: harness-setup
 description: OMC 기반 원스톱 프로젝트 셋업. "harness 셋업", "프로젝트 셋업", "setup"을 요청할 때 사용합니다.
 ---
 
@@ -51,10 +51,10 @@ harness_setup({ projectRoot: "<감지된 프로젝트 루트>", preset: "<선택
 
 ### Step 5: 후속 안내
 셋업 완료 후 사용자에게 다음 단계를 안내:
-1. `/carpdm-harness:doctor` — 건강 진단으로 정상 설치 확인
-2. `/carpdm-harness:workflow` — 사용 가능한 워크플로우 확인
-3. `/carpdm-harness:ontology-generate` — 프로젝트 온톨로지 생성 (권장)
-4. `/carpdm-harness:dashboard` — 대시보드로 전체 상태 조회
+1. `/carpdm-harness:harness-doctor` — 건강 진단으로 정상 설치 확인
+2. `/carpdm-harness:harness-workflow` — 사용 가능한 워크플로우 확인
+3. `/carpdm-harness:harness-ontology-generate` — 프로젝트 온톨로지 생성 (권장)
+4. `/carpdm-harness:harness-dashboard` — 대시보드로 전체 상태 조회
 
 ## 인자 매핑
 
@@ -70,7 +70,7 @@ harness_setup({ projectRoot: "<감지된 프로젝트 루트>", preset: "<선택
 이미 harness가 설치된 프로젝트인 경우:
 - `.harness/state.json` 또는 `.agent/` 디렉토리 존재 확인
 - 기존 설정을 유지하면서 업데이트할지, 새로 설치할지 사용자에게 확인
-- 업데이트 시 `/carpdm-harness:update`로 안내
+- 업데이트 시 `/carpdm-harness:harness-update`로 안내
 
 ## 에러 처리
 

@@ -1,5 +1,5 @@
 ---
-name: scaffold
+name: harness-scaffold
 description: PRD 또는 프로젝트 설명을 기반으로 AI 협업 환경을 한번에 세팅합니다. "프로젝트 세팅", "PRD로 초기화", "scaffold"를 요청할 때 사용합니다.
 ---
 
@@ -68,8 +68,8 @@ PRD에서 추출한 정보를 기반으로 프로젝트 CLAUDE.md를 생성합�
 생성된 파일 목록과 다음 단계를 안내합니다:
 1. CLAUDE.md 검토 및 커스터마이즈
 2. conventions.md 팀 리뷰
-3. `/carpdm-harness:doctor`로 건강 진단
-4. `/carpdm-harness:ontology-generate`로 온톨로지 생성 (선택)
+3. `/carpdm-harness:harness-doctor`로 건강 진단
+4. `/carpdm-harness:harness-ontology-generate`로 온톨로지 생성 (선택)
 
 ## 주의사항
 - 이미 CLAUDE.md가 있으면 덮어쓰지 않고 사용자에게 확인
