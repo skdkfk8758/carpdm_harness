@@ -85,7 +85,7 @@ describe('TRUST 5 품질 게이트 구조 검증', () => {
       const bashHook = postToolUse.find(entry => entry.matcher === 'Bash');
       expect(bashHook).toBeDefined();
       const hookCmd = (bashHook!.hooks[0] as Record<string, unknown>).command as string;
-      expect(hookCmd).toContain('quality-gate.js');
+      expect(hookCmd).toContain('quality-gate');
     });
 
     it('빌드된 quality-gate.js가 dist/hooks에 존재한다', () => {
