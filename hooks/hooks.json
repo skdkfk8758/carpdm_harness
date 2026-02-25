@@ -4,7 +4,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/session-start.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" session-start",
         "timeout": 5000
       }]
     }],
@@ -12,7 +12,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/prompt-enricher.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" prompt-enricher",
         "timeout": 3000
       }]
     }],
@@ -20,7 +20,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/subagent-context.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" subagent-context",
         "timeout": 3000
       }]
     }],
@@ -28,14 +28,14 @@
       "matcher": "harness_workflow",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/workflow-guard.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" workflow-guard",
         "timeout": 3000
       }]
     }, {
       "matcher": "harness_*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/workflow-guard.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" workflow-guard",
         "timeout": 3000
       }]
     }],
@@ -43,21 +43,21 @@
       "matcher": "harness_*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/event-logger.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" event-logger",
         "timeout": 3000
       }]
     }, {
       "matcher": "Bash",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/quality-gate.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" quality-gate",
         "timeout": 10000
       }]
     }, {
       "matcher": "Task",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/remember-handler.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" remember-handler",
         "timeout": 3000
       }]
     }],
@@ -65,7 +65,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/tool-failure-tracker.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" tool-failure-tracker",
         "timeout": 3000
       }]
     }],
@@ -73,7 +73,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/subagent-complete.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" subagent-complete",
         "timeout": 5000
       }]
     }],
@@ -81,7 +81,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/pre-compact.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" pre-compact",
         "timeout": 5000
       }]
     }],
@@ -89,7 +89,7 @@
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/session-end.js\"",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" session-end",
         "timeout": 5000
       }]
     }]

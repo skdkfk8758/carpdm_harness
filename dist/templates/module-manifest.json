@@ -1,0 +1,154 @@
+{
+  "version": "1.0.0",
+  "modules": {
+    "core": {
+      "name": "core",
+      "description": "Plan-First + SPARC + External Memory 핵심 워크플로우",
+      "dependencies": [],
+      "commands": [
+        { "source": "core/commands/plan-gate.md", "destination": ".claude/commands/plan-gate.md" },
+        { "source": "core/commands/read-domain-context.md", "destination": ".claude/commands/read-domain-context.md" },
+        { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" }
+      ],
+      "hooks": [
+        { "source": "core/hooks/_harness-common.sh", "destination": ".claude/hooks/_harness-common.sh", "executable": true },
+        { "source": "core/hooks/pre-task.sh", "destination": ".claude/hooks/pre-task.sh", "executable": true },
+        { "source": "core/hooks/plan-guard.sh", "destination": ".claude/hooks/plan-guard.sh", "executable": true },
+        { "source": "core/hooks/post-task.sh", "destination": ".claude/hooks/post-task.sh", "executable": true }
+      ],
+      "docs": [
+        { "source": "core/docs/plan-template.md", "destination": "docs/templates/plan-template.md" },
+        { "source": "core/docs/todo-template.md", "destination": "docs/templates/todo-template.md" },
+        { "source": "core/docs/context-template.md", "destination": "docs/templates/context-template.md" },
+        { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" }
+      ],
+      "agentFiles": [
+        { "source": "core/agent/plan.md", "destination": ".agent/plan.md" },
+        { "source": "core/agent/todo.md", "destination": ".agent/todo.md" },
+        { "source": "core/agent/context.md", "destination": ".agent/context.md" }
+      ]
+    },
+    "tdd": {
+      "name": "tdd",
+      "description": "Red-Green-Refactor TDD 사이클 + 자동 차단",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "tdd/commands/tdd-cycle.md", "destination": ".claude/commands/tdd-cycle.md" }
+      ],
+      "hooks": [
+        { "source": "tdd/hooks/tdd-guard.sh", "destination": ".claude/hooks/tdd-guard.sh", "executable": true }
+      ],
+      "docs": []
+    },
+    "quality": {
+      "name": "quality",
+      "description": "품질 게이트 + 교차 검증 + 변경 추적",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "quality/commands/quality-guard.md", "destination": ".claude/commands/quality-guard.md" },
+        { "source": "quality/commands/post-task-check.md", "destination": ".claude/commands/post-task-check.md" },
+        { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" },
+        { "source": "quality/commands/verify-loop.md", "destination": ".claude/commands/verify-loop.md" },
+        { "source": "quality/commands/handoff-verify.md", "destination": ".claude/commands/handoff-verify.md" },
+        { "source": "quality/commands/trust-check.md", "destination": ".claude/commands/trust-check.md" }
+      ],
+      "hooks": [
+        { "source": "quality/hooks/code-change.sh", "destination": ".claude/hooks/code-change.sh", "executable": true }
+      ],
+      "docs": []
+    },
+    "ship": {
+      "name": "ship",
+      "description": "논리 커밋 + PR 생성 + 릴리스 자동화 + GitHub 이슈/PR 템플릿",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
+        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" },
+        { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" }
+      ],
+      "hooks": [],
+      "docs": [],
+      "github": [
+        { "source": "ship/github/ISSUE_TEMPLATE/bug-report.yml", "destination": ".github/ISSUE_TEMPLATE/bug-report.yml" },
+        { "source": "ship/github/ISSUE_TEMPLATE/feature-request.yml", "destination": ".github/ISSUE_TEMPLATE/feature-request.yml" },
+        { "source": "ship/github/pull_request_template.md", "destination": ".github/pull_request_template.md" }
+      ]
+    },
+    "maintenance": {
+      "name": "maintenance",
+      "description": "환경 업데이트 자동화",
+      "dependencies": [],
+      "commands": [
+        { "source": "maintenance/commands/update-all.md", "destination": ".claude/commands/update-all.md" }
+      ],
+      "hooks": [],
+      "docs": []
+    },
+    "patterns": {
+      "name": "patterns",
+      "description": "패턴 클로닝 — 기존 도메인 패턴 복제",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" }
+      ],
+      "hooks": [],
+      "docs": []
+    },
+    "ontology": {
+      "name": "ontology",
+      "description": "3계층 통합 온톨로지 — 구조맵 + 코드 시맨틱 + 도메인 지식",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "ontology/commands/generate-ontology.md", "destination": ".claude/commands/generate-ontology.md" },
+        { "source": "ontology/commands/analyze-domain.md", "destination": ".claude/commands/analyze-domain.md" }
+      ],
+      "hooks": [
+        { "source": "ontology/hooks/ontology-update.sh", "destination": ".claude/hooks/ontology-update.sh", "executable": true }
+      ],
+      "docs": [
+        { "source": "ontology/docs/ontology-guide.md", "destination": "docs/templates/ontology-guide.md" }
+      ]
+    },
+    "security": {
+      "name": "security",
+      "description": "보안 훅 + 감사 + 권한 관리 자동화",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "security/commands/security-audit.md", "destination": ".claude/commands/security-audit.md" },
+        { "source": "security/commands/security-setup.md", "destination": ".claude/commands/security-setup.md" }
+      ],
+      "hooks": [
+        { "source": "security/hooks/secret-filter.sh", "destination": ".claude/hooks/secret-filter.sh", "executable": true },
+        { "source": "security/hooks/command-guard.sh", "destination": ".claude/hooks/command-guard.sh", "executable": true },
+        { "source": "security/hooks/db-guard.sh", "destination": ".claude/hooks/db-guard.sh", "executable": true },
+        { "source": "security/hooks/security-trigger.sh", "destination": ".claude/hooks/security-trigger.sh", "executable": true }
+      ],
+      "docs": []
+    },
+    "team-memory": {
+      "name": "team-memory",
+      "description": "팀 협업 메모리 — .claude/rules/ 공유 규칙 + 학습 에이전트",
+      "dependencies": ["core"],
+      "commands": [
+        { "source": "team-memory/commands/memory-review.md", "destination": ".claude/commands/memory-review.md" }
+      ],
+      "hooks": [],
+      "docs": [
+        { "source": "team-memory/docs/team-memory-guide.md", "destination": "docs/templates/team-memory-guide.md" }
+      ],
+      "rules": [
+        { "source": "team-memory/rules/conventions.md", "destination": ".claude/rules/conventions.md" },
+        { "source": "team-memory/rules/patterns.md", "destination": ".claude/rules/patterns.md" },
+        { "source": "team-memory/rules/decisions.md", "destination": ".claude/rules/decisions.md" },
+        { "source": "team-memory/rules/mistakes.md", "destination": ".claude/rules/mistakes.md" },
+        { "source": "team-memory/rules/bugs.md", "destination": ".claude/rules/bugs.md" }
+      ],
+      "agents": [
+        { "source": "team-memory/agents/team-memory-keeper.md", "destination": ".claude/agents/team-memory-keeper.md" }
+      ],
+      "agentFiles": [
+        { "source": "team-memory/agent/memory.md", "destination": ".agent/memory.md" }
+      ]
+    }
+  }
+}
