@@ -12,13 +12,13 @@ carpdm-harness는 Claude Code 플러그인입니다. 코드를 수정할 때 항
 
 ## 기술 스택
 
-- **Runtime**: Node.js >= 18, ESM only (`"type": "module"`)
-- **Language**: TypeScript (strict mode, ES2022 target)
-- **MCP SDK**: `@modelcontextprotocol/sdk` — 도구/훅 등록
-- **Validation**: `zod` — 도구 파라미터 스키마
-- **Diff**: `diff` — 템플릿 병합
-- **Build**: `tsup` (13 entry points → ESM)
-- **Test**: `vitest`
+- **Runtime**: Node.js >= 20, ESM only (`"type": "module"`)
+- **Language**: TypeScript 5.9 (strict mode, ES2022 target)
+- **MCP SDK**: `@modelcontextprotocol/sdk` ^1.27 — 도구/훅 등록
+- **Validation**: `zod` ^3.25 — 도구 파라미터 스키마 (4.x 불가: MCP SDK가 zod 3.x에 의존)
+- **Diff**: `diff` ^8.0 — 템플릿 병합
+- **Build**: `tsup` ^8.5 (13 entry points → ESM)
+- **Test**: `vitest` ^3.2
 
 ## 아키텍처 개요
 
@@ -52,7 +52,7 @@ src/
 
 ### 배포 포함 디렉토리
 
-`dist/`, `templates/`, `presets/`, `skills/`, `hooks/`, `agents/`, `.claude-plugin/`
+`dist/`, `templates/`, `presets/`, `skills/`, `hooks/`, `agents/`, `.claude-plugin/`, `.mcp.json`
 
 ## 변경 시 반드시 확인
 

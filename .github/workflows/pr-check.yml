@@ -1,0 +1,48 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Version sync check
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          PLUGIN_VER=$(node -p "require('./.claude-plugin/plugin.json').version")
+          MKT_VER=$(node -p "require('./.claude-plugin/marketplace.json').plugins[0].version")
+          if [ "$PKG_VER" != "$PLUGIN_VER" ] || [ "$PKG_VER" != "$MKT_VER" ]; then
+            echo "::error::Version mismatch: package.json($PKG_VER) plugin.json($PLUGIN_VER) marketplace.json($MKT_VER)"
+            exit 1
+          fi
+          echo "Version sync OK: v$PKG_VER"
+
+      - name: Skill coverage check
+        run: |
+          SKILL_COUNT=$(find skills -name "SKILL.md" | wc -l)
+          TOOL_COUNT=$(find src/tools -name "*.ts" ! -name "index.ts" | wc -l)
+          echo "Skills: $SKILL_COUNT, Tools: $TOOL_COUNT"
+          if [ "$SKILL_COUNT" -lt "$TOOL_COUNT" ]; then
+            echo "::warning::Some tools may be missing skill wrappers ($SKILL_COUNT skills < $TOOL_COUNT tools)"
+          fi

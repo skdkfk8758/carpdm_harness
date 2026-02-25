@@ -46,30 +46,33 @@ describe('플러그인 구조 검증', () => {
     });
   });
 
-  // ─── mcpServers 인라인 검증 ───
+  // ─── mcpServers 외부 참조 검증 ───
   describe('plugin.json mcpServers', () => {
-    it('mcpServers가 인라인으로 정의되어 있다', () => {
+    it('mcpServers가 .mcp.json을 참조한다', () => {
       const plugin = readJson('.claude-plugin/plugin.json');
-      const servers = plugin.mcpServers as Record<string, unknown>;
-      expect(servers).toHaveProperty('carpdm-harness');
+      expect(plugin.mcpServers).toBe('./.mcp.json');
     });
 
-    it('${CLAUDE_PLUGIN_ROOT} 변수를 사용한다', () => {
-      const content = readFileSync(join(ROOT, '.claude-plugin/plugin.json'), 'utf-8');
+    it('.mcp.json 파일이 존재하고 ${CLAUDE_PLUGIN_ROOT}를 사용한다', () => {
+      const mcpPath = join(ROOT, '.mcp.json');
+      expect(existsSync(mcpPath)).toBe(true);
+      const content = readFileSync(mcpPath, 'utf-8');
       expect(content).toContain('${CLAUDE_PLUGIN_ROOT}');
+      const mcp = JSON.parse(content);
+      expect(mcp.mcpServers).toHaveProperty('carpdm-harness');
     });
   });
 
   // ─── skills/ ───
   describe('skills/ 디렉토리', () => {
-    it('20개의 SKILL.md 파일이 존재한다', () => {
+    it('22개의 SKILL.md 파일이 존재한다', () => {
       const skillsDir = join(ROOT, 'skills');
       expect(existsSync(skillsDir)).toBe(true);
       const skillFiles = readdirSync(skillsDir, { withFileTypes: true })
         .filter(d => d.isDirectory())
         .map(d => join(skillsDir, d.name, 'SKILL.md'))
         .filter(p => existsSync(p));
-      expect(skillFiles.length).toBe(20);
+      expect(skillFiles.length).toBe(22);
     });
   });
 
@@ -98,11 +101,11 @@ describe('플러그인 구조 검증', () => {
 
   // ─── agents/ ───
   describe('agents/ 디렉토리', () => {
-    it('4개의 에이전트 파일이 존재한다', () => {
+    it('10개의 에이전트 파일이 존재한다', () => {
       const agentsDir = join(ROOT, 'agents');
       expect(existsSync(agentsDir)).toBe(true);
       const files = readdirSync(agentsDir).filter(f => f.endsWith('.md'));
-      expect(files.length).toBe(4);
+      expect(files.length).toBe(10);
     });
 
     it('workflow-guide.md가 존재한다', () => {

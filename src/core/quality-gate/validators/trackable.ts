@@ -117,6 +117,13 @@ export class TrackableValidator extends BaseValidator {
         message: `기본 브랜치: ${branchName}`,
         severity: 'warning',
       });
+    } else {
+      checks.push({
+        name: '브랜치 네이밍',
+        passed: true,
+        message: '브랜치명 감지 불가 (detached HEAD)',
+        severity: 'info',
+      });
     }
 
     if (checks.length === 0) {

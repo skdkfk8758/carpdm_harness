@@ -23,19 +23,32 @@ Claude Code 플러그인으로 설치하여 AI 협업 워크플로우(모듈화,
 
 ---
 
-## 설치
+## Quick Start
 
-### Claude Code 플러그인 설치 (권장)
+### Step 1: Install
 
-```bash
-# 1. 마켓플레이스 등록
-claude plugin marketplace add https://github.com/skdkfk8758/carpdm_harness
-
-# 2. 플러그인 설치
-claude plugin install carpdm-harness@carpdm-harness
+```
+/plugin marketplace add https://github.com/skdkfk8758/carpdm_harness harness
+/plugin install carpdm-harness@harness
 ```
 
-### 수동 설치
+### Step 2: Setup
+
+```
+/carpdm-harness:setup
+```
+
+### Step 3: Start Working
+
+```
+/carpdm-harness:workflow start feature
+```
+
+> Claude Code를 재시작하면 스킬과 MCP 도구가 활성화됩니다.
+
+---
+
+## 수동 설치
 
 ```bash
 git clone --depth 1 https://github.com/skdkfk8758/carpdm_harness.git ~/.claude/plugins/carpdm-harness
@@ -45,20 +58,15 @@ npm install --production && npm run build
 
 ---
 
-## 빠른 시작
+## 주요 명령어
 
 ```
-# OMC 검증 + 환경 셋업
-harness_setup(projectRoot: "/path/to/project")
-
-# 프로젝트에 워크플로우 설치
-harness_init(projectRoot: "/path/to/project", preset: "standard")
-
-# 품질 검사 실행
-harness_quality_check(projectRoot: "/path/to/project")
-
-# 워크플로우 시작
-harness_workflow(projectRoot: "/path/to/project", action: "start", workflowType: "feature")
+/carpdm-harness:setup              # OMC 검증 + 환경 셋업
+/carpdm-harness:init               # 프로젝트에 워크플로우 설치
+/carpdm-harness:quality-check      # TRUST 5 품질 검사
+/carpdm-harness:workflow            # 워크플로우 관리
+/carpdm-harness:doctor             # 설치 건강 진단
+/carpdm-harness:dashboard          # 대시보드 생성
 ```
 
 ---
@@ -271,11 +279,11 @@ flowchart TD
 
 ## 스킬 & 에이전트
 
-### 스킬 (18개)
+### 스킬 (22개)
 
 플러그인 설치 시 `skills/` 디렉토리의 스킬이 자동 등록됩니다. MCP 도구 호출을 안내하는 래퍼 스킬입니다.
 
-### 에이전트 (4개)
+### 에이전트 (10개)
 
 | 에이전트 | 역할 |
 |----------|------|
@@ -283,6 +291,12 @@ flowchart TD
 | `onboarding-guide` | 신규 프로젝트 온보딩 |
 | `team-memory-keeper` | 팀 메모리 관리 + 학습 |
 | `pipeline-advisor` | 파이프라인 최적화 조언 |
+| `code-reviewer` | TRUST 5 기반 코드 리뷰 |
+| `quality-auditor` | 프로젝트 품질 심층 감사 |
+| `security-scanner` | OWASP + 시크릿 보안 스캔 |
+| `ontology-analyst` | 온톨로지 기반 아키텍처 분석 |
+| `refactor-planner` | 안전한 리팩토링 계획 수립 |
+| `debug-assistant` | 근본 원인 분석 + 디버그 보조 |
 
 ---
 
@@ -292,9 +306,9 @@ flowchart TD
 git clone https://github.com/skdkfk8758/carpdm_harness.git
 cd carpdm_harness
 npm install
-npm run build          # tsup (10 entries) + copy-templates
+npm run build          # tsup (13 entries) + copy-templates
 npx tsc --noEmit       # 타입 체크
-npx vitest run         # 테스트 (154 tests)
+npx vitest run         # 테스트 (179 tests)
 
 # MCP Inspector
 npx @modelcontextprotocol/inspector node dist/server.js
