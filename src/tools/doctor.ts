@@ -2,8 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { loadConfig } from '../core/config.js';
+import { detectCapabilities } from '../core/capability-detector.js';
+import { getActiveOmcMode, getOmcVersion } from '../core/omc-bridge.js';
 import { getModule } from '../core/module-registry.js';
 import { computeFileHash } from '../core/file-ops.js';
 import { getAllModuleFiles } from '../core/template-engine.js';
@@ -100,9 +101,45 @@ export function registerDoctorTool(server: McpServer): void {
           warnings++;
         }
 
-        // === OMC 공존 상태 점검 ===
+        // === OMC 통합 상태 점검 ===
         res.blank();
-        res.info('OMC 공존 상태:');
+        res.info('OMC 통합 상태:');
+
+        const capabilities = detectCapabilities(projectRoot as string);
+
+        if (capabilities.omc.installed) {
+          const omcVersion = getOmcVersion();
+          res.line(`  ✓ OMC 설치됨${omcVersion ? ` (v${omcVersion})` : ''}`);
+
+          const activeMode = getActiveOmcMode(projectRoot as string);
+          if (activeMode) {
+            res.line(`  ✓ OMC 활성 모드: ${activeMode}`);
+          } else {
+            res.line('  - OMC 활성 모드 없음');
+          }
+        } else {
+          res.line('  ✗ OMC 미설치 (harness v4.0.0 필수)');
+          issues++;
+        }
+
+        // 외부 도구 상태
+        res.blank();
+        res.info('외부 도구 상태:');
+        const toolEntries = [
+          { key: 'serena', label: 'Serena (코드 분석)' },
+          { key: 'context7', label: 'Context7 (문서 참조)' },
+          { key: 'codex', label: 'Codex (AI 리뷰)' },
+          { key: 'gemini', label: 'Gemini (대규모 분석)' },
+        ] as const;
+
+        for (const { key, label } of toolEntries) {
+          const tool = capabilities.tools[key];
+          if (tool.detected) {
+            res.line(`  ✓ ${label}`);
+          } else {
+            res.line(`  - ${label} (미감지)`);
+          }
+        }
 
         const harnessStateDir = join(projectRoot as string, '.harness', 'state');
         if (existsSync(harnessStateDir)) {
@@ -122,15 +159,6 @@ export function registerDoctorTool(server: McpServer): void {
               warnings++;
             }
           }
-        }
-
-        // OMC 설치 여부 감지
-        const omcConfigPath = join(homedir(), '.claude', '.omc-config.json');
-        const omcDir = join(projectRoot as string, '.omc');
-        if (existsSync(omcConfigPath) || existsSync(omcDir)) {
-          res.line('  ✓ OMC 공존 감지: harness 훅이 OMC 모드에 맞게 자동 조율됩니다');
-        } else {
-          res.line('  - OMC 미감지: harness 단독 모드');
         }
 
         // === Team Memory 상태 점검 ===

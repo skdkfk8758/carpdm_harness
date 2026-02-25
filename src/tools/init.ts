@@ -6,14 +6,14 @@ import { resolveModules, getModule, getPresetModules } from '../core/module-regi
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
-import { ensureDir, safeCopyFile, safeWriteFile } from '../core/file-ops.js';
-import { getGlobalCommandsDir, getTemplatesDir, getPackageRoot } from '../utils/paths.js';
+import { ensureDir, safeWriteFile } from '../core/file-ops.js';
 import { buildOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
 import { getPackageVersion } from '../utils/version.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
+import { requireOmc, detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -25,7 +25,6 @@ export function registerInitTool(server: McpServer): void {
       projectRoot: z.string().describe('프로젝트 루트 경로'),
       preset: z.string().optional().describe('프리셋 (full|standard|minimal|tdd|secure)'),
       modules: z.string().optional().describe('모듈 직접 지정 (쉼표 구분)'),
-      installGlobal: z.boolean().optional().default(true).describe('글로벌 커맨드 설치 (기본값: true)'),
       skipHooks: z.boolean().optional().describe('훅 등록 건너뛰기'),
       dryRun: z.boolean().optional().describe('미리보기만'),
       enableOntology: z.boolean().optional().describe('온톨로지 활성화'),
@@ -34,16 +33,26 @@ export function registerInitTool(server: McpServer): void {
       ontologyAiApiKeyEnv: z.string().optional()
         .describe('AI Domain 레이어용 API 키 환경변수명 (예: ANTHROPIC_API_KEY)'),
     },
-    async ({ projectRoot, preset, modules: modulesStr, installGlobal, skipHooks, dryRun, enableOntology, ontologyLanguages, ontologyAiApiKeyEnv }) => {
+    async ({ projectRoot, preset, modules: modulesStr, skipHooks, dryRun, enableOntology, ontologyLanguages, ontologyAiApiKeyEnv }) => {
       try {
         logger.clear();
         const res = new McpResponseBuilder();
         const pRoot = projectRoot as string;
         const pPreset = (preset as string) || 'standard';
-        const pInstallGlobal = installGlobal !== false;
         const pSkipHooks = skipHooks === true;
         const pDryRun = dryRun === true;
         const pEnableOntology = enableOntology === true;
+
+        // OMC 필수 검증
+        try {
+          requireOmc();
+        } catch (err) {
+          res.error('OMC(oh-my-claudecode)가 설치되어 있지 않습니다.');
+          res.blank();
+          res.info('carpdm-harness v4.0.0은 OMC를 필수로 요구합니다.');
+          res.info('설치: npm i -g oh-my-claudecode && omc setup');
+          return res.toResult(true);
+        }
 
         const existingConfig = loadConfig(pRoot);
         if (existingConfig) {
@@ -111,18 +120,9 @@ export function registerInitTool(server: McpServer): void {
           res.ok(`deny 규칙 ${denyResult.added}/${denyResult.total}개 추가`);
         }
 
-        if (pInstallGlobal && !pDryRun) {
-          res.info('글로벌 커맨드 설치 중...');
-          installGlobalCommands();
-          config.globalCommandsInstalled = true;
-        }
-
         if (!pDryRun) {
           ensureDir(join(pRoot, '.agent'));
           ensureDir(join(pRoot, '.harness', 'state'));
-
-          // 플러그인 루트 경로 저장 (SessionStart 업데이트 체크용)
-          safeWriteFile(join(pRoot, '.harness', 'plugin-root'), getPackageRoot());
 
           // .gitignore에 .harness/ 추가
           const gitignorePath = join(pRoot, '.gitignore');
@@ -252,6 +252,15 @@ export function registerInitTool(server: McpServer): void {
             }
           }
 
+          // capabilities 감지 및 캐시
+          try {
+            const capabilities = detectCapabilities(pRoot);
+            config.capabilities = capabilities;
+            cacheCapabilities(pRoot, capabilities);
+          } catch {
+            // 감지 실패는 무시
+          }
+
           saveConfig(pRoot, config);
         }
 
@@ -361,20 +370,3 @@ function applySecurityDenyRules(projectRoot: string): { added: number; total: nu
   return { added, total: SECURITY_DENY_RULES.length };
 }
 
-function installGlobalCommands(): void {
-  const globalDir = getGlobalCommandsDir();
-  const templatesDir = getTemplatesDir();
-  const globalTemplates = join(templatesDir, 'global');
-
-  ensureDir(globalDir);
-
-  const globalFiles = ['project-setup.md', 'project-init.md', 'project-setup-simple.md', 'harness-init.md', 'harness-update.md', 'harness-sync.md', 'workflow-guide.md', 'dashboard.md'];
-  for (const file of globalFiles) {
-    const src = join(globalTemplates, file);
-    const dest = join(globalDir, file);
-    if (existsSync(src)) {
-      safeCopyFile(src, dest);
-      logger.fileAction('create', `~/.claude/commands/${file}`);
-    }
-  }
-}
