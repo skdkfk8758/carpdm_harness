@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# branch-check: 브랜치 네이밍 컨벤션 검증 (수동 실행 또는 CI에서 호출)
+# 사용법: .githooks/branch-check [branch-name]
+# 컨벤션: <type>/<description>  예) feat/add-hooks, fix/13-null-check
+
+set -euo pipefail
+
+BRANCH="${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")}"
+
+# main/master/develop은 허용
+if [[ "$BRANCH" =~ ^(main|master|develop|HEAD)$ ]]; then
+  exit 0
+fi
+
+# <type>/<description> 패턴 검증
+PATTERN='^(feat|fix|refactor|test|docs|chore|style|perf|ci|build|revert|hotfix|release)/.+'
+
+if ! echo "$BRANCH" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "⚠️  브랜치 이름이 컨벤션에 맞지 않습니다: $BRANCH"
+  echo ""
+  echo "  올바른 형식: <type>/<description>"
+  echo "  예시: feat/add-commit-hooks"
+  echo "        fix/13-null-check"
+  echo "        chore/update-deps"
+  echo ""
+  echo "  허용 type: feat|fix|refactor|test|docs|chore|style|perf|ci|build|revert|hotfix|release"
+  echo ""
+  exit 1
+fi
+
+exit 0
