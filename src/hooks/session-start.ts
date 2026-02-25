@@ -211,6 +211,29 @@ async function main(): Promise<void> {
     }
   }
 
+  // ── 1.5. 브랜치 상태 + /work-start 안내 ─────────────────────────────────────
+  try {
+    const { execSync } = await import('node:child_process');
+    const branch = execSync('git branch --show-current', { cwd, stdio: 'pipe' }).toString().trim();
+    if (branch) {
+      const isMain = branch === 'main' || branch === 'master';
+      const branchInfo = isMain
+        ? `브랜치: ${branch} (기본) — 새 작업 시작: /work-start "<작업 설명>"`
+        : `브랜치: ${branch} — 작업 완료: /work-finish`;
+
+      // 기존 harness 정보 블록에 브랜치 정보 추가
+      const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+      if (infoIdx >= 0) {
+        messages[infoIdx] = messages[infoIdx].replace(
+          '</session-restore>',
+          `${branchInfo}\n\n</session-restore>`,
+        );
+      }
+    }
+  } catch {
+    // git 미설치 또는 비 git 프로젝트 — 무시
+  }
+
   // ── 2. 업데이트 체크 (harness + OMC) ────────────────────────────────────────
   const updateLines: string[] = [];
 

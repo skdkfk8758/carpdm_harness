@@ -132,7 +132,7 @@ function main(): void {
         warnings.push(`Trackable: [WARN] 브랜치 컨벤션 미준수 (${branch})`);
       }
     } else {
-      warnings.push(`Trackable: [OK] 기본 브랜치 (${branch})`);
+      warnings.push(`Trackable: [WARN] 기본 브랜치(${branch})에 직접 커밋 — /work-start로 feature 브랜치 생성을 권장합니다`);
     }
   } catch {
     warnings.push('Trackable: [INFO] 브랜치 확인 실패');
