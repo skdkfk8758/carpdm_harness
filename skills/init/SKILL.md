@@ -1,5 +1,5 @@
 ---
-name: harness-init
+name: init
 description: 프로젝트에 AI 협업 워크플로우를 설치합니다. 사용자가 "harness 설치", "워크플로우 설치", "프로젝트 초기화"를 요청할 때 사용합니다.
 ---
 
@@ -18,4 +18,4 @@ harness_init({ projectRoot: "<감지된 프로젝트 루트>", preset: "standard
 ```
 
 ## 후속 안내
-설치 완료 후 `/carpdm-harness:harness-doctor`로 건강 진단을 권장하세요.
+설치 완료 후 `/carpdm-harness:doctor`로 건강 진단을 권장하세요.

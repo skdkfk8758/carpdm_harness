@@ -756,6 +756,45 @@ function checkTeamMemorySync(cwd: string): string | null {
 }
 
 // ============================================================
+// CLAUDE.md auto-sync check
+// ============================================================
+
+function checkClaudeMdSync(cwd: string): string | null {
+  const configPath = join(cwd, 'carpdm-harness.config.json');
+  if (!existsSync(configPath)) return null;
+
+  const claudeMdPath = join(cwd, 'CLAUDE.md');
+  if (!existsSync(claudeMdPath)) return null;
+
+  try {
+    const content = readFileSync(claudeMdPath, 'utf-8');
+    const MARKER_START = '<!-- harness:auto:start -->';
+    const MARKER_END = '<!-- harness:auto:end -->';
+    const startIdx = content.indexOf(MARKER_START);
+    const endIdx = content.indexOf(MARKER_END);
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
+
+    // 마커 영역을 재생성하여 변경 여부를 감지
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const modules = (config.modules || []).join(', ') || '(없음)';
+    const preset = config.preset || 'unknown';
+
+    // 현재 마커 영역 내용
+    const currentAuto = content.slice(startIdx + MARKER_START.length, endIdx).trim();
+
+    // 핵심 정보가 변경되었는지 간단 비교
+    if (!currentAuto.includes(preset) || !currentAuto.includes(modules)) {
+      // 변경 감지 — 다음 세션에서 sync를 권장
+      return '[harness-session-end] CLAUDE.md 자동 섹션이 현재 설정과 다릅니다. `harness_sync` 또는 `/carpdm-harness:sync`로 갱신을 권장합니다.';
+    }
+  } catch {
+    // 무시 — 훅은 절대 실패하면 안 됨
+  }
+
+  return null;
+}
+
+// ============================================================
 // Main
 // ============================================================
 
@@ -780,14 +819,20 @@ function main(): void {
     // On persistent mode error, fall through to team-memory sync
   }
 
-  // Step 2: Team-memory sync check (only when not blocking)
+  // Step 2: Team-memory sync check + CLAUDE.md sync check (only when not blocking)
   const cwd = input.cwd || input.directory || process.cwd();
-  const syncMessage = checkTeamMemorySync(cwd);
+  const messages: string[] = [];
 
-  if (syncMessage) {
+  const syncMessage = checkTeamMemorySync(cwd);
+  if (syncMessage) messages.push(syncMessage);
+
+  const claudeMessage = checkClaudeMdSync(cwd);
+  if (claudeMessage) messages.push(claudeMessage);
+
+  if (messages.length > 0) {
     process.stdout.write(JSON.stringify({
       result: 'continue',
-      additionalContext: syncMessage,
+      additionalContext: messages.join('\n'),
     }));
     return;
   }

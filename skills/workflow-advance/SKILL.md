@@ -1,5 +1,5 @@
 ---
-name: harness-workflow-advance
+name: workflow-advance
 description: 워크플로우 현재 단계를 완료하고 다음으로 진행합니다. "다음 단계", "advance", "단계 완료"를 요청할 때 사용합니다.
 ---
 

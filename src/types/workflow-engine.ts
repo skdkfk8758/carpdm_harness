@@ -60,14 +60,17 @@ export interface WorkflowContext {
 export interface WorkflowEngineConfig {
   guardLevel: 'block' | 'warn' | 'off';
   autoAdvance: boolean;
+  autoDispatch: boolean;
   syncToOmc: boolean;
   maxRetries: number;
   historyEnabled: boolean;
+  teamMode?: string;
 }
 
 export const DEFAULT_ENGINE_CONFIG: WorkflowEngineConfig = {
   guardLevel: 'warn',
   autoAdvance: false,
+  autoDispatch: false,
   syncToOmc: true,
   maxRetries: 3,
   historyEnabled: true,
@@ -111,6 +114,14 @@ export interface NextAction {
   agent?: string;
   action?: string;
   checkpoint?: string;
+  dispatchHint?: DispatchHint;
+}
+
+export interface DispatchHint {
+  agentType: string;
+  skill?: string;
+  model: string;
+  prompt: string;
 }
 
 // === 전환 테이블 ===

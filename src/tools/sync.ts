@@ -4,6 +4,7 @@ import { loadConfig } from '../core/config.js';
 import { fullSync, syncHarnessToOmc, syncOmcToHarness, syncOntologyToOmc } from '../core/state-sync.js';
 import type { SyncResult } from '../types/sync.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
+import { syncClaudeMd } from '../core/claudemd-sync.js';
 
 function formatSyncResult(res: McpResponseBuilder, result: SyncResult, label: string): void {
   res.info(`${label}:`);
@@ -84,6 +85,14 @@ export function registerSyncTool(server: McpServer): void {
           res.blank();
           res.error(`${result.errors.length}개 에러 발생`);
           return res.toResult(true);
+        }
+
+        // CLAUDE.md 마커 영역 갱신
+        if (!pDryRun) {
+          const claudeResult = syncClaudeMd(pRoot);
+          if (claudeResult.updated) {
+            res.info('CLAUDE.md 자동 섹션 갱신 완료');
+          }
         }
 
         res.blank();

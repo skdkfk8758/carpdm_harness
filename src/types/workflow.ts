@@ -24,6 +24,7 @@ export interface WorkflowDefinition {
   requiredModules: string[];
   pipeline: PipelineStep[];
   recommendedCapabilities?: string[];
+  teamMode?: string;
 }
 
 export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
@@ -41,6 +42,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 7, agent: 'git-master', action: '커밋/PR', optional: true, omcSkill: OMC_SKILLS['git-master'] },
     ],
     recommendedCapabilities: ['serena', 'context7'],
+    teamMode: 'ralph',
   },
   bugfix: {
     name: 'bugfix',
@@ -66,6 +68,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 5, agent: 'verifier', action: '검증', checkpoint: '검증 통과' },
     ],
     recommendedCapabilities: ['serena'],
+    teamMode: 'autopilot',
   },
   release: {
     name: 'release',

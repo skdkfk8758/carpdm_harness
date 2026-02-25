@@ -1,5 +1,5 @@
 ---
-name: harness-ontology-status
+name: ontology-status
 description: 온톨로지 상태를 조회합니다. "온톨로지 상태", "ontology status"를 요청할 때 사용합니다.
 ---
 

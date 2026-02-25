@@ -1,5 +1,5 @@
 ---
-name: harness-workflow-start
+name: workflow-start
 description: 워크플로우를 시작합니다. "워크플로우 시작", "workflow start"를 요청할 때 사용합니다.
 ---
 

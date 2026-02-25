@@ -8,6 +8,8 @@ import { getAllModules } from '../core/module-registry.js';
 import { computeFileHash } from '../core/file-ops.js';
 import { loadStore } from '../core/team-memory.js';
 import { getOntologyStatus } from '../core/ontology/index.js';
+import { loadOntologyCache } from '../core/ontology/incremental-updater.js';
+import type { OntologyDashboardData } from '../core/ontology/dashboard-snippet.js';
 import { readEvents, listSessions, getEventStats, pruneOldSessions } from '../core/event-logger.js';
 import { renderDashboard } from '../core/dashboard-renderer.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
@@ -112,8 +114,9 @@ export function registerDashboardTool(server: McpServer): void {
           // 팀 메모리 없음
         }
 
-        // 5. 온톨로지 상태 수집
+        // 5. 온톨로지 상태 + 상세 데이터 수집
         let ontologyStatus: DashboardData['ontologyStatus'] = null;
+        let ontologyDetail: OntologyDashboardData | undefined;
         try {
           const ontologyConfig = config?.ontology ?? DEFAULT_ONTOLOGY_CONFIG;
           const status = getOntologyStatus(root, ontologyConfig);
@@ -129,6 +132,17 @@ export function registerDashboardTool(server: McpServer): void {
               enabled: ontologyConfig.enabled,
               layers: enabledLayers,
               lastBuilt: lastBuilts[0] ?? null,
+            };
+
+            // 캐시에서 상세 레이어 데이터 로드
+            const cache = loadOntologyCache(root, ontologyConfig.outputDir);
+            ontologyDetail = {
+              enabled: ontologyConfig.enabled,
+              layers: enabledLayers,
+              lastBuilt: lastBuilts[0] ?? null,
+              structure: cache?.layerData.structure,
+              semantics: cache?.layerData.semantics,
+              domain: cache?.layerData.domain,
             };
           }
         } catch {
@@ -165,6 +179,7 @@ export function registerDashboardTool(server: McpServer): void {
           integrity: { original, modified, missing },
           teamMemory,
           ontologyStatus,
+          ontologyDetail,
           hookMap,
         };
 

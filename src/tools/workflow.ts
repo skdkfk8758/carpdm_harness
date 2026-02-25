@@ -39,6 +39,8 @@ export function registerWorkflowTool(server: McpServer): void {
       reason: z.string().optional().describe('중단/거부/스킵 사유'),
       context: z.string().optional().describe('워크플로우 컨텍스트 JSON (start 시)'),
       guardLevel: z.enum(['block', 'warn', 'off']).optional().describe('가드 레벨 오버라이드'),
+      autoDispatch: z.boolean().optional().describe('자동 위임 힌트 생성 (advance 시 dispatchHint 포함)'),
+      teamMode: z.string().optional().describe('OMC 팀 실행 모드 오버라이드 (ralph|autopilot|team 등)'),
     },
     async (params) => {
       try {
@@ -54,9 +56,9 @@ export function registerWorkflowTool(server: McpServer): void {
           case 'guide':
             return handleGuide(pRoot, params.workflow as string | undefined, config);
           case 'start':
-            return handleStart(pRoot, params.workflow as string | undefined, params.context as string | undefined, params.guardLevel as string | undefined);
+            return handleStart(pRoot, params.workflow as string | undefined, params.context as string | undefined, params.guardLevel as string | undefined, params.autoDispatch === true, params.teamMode as string | undefined);
           case 'advance':
-            return handleAdvance(pRoot, params.result as string | undefined);
+            return handleAdvance(pRoot, params.result as string | undefined, params.autoDispatch === true);
           case 'status':
             return handleStatus(pRoot);
           case 'approve':
@@ -201,6 +203,8 @@ function handleStart(
   workflow: string | undefined,
   contextJson: string | undefined,
   guardLevel: string | undefined,
+  autoDispatch?: boolean,
+  teamMode?: string,
 ) {
   if (!workflow) {
     return errorResult('workflow 파라미터가 필요합니다. 예: workflow: "feature"');
@@ -219,6 +223,15 @@ function handleStart(
   if (guardLevel) {
     configOverrides.guardLevel = guardLevel;
   }
+  if (autoDispatch) {
+    configOverrides.autoDispatch = true;
+  }
+  // teamMode: 명시적 오버라이드 > 워크플로우 정의 기본값
+  const def = WORKFLOW_DEFINITIONS[workflow];
+  const effectiveTeamMode = teamMode ?? def?.teamMode;
+  if (effectiveTeamMode) {
+    configOverrides.teamMode = effectiveTeamMode;
+  }
 
   const engineResult = startWorkflow(pRoot, workflow, context, configOverrides);
 
@@ -233,6 +246,12 @@ function handleStart(
   res.blank();
   res.ok(`워크플로우 ID: ${instance.id}`);
   res.info(`파이프라인: ${instance.totalSteps}단계`);
+  if (instance.config.autoDispatch) {
+    res.info('autoDispatch: 활성화 (각 단계에 위임 힌트 포함)');
+  }
+  if (instance.config.teamMode) {
+    res.info(`teamMode: ${instance.config.teamMode}`);
+  }
   res.blank();
 
   const currentStep = instance.steps[instance.currentStep - 1];
@@ -261,7 +280,15 @@ function handleStart(
 
 // === Advance ===
 
-function handleAdvance(pRoot: string, result: string | undefined) {
+function handleAdvance(pRoot: string, result: string | undefined, autoDispatch?: boolean) {
+  // autoDispatch 파라미터로 일시적 오버라이드 가능
+  if (autoDispatch) {
+    const instance = getWorkflowStatus(pRoot);
+    if (instance && !instance.config.autoDispatch) {
+      instance.config.autoDispatch = true;
+    }
+  }
+
   const engineResult = advanceWorkflow(pRoot, result);
 
   if (!engineResult.success) {
@@ -296,6 +323,18 @@ function handleAdvance(pRoot: string, result: string | undefined) {
         res.blank();
         res.warn(`이 단계는 체크포인트가 있습니다: ${currentStep.checkpoint}`);
         res.line(`  완료 후 harness_workflow({ action: "approve" })로 승인하세요.`);
+      }
+
+      // autoDispatch 힌트 출력
+      const nextAction = engineResult.nextAction;
+      if (nextAction?.dispatchHint) {
+        const hint = nextAction.dispatchHint;
+        res.blank();
+        res.info('autoDispatch 힌트');
+        res.line(`  agentType: ${hint.agentType}`);
+        res.line(`  model: ${hint.model}`);
+        if (hint.skill) res.line(`  skill: ${hint.skill}`);
+        res.line(`  prompt: ${hint.prompt}`);
       }
     }
   }
