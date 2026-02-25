@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import type { HookRegistration } from '../types/module.js';
 import { logger } from '../utils/logger.js';
@@ -17,7 +17,6 @@ interface HookConfig {
 
 const HOOK_MAP: Record<string, HookRegistration[]> = {
   core: [
-    { event: 'SessionStart', command: 'bash .claude/hooks/update-check.sh' },
     { event: 'UserPromptSubmit', command: 'bash .claude/hooks/pre-task.sh' },
     { event: 'PreToolUse', command: 'bash .claude/hooks/plan-guard.sh', pattern: 'Edit|Write' },
     { event: 'Stop', command: 'bash .claude/hooks/post-task.sh' },
@@ -99,9 +98,17 @@ export function registerHooks(
       }
 
       if (omcDetected && OMC_EVENTS.has(hook.event)) {
-        warnings.push(
-          `OMC 감지: ${eventKey} 이벤트에 OMC 훅과 harness 훅이 공존합니다. harness 훅은 OMC 모드 활성 시 자동 조율됩니다.`
-        );
+        // OMC 활성 모드 확인하여 조율 안내
+        const modeHint = getOmcModeHint(projectRoot);
+        if (modeHint) {
+          warnings.push(
+            `OMC '${modeHint}' 모드 활성: ${eventKey} harness 훅이 OMC와 조율됩니다.`
+          );
+        } else {
+          warnings.push(
+            `OMC 감지: ${eventKey} 이벤트에 OMC 훅과 harness 훅이 공존합니다.`
+          );
+        }
       }
     }
   }
@@ -112,4 +119,26 @@ export function registerHooks(
   }
 
   return { registered, total, warnings };
+}
+
+function getOmcModeHint(projectRoot: string): string | null {
+  const omcStateDir = join(projectRoot, '.omc', 'state');
+  if (!existsSync(omcStateDir)) return null;
+
+  try {
+    const files = readdirSync(omcStateDir).filter((f: string) => f.endsWith('-state.json'));
+    for (const file of files) {
+      try {
+        const state = JSON.parse(readFileSync(join(omcStateDir, file), 'utf-8'));
+        if (state.active) {
+          return file.replace('-state.json', '');
+        }
+      } catch {
+        // 무시
+      }
+    }
+  } catch {
+    // 무시
+  }
+  return null;
 }

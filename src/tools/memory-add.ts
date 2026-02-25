@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { addEntry } from '../core/team-memory.js';
 import type { MemoryCategory, ConventionSubcategory } from '../core/team-memory.js';
+import { syncHarnessToOmc } from '../core/state-sync.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
 export function registerMemoryAddTool(server: McpServer): void {
@@ -42,6 +43,17 @@ export function registerMemoryAddTool(server: McpServer): void {
         }
         res.blank();
         res.ok('.claude/rules/ + .agent/memory.md 동기화 완료');
+
+        // OMC project-memory 동기화
+        try {
+          const syncResult = syncHarnessToOmc(projectRoot as string);
+          if (syncResult.synced > 0) {
+            res.ok(`OMC project-memory 동기화: ${syncResult.synced}개 항목`);
+          }
+        } catch {
+          // OMC 동기화 실패는 무시 (OMC 미설치 가능)
+        }
+
         return res.toResult();
       } catch (err) {
         return errorResult(`팀 메모리 추가 실패: ${String(err)}`);

@@ -6,6 +6,7 @@ import type {
   DirectoryNode,
   OntologyMetadata,
   OntologyIndexData,
+  AnnotationSummary,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -235,6 +236,62 @@ export function renderSemanticsMarkdown(
     lines.push(`| \`${dep.name}\` | ${dep.version} | ${dep.usedBy.length} |`);
   }
   lines.push('');
+
+  // @MX 어노테이션 섹션
+  if (layer.annotationSummary) {
+    lines.push(renderAnnotationSection(layer.annotationSummary));
+  }
+
+  return lines.join('\n');
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// @MX 어노테이션 Markdown
+// ────────────────────────────────────────────────────────────────────────────
+
+/** @MX 어노테이션 요약 섹션 렌더링 */
+function renderAnnotationSection(summary: AnnotationSummary): string {
+  const lines: string[] = [];
+
+  lines.push('## @MX 어노테이션');
+  lines.push('');
+
+  // 요약 테이블
+  lines.push('### 요약');
+  lines.push('');
+  lines.push('| 태그 | 수 |');
+  lines.push('|------|-----|');
+
+  const tagOrder = ['ANCHOR', 'WARN', 'NOTE', 'TODO'];
+  for (const tag of tagOrder) {
+    const count = summary.byTag[tag] ?? 0;
+    lines.push(`| @MX:${tag} | ${fmtNum(count)} |`);
+  }
+  lines.push('');
+
+  // ANCHOR 상세
+  if (summary.topAnchors.length > 0) {
+    lines.push('### @MX:ANCHOR (높은 영향 범위)');
+    lines.push('');
+    lines.push('| 심볼 | 파일 | fan_in |');
+    lines.push('|------|------|--------|');
+    for (const anchor of summary.topAnchors) {
+      lines.push(`| \`${anchor.symbol}\` | \`${anchor.file}\` | ${anchor.fanIn} |`);
+    }
+    lines.push('');
+  }
+
+  // WARN 상세
+  if (summary.warnings.length > 0) {
+    lines.push('### @MX:WARN (주의 필요)');
+    lines.push('');
+    lines.push('| 심볼 | 파일 | 사유 |');
+    lines.push('|------|------|------|');
+    for (const warn of summary.warnings) {
+      lines.push(`| \`${warn.symbol}\` | \`${warn.file}\` | ${warn.reason} |`);
+    }
+    lines.push('');
+  }
 
   return lines.join('\n');
 }

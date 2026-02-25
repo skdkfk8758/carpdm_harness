@@ -227,7 +227,13 @@ export async function buildOntology(
   const totalDuration = Date.now() - startTime;
   logger.ok(`온톨로지 빌드 완료 (${totalDuration}ms)`);
 
-  return { results, totalDuration, outputFiles, domainContext };
+  return {
+    results,
+    totalDuration,
+    outputFiles,
+    domainContext,
+    annotationSummary: semanticsData?.annotationSummary,
+  };
 }
 
 /**
@@ -291,6 +297,9 @@ export async function refreshOntology(
       domain: existingData.domain ?? undefined,
     },
   });
+
+  // @MX 어노테이션 요약 전달
+  report.annotationSummary = existingData.semantics?.annotationSummary;
 
   logger.ok('온톨로지 점진적 갱신 완료');
   return report;

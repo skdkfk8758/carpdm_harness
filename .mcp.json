@@ -2,7 +2,7 @@
   "mcpServers": {
     "carpdm-harness": {
       "command": "node",
-      "args": ["/Users/carpdm/Workspace/Github/carpdm_harness/dist/server.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/server.js"]
     }
   }
 }

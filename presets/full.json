@@ -1,5 +1,6 @@
 {
   "name": "full",
-  "description": "전체 모듈 — 완전한 AI 협업 워크플로우 + 보안 + 팀 메모리",
-  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology", "security", "team-memory"]
+  "description": "전체 모듈 — 완전한 AI 협업 워크플로우 + OMC 통합",
+  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology", "security", "team-memory"],
+  "recommendedCapabilities": ["serena", "context7", "codex", "gemini"]
 }

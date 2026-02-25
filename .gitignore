@@ -5,3 +5,6 @@ dist/
 .env
 *.log
 .agent/ontology/
+.harness/
+.omc/
+.serena/

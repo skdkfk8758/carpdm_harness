@@ -62,7 +62,19 @@ if [ -n "$PLAN_FILE" ] && [ -n "$TODO_FILE" ]; then
 - pytest -q (테스트 통과 확인)
 - DDD 패턴 준수 확인
 - plan.md 상태를 COMPLETED로 변경
-- Verification: '시니어 개발자가 리뷰해도 통과할 수준인가?' 자문"
+- Verification: '시니어 개발자가 리뷰해도 통과할 수준인가?' 자문
+
+[AGENT SUGGEST] 워크플로우 완료! 팀 메모리에 기록하세요.
+  harness_memory_add 도구로 이번 세션의 패턴/결정/교훈을 기록하세요.
+  agents/team-memory-keeper.md를 참조하세요."
+    fi
+
+    if [ "$PLAN_STATUS" = "COMPLETED" ] && [ "$REMAINING" -eq 0 ]; then
+        OUTPUT="${OUTPUT}
+
+[AGENT SUGGEST] 워크플로우 완료! 팀 메모리에 기록하세요.
+  harness_memory_add 도구로 이번 세션의 패턴/결정/교훈을 기록하세요.
+  agents/team-memory-keeper.md를 참조하세요."
     fi
 fi
 
@@ -157,9 +169,23 @@ if [ -n "$LESSONS_FILE" ]; then
     echo "$CURRENT_LESSONS" > "$LESSONS_COUNTER"
 fi
 
-# === OMC 모드 조율: 활성 시 verbose 출력/교차검증/Dumb Zone 경고 생략 ===
-if harness_omc_mode_active; then
+# === OMC 모드 조율 ===
+# 팀 모드: 차단 훅 비활성, 핵심 상태만 출력
+if harness_omc_team_mode; then
+    # 팀 모드에서는 todo 상태만 간략히 출력
+    if [ -n "$TODO_FILE" ]; then
+        DONE=$(grep -c '\[x\]' "$TODO_FILE" 2>/dev/null) || true; DONE=${DONE:-0}
+        REMAINING=$(grep -c '\[ \]' "$TODO_FILE" 2>/dev/null) || true; REMAINING=${REMAINING:-0}
+        [ "$REMAINING" -gt 0 ] && echo "[POST-TASK] todo: ${DONE}/$((DONE+REMAINING)) done"
+    fi
+    harness_log_event "post-task" "SKIP" "Stop" "omc-team-mode"
+    exit 0
+fi
+
+# autopilot/ralph/ultrawork: verbose 출력/교차검증/Dumb Zone 경고 생략
+if harness_omc_manages_planning; then
     [ -n "$OUTPUT" ] && echo "$OUTPUT"
+    harness_log_event "post-task" "PASS" "Stop" "omc-$(harness_omc_active_mode)"
     exit 0
 fi
 
@@ -369,17 +395,52 @@ if [ "$CODE_CHANGED" -gt 0 ] || [ "$STAGED_CODE" -gt 0 ]; then
         # 마커 생성 (다음 5분간 재실행 방지)
         date +%s > "$VERIFY_MARKER"
 
-        OUTPUT="${OUTPUT}
+        # capabilities 기반 동적 도구 선택
+        if harness_has_capability "codex"; then
+            OUTPUT="${OUTPUT}
 
-[CROSS-VERIFY] 코드 변경 감지 — 교차 검증을 자동 실행합니다.
+[CROSS-VERIFY] 코드 변경 감지 — 교차 검증을 실행하세요.
 변경 파일:
 ${CHANGED_FILES}
 
-아래 절차를 즉시 실행하세요:
-1. Codex MCP 사용 가능 여부 확인 (ask_codex 도구 존재 여부)
-2-A. Codex 사용 가능: mcp__plugin_oh-my-claudecode_x__ask_codex(agent_role: \"code-reviewer\", context_files: [변경 파일 경로], prompt: \"아래 변경된 코드를 종합 리뷰하세요. 관점: 로직 결함, 패턴 준수, 보안 취약점, 성능, 명명규칙\")
-2-B. Codex 사용 불가: Task(subagent_type: \"code-reviewer\", prompt: \"변경된 코드를 종합 리뷰하세요\", model: \"sonnet\")로 서브에이전트 생성
-3. 검증 결과를 사용자에게 간결하게 보고"
+Codex MCP를 활용한 교차 검증:
+  ask_codex(agent_role: \"code-reviewer\", task: \"코드 변경사항 종합 리뷰\", context_files: [변경 파일 경로])
+  관점: 로직 결함, 패턴 준수, 보안 취약점, 성능, 명명규칙"
+        else
+            OUTPUT="${OUTPUT}
+
+[CROSS-VERIFY] 코드 변경 감지 — 교차 검증을 실행하세요.
+변경 파일:
+${CHANGED_FILES}
+
+Claude 에이전트를 활용한 교차 검증:
+  Task(subagent_type: \"code-reviewer\", model: \"sonnet\", prompt: \"변경된 코드를 종합 리뷰하세요\")
+  관점: 로직 결함, 패턴 준수, 보안 취약점, 성능, 명명규칙"
+        fi
+    fi
+fi
+
+# === capabilities 변경 감지 → pipeline-advisor 안내 ===
+CAPS_FILE="${CWD:-$(pwd)}/.harness/capabilities.json"
+CAPS_HASH_FILE="$HARNESS_STATE_DIR/last-capabilities-hash"
+if [ -f "$CAPS_FILE" ]; then
+    if [ "$(uname)" = "Darwin" ]; then
+        CURRENT_HASH=$(md5 -q "$CAPS_FILE" 2>/dev/null)
+    else
+        CURRENT_HASH=$(md5sum "$CAPS_FILE" 2>/dev/null | awk '{print $1}')
+    fi
+    if [ -n "$CURRENT_HASH" ]; then
+        if [ -f "$CAPS_HASH_FILE" ]; then
+            PREV_HASH=$(cat "$CAPS_HASH_FILE" 2>/dev/null)
+            if [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
+                OUTPUT="${OUTPUT}
+
+[AGENT SUGGEST] capabilities 변경 감지! 파이프라인 최적화를 검토하세요.
+  agents/pipeline-advisor.md를 참조하여 최적 OMC 실행 전략을 재평가하세요."
+            fi
+        fi
+        harness_ensure_state_dir
+        echo "$CURRENT_HASH" > "$CAPS_HASH_FILE"
     fi
 fi
 

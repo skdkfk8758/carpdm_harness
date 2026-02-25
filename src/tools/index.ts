@@ -12,6 +12,11 @@ import { registerOntologyDomainWriteTool } from './ontology-domain-write.js';
 import { registerMemoryAddTool } from './memory-add.js';
 import { registerMemoryListTool } from './memory-list.js';
 import { registerDashboardTool } from './dashboard.js';
+import { registerSetupTool } from './setup.js';
+import { registerWorkflowTool } from './workflow.js';
+import { registerSyncTool } from './sync.js';
+import { registerQualityCheckTool } from './quality-check.js';
+import { registerOntologyAnnotationsTool } from './ontology-annotations.js';
 
 export function registerAllTools(server: McpServer): void {
   registerListTool(server);
@@ -27,4 +32,9 @@ export function registerAllTools(server: McpServer): void {
   registerMemoryAddTool(server);
   registerMemoryListTool(server);
   registerDashboardTool(server);
+  registerSetupTool(server);
+  registerWorkflowTool(server);
+  registerSyncTool(server);
+  registerQualityCheckTool(server);
+  registerOntologyAnnotationsTool(server);
 }

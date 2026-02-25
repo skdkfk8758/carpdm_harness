@@ -12,7 +12,6 @@
       ],
       "hooks": [
         { "source": "core/hooks/_harness-common.sh", "destination": ".claude/hooks/_harness-common.sh", "executable": true },
-        { "source": "core/hooks/update-check.sh", "destination": ".claude/hooks/update-check.sh", "executable": true },
         { "source": "core/hooks/pre-task.sh", "destination": ".claude/hooks/pre-task.sh", "executable": true },
         { "source": "core/hooks/plan-guard.sh", "destination": ".claude/hooks/plan-guard.sh", "executable": true },
         { "source": "core/hooks/post-task.sh", "destination": ".claude/hooks/post-task.sh", "executable": true }
@@ -50,7 +49,8 @@
         { "source": "quality/commands/post-task-check.md", "destination": ".claude/commands/post-task-check.md" },
         { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" },
         { "source": "quality/commands/verify-loop.md", "destination": ".claude/commands/verify-loop.md" },
-        { "source": "quality/commands/handoff-verify.md", "destination": ".claude/commands/handoff-verify.md" }
+        { "source": "quality/commands/handoff-verify.md", "destination": ".claude/commands/handoff-verify.md" },
+        { "source": "quality/commands/trust-check.md", "destination": ".claude/commands/trust-check.md" }
       ],
       "hooks": [
         { "source": "quality/hooks/code-change.sh", "destination": ".claude/hooks/code-change.sh", "executable": true }
@@ -59,11 +59,12 @@
     },
     "ship": {
       "name": "ship",
-      "description": "논리 커밋 + PR 생성 자동화",
+      "description": "논리 커밋 + PR 생성 + 릴리스 자동화",
       "dependencies": ["core"],
       "commands": [
         { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
-        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" }
+        { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" },
+        { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" }
       ],
       "hooks": [],
       "docs": []

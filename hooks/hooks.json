@@ -1,0 +1,82 @@
+{
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/session-start.js\"",
+        "timeout": 5000
+      }]
+    }],
+    "UserPromptSubmit": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/prompt-enricher.js\"",
+        "timeout": 3000
+      }]
+    }],
+    "SubagentStart": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/subagent-context.js\"",
+        "timeout": 3000
+      }]
+    }],
+    "PreToolUse": [{
+      "matcher": "harness_workflow",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/workflow-guard.js\"",
+        "timeout": 3000
+      }]
+    }, {
+      "matcher": "harness_*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/workflow-guard.js\"",
+        "timeout": 3000
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "harness_*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/event-logger.js\"",
+        "timeout": 3000
+      }]
+    }, {
+      "matcher": "Bash",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/quality-gate.js\"",
+        "timeout": 10000
+      }]
+    }],
+    "SubagentStop": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/subagent-complete.js\"",
+        "timeout": 5000
+      }]
+    }],
+    "PreCompact": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/pre-compact.js\"",
+        "timeout": 5000
+      }]
+    }],
+    "Stop": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/hooks/session-end.js\"",
+        "timeout": 5000
+      }]
+    }]
+  }
+}
