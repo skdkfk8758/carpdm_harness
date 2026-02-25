@@ -72,8 +72,25 @@ export class TrackableValidator extends BaseValidator {
           : hasIssueInBranch
             ? '브랜치 이름에 이슈 번호 참조됨'
             : '커밋 메시지 및 브랜치에 이슈 번호 미참조',
-        severity: 'warning',
+        severity: 'error',
       });
+    }
+
+    // 2.5. fix 커밋 원인 태그 확인
+    if (lastCommitResult.exitCode === 0 && lastCommitResult.stdout.trim()) {
+      const msg = lastCommitResult.stdout.trim();
+      if (/^fix(\(.+\))?!?:/.test(msg)) {
+        const FIX_TAG = /\[(UI|Data|API|Perf|Crash|Logic|Security|Config)\]/i;
+        const hasTag = FIX_TAG.test(msg);
+        checks.push({
+          name: 'fix 원인 태그',
+          passed: hasTag,
+          message: hasTag
+            ? 'fix 커밋에 원인 태그 포함됨'
+            : 'fix 커밋에 원인 태그 미포함 — [UI], [Data], [API], [Perf], [Crash] 등 태그 권장',
+          severity: 'info',
+        });
+      }
     }
 
     // 3. 변경 로그 기록
