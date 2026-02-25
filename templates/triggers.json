@@ -1,0 +1,162 @@
+{
+  "version": "1.0",
+  "keywordGroups": {
+    "bug": ["버그", "에러", "오류", "실패", "깨짐", "크래시", "bug", "error", "fail", "broken", "crash", "exception"],
+    "issue": ["#\\d+"],
+    "complex": ["크리티컬", "critical", "심각", "구조\\s*변경", "아키텍처", "architecture", "회귀", "regression", "데이터\\s*손실", "data\\s*loss", "보안\\s*취약", "security", "vulnerability", "로직\\s*변경", "logic\\s*change"],
+    "impl": ["구현", "수정", "변경", "리팩토링", "개선", "implement", "fix", "modify", "refactor", "resolve", "해결"],
+    "task": [
+      "(추가|구현|만들|개발|생성|작성|변경|수정|리팩토링|최적화|개선|삭제|제거|이동|분리|통합|연동|적용).*(해\\s*줘|하자|해\\s*주세요|합시다|하겠)",
+      "\\b(implement|build|create|develop|add|write|refactor|optimize)\\b.+\\b(feature|function|module|component|page|api|endpoint|service|hook|skill)"
+    ]
+  },
+  "triggers": [
+    {
+      "skill": "plan-gate",
+      "rules": [
+        {
+          "id": "explicit-plan-kr",
+          "mode": "force",
+          "branch": "any",
+          "patterns": [
+            "계획\\s*(세워|수립|작성)",
+            "플래닝",
+            "설계\\s*(해|부터|먼저)",
+            "인터뷰\\s*(시작|먼저|해)",
+            "요구사항\\s*(정리|분석|수집)",
+            "스펙\\s*(정리|작성|먼저)"
+          ]
+        },
+        {
+          "id": "explicit-plan-en",
+          "mode": "force",
+          "branch": "any",
+          "patterns": [
+            "plan[\\s-]*gate",
+            "interview\\s*first",
+            "start\\s*interview",
+            "sparc\\s*plan",
+            "design\\s*first",
+            "spec\\s*first"
+          ]
+        },
+        {
+          "id": "plan-request-kr",
+          "mode": "force",
+          "branch": "any",
+          "patterns": [
+            "(계획|설계|플랜).*(해\\s*줘|해\\s*주세요|하자|합시다|부터)"
+          ]
+        },
+        {
+          "id": "critical-bug",
+          "mode": "force",
+          "branch": "any",
+          "allOf": ["bug", "complex"]
+        },
+        {
+          "id": "tracked-bug-fix",
+          "mode": "suggest",
+          "branch": "any",
+          "allOf": ["bug", "issue", "impl"],
+          "message": "이슈({issue}) 연결 버그 수정에 로직 변경이 포함됩니다. 원인 분석 → 수정 계획 → 구현을 위해 인터뷰를 권장합니다."
+        },
+        {
+          "id": "issue-impl",
+          "mode": "suggest",
+          "branch": "any",
+          "allOf": ["issue", "impl"],
+          "noneOf": ["bug"],
+          "message": "이슈({issue}) 해결에 구현이 필요합니다. 요구사항 정리를 위해 인터뷰를 권장합니다."
+        }
+      ]
+    },
+    {
+      "skill": "work-start",
+      "rules": [
+        {
+          "id": "explicit-work-start",
+          "mode": "force",
+          "branch": "main",
+          "condition": "no-active-work",
+          "patterns": [
+            "작업\\s*시작",
+            "work\\s*start",
+            "새\\s*작업",
+            "new\\s*task",
+            "start\\s*working"
+          ]
+        },
+        {
+          "id": "issue-task",
+          "mode": "force",
+          "branch": "main",
+          "condition": "no-active-work",
+          "allOf": ["issue", "task"]
+        },
+        {
+          "id": "task-suggest",
+          "mode": "suggest",
+          "branch": "main",
+          "condition": "no-active-work",
+          "allOf": ["task"],
+          "message": "현재 {branch} 브랜치에서 작업 중입니다. 코드 변경 작업이라면 feature 브랜치 생성을 권장합니다."
+        }
+      ]
+    },
+    {
+      "skill": "work-finish",
+      "rules": [
+        {
+          "id": "explicit-finish",
+          "mode": "force",
+          "branch": "feature",
+          "patterns": [
+            "작업\\s*완료",
+            "작업\\s*마무리",
+            "작업\\s*끝",
+            "work\\s*finish",
+            "finish\\s*work",
+            "done\\s*with\\s*this"
+          ]
+        },
+        {
+          "id": "pr-create",
+          "mode": "force",
+          "branch": "feature",
+          "patterns": [
+            "pr\\s*(생성|올려|만들|제출|작성)",
+            "create\\s*pr",
+            "open\\s*pr",
+            "submit\\s*pr",
+            "make\\s*a?\\s*pr"
+          ]
+        },
+        {
+          "id": "ship-merge-suggest",
+          "mode": "suggest",
+          "branch": "feature",
+          "patterns": ["\\bship\\b", "머지", "\\bmerge\\b", "릴리스", "\\brelease\\b"],
+          "message": "현재 feature 브랜치({branch})에서 작업 중입니다. 작업을 마무리하고 PR을 생성하시겠습니까?"
+        }
+      ]
+    },
+    {
+      "skill": "logical-commit",
+      "rules": [
+        {
+          "id": "explicit-commit",
+          "mode": "force",
+          "branch": "feature",
+          "patterns": [
+            "논리\\s*커밋",
+            "logical\\s*commit",
+            "커밋\\s*정리",
+            "커밋해\\s*줘",
+            "commit\\s*this"
+          ]
+        }
+      ]
+    }
+  ]
+}
