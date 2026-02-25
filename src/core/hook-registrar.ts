@@ -34,7 +34,7 @@ const HOOK_MAP: Record<string, HookRegistration[]> = {
     { event: 'PostToolUse', command: 'bash .claude/hooks/security-trigger.sh', pattern: 'Edit|Write' },
   ],
   ontology: [
-    { event: 'PostToolUse', command: 'bash .claude/hooks/ontology-update.sh' },
+    { event: 'PostToolUse', command: 'bash .claude/hooks/ontology-update.sh', pattern: 'Edit|Write' },
   ],
 };
 

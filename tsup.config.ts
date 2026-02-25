@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: [
     'src/server.ts',
+    'src/cli/ontology-refresh.ts',
     'src/hooks/session-start.ts',
     'src/hooks/event-logger.ts',
     'src/hooks/workflow-guard.ts',
