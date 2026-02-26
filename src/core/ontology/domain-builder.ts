@@ -14,6 +14,9 @@ import type {
   ConventionInsight,
   GlossaryEntry,
   DomainBuildContext,
+  DDDInsight,
+  TestMaturityInsight,
+  SchemaConsistencyInsight,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -368,6 +371,256 @@ ${treeText}`;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Step 5-7: 확장 분석
+// ────────────────────────────────────────────────────────────────────────────
+
+/** 클래스/인터페이스 시그니처 샘플 추출 (최대 40개) */
+function extractClassSamples(semanticsLayer: SemanticsLayer): string {
+  const samples: string[] = [];
+  for (const f of semanticsLayer.files) {
+    for (const cls of f.classes.slice(0, 3)) {
+      const methods = cls.methods.map((m) => m.name).join(', ');
+      const props = cls.properties.map((p) => p.name).join(', ');
+      samples.push(`${f.path} — class ${cls.name} { methods: [${methods}], props: [${props}] }${cls.extends ? ` extends ${cls.extends}` : ''}${cls.implements?.length ? ` implements ${cls.implements.join(', ')}` : ''}`);
+    }
+    if (samples.length >= 40) break;
+  }
+  return samples.slice(0, 40).join('\n');
+}
+
+/** 인터페이스/타입 시그니처 샘플 추출 (최대 40개) */
+function extractInterfaceSamples(semanticsLayer: SemanticsLayer): string {
+  const samples: string[] = [];
+  for (const f of semanticsLayer.files) {
+    for (const iface of f.interfaces.slice(0, 3)) {
+      const props = iface.properties.map((p) => `${p.name}${p.optional ? '?' : ''}: ${p.type}`).join(', ');
+      samples.push(`${f.path}:${iface.line} — interface ${iface.name} { ${props} }${iface.extends?.length ? ` extends ${iface.extends.join(', ')}` : ''}`);
+    }
+    for (const t of f.types.slice(0, 2)) {
+      samples.push(`${f.path}:${t.line} — type ${t.name} = ${t.definition.slice(0, 80)}`);
+    }
+    if (samples.length >= 40) break;
+  }
+  return samples.slice(0, 40).join('\n');
+}
+
+/** 테스트 파일 경로 추출 */
+function extractTestFilePaths(structureLayer: StructureLayer): string[] {
+  const testPaths: string[] = [];
+
+  function walk(node: import('../../types/ontology.js').DirectoryNode): void {
+    if (node.type === 'file') {
+      const name = node.name.toLowerCase();
+      if (
+        name.includes('.test.') || name.includes('.spec.') ||
+        name.includes('_test.') || name.includes('_spec.') ||
+        name.startsWith('test_') || name.startsWith('test.')
+      ) {
+        testPaths.push(node.path);
+      }
+    }
+    for (const child of node.children ?? []) {
+      walk(child);
+    }
+  }
+
+  walk(structureLayer.tree);
+  return testPaths;
+}
+
+async function runStep5DDD(
+  semanticsLayer: SemanticsLayer | null,
+  structureLayer: StructureLayer,
+  architecture: ArchitectureInsight,
+  aiConfig: AIProviderConfig,
+): Promise<DDDInsight> {
+  const empty: DDDInsight = {
+    boundedContexts: [], aggregateRoots: [], domainServices: [],
+    repositories: [], valueObjects: [], domainEvents: [],
+  };
+
+  if (!semanticsLayer || semanticsLayer.files.length === 0) {
+    return empty;
+  }
+
+  const classSamples = extractClassSamples(semanticsLayer);
+  if (!classSamples) return empty;
+
+  const moduleRelations = structureLayer.modules
+    .slice(0, 30)
+    .map((m) => `${m.source} → ${m.target}`)
+    .join('\n');
+
+  const prompt = `다음은 프로젝트의 클래스/인터페이스 시그니처, 모듈 관계, 아키텍처 정보입니다.
+DDD(Domain-Driven Design) 관점에서 분석하세요.
+JSON 형식으로 응답하세요:
+{
+  "boundedContexts": [{ "name": "컨텍스트명", "modules": ["모듈1"], "description": "설명" }],
+  "aggregateRoots": [{ "name": "클래스명", "file": "파일경로", "entities": ["엔티티1"], "valueObjects": ["VO1"] }],
+  "domainServices": ["서비스명"],
+  "repositories": ["레포지토리명"],
+  "valueObjects": ["VO명"],
+  "domainEvents": ["이벤트명"]
+}
+DDD 패턴이 명확하지 않으면 가장 유사한 구조를 식별하세요.
+배열이 비어있어도 괜찮습니다.
+
+## 아키텍처
+스타일: ${architecture.style}
+계층: ${architecture.layers.join(', ')}
+
+## 클래스/인터페이스 시그니처
+${classSamples}
+
+## 모듈 관계
+${moduleRelations || '(없음)'}`;
+
+  try {
+    const raw = await callAI(prompt, aiConfig, 2048);
+    const parsed = tryParseJSON<Partial<DDDInsight>>(raw, {});
+    return {
+      boundedContexts: parsed.boundedContexts ?? [],
+      aggregateRoots: parsed.aggregateRoots ?? [],
+      domainServices: parsed.domainServices ?? [],
+      repositories: parsed.repositories ?? [],
+      valueObjects: parsed.valueObjects ?? [],
+      domainEvents: parsed.domainEvents ?? [],
+    };
+  } catch (err) {
+    logger.warn(`Step5 DDD 분석 실패: ${String(err)}`);
+    return empty;
+  }
+}
+
+async function runStep6TestMaturity(
+  projectRoot: string,
+  structureLayer: StructureLayer,
+  semanticsLayer: SemanticsLayer | null,
+  aiConfig: AIProviderConfig,
+): Promise<TestMaturityInsight> {
+  const empty: TestMaturityInsight = {
+    overallLevel: 'none', testFramework: null, testPatterns: [],
+    coverage: { testedModules: [], untestedModules: [], ratio: '0/0' },
+    gaps: [], recommendations: [],
+  };
+
+  const testFiles = extractTestFilePaths(structureLayer);
+  const pkgJson = readPackageJson(projectRoot);
+
+  const testFileList = testFiles.slice(0, 30).join('\n') || '(테스트 파일 없음)';
+  const treeText = summarizeDirectoryTree(structureLayer);
+
+  // 심볼에서 테스트 관련 함수 추출
+  const testSymbols = semanticsLayer
+    ? semanticsLayer.files
+        .filter((f) => testFiles.some((tf) => f.path.includes(tf.split('/').pop() ?? '')))
+        .flatMap((f) => f.functions.slice(0, 3).map((fn) => `${f.path}: ${fn.name}`))
+        .slice(0, 20)
+        .join('\n')
+    : '';
+
+  const prompt = `다음은 프로젝트의 테스트 파일 목록, 디렉토리 구조, package.json입니다.
+테스트 성숙도를 분석하세요.
+JSON 형식으로 응답하세요:
+{
+  "overallLevel": "none|basic|moderate|comprehensive",
+  "testFramework": "프레임워크명 또는 null",
+  "testPatterns": ["패턴1"],
+  "coverage": {
+    "testedModules": ["모듈1"],
+    "untestedModules": ["모듈1"],
+    "ratio": "12/20 modules"
+  },
+  "gaps": [{ "area": "영역", "description": "설명", "priority": "high|medium|low" }],
+  "recommendations": ["권장1"]
+}
+
+## 테스트 파일 (${testFiles.length}개)
+${testFileList}
+
+## 테스트 심볼 샘플
+${testSymbols || '(없음)'}
+
+## 디렉토리 트리
+${treeText}
+
+## package.json
+${pkgJson}`;
+
+  try {
+    const raw = await callAI(prompt, aiConfig, 1024);
+    const parsed = tryParseJSON<Partial<TestMaturityInsight>>(raw, {});
+    return {
+      overallLevel: parsed.overallLevel ?? (testFiles.length === 0 ? 'none' : 'basic'),
+      testFramework: parsed.testFramework ?? null,
+      testPatterns: parsed.testPatterns ?? [],
+      coverage: parsed.coverage ?? { testedModules: [], untestedModules: [], ratio: `${testFiles.length} test files` },
+      gaps: parsed.gaps ?? [],
+      recommendations: parsed.recommendations ?? [],
+    };
+  } catch (err) {
+    logger.warn(`Step6 Test Maturity 분석 실패: ${String(err)}`);
+    return empty;
+  }
+}
+
+async function runStep7SchemaConsistency(
+  semanticsLayer: SemanticsLayer | null,
+  aiConfig: AIProviderConfig,
+): Promise<SchemaConsistencyInsight> {
+  const empty: SchemaConsistencyInsight = {
+    typeStrategy: 'unknown', sharedTypes: [], inconsistencies: [], recommendations: [],
+  };
+
+  if (!semanticsLayer || semanticsLayer.files.length === 0) {
+    return empty;
+  }
+
+  const interfaceSamples = extractInterfaceSamples(semanticsLayer);
+  if (!interfaceSamples) return empty;
+
+  const externalDeps = semanticsLayer.dependencies.external
+    .map((d) => d.name)
+    .join(', ');
+
+  const prompt = `다음은 프로젝트의 인터페이스/타입 정의 샘플과 외부 의존성입니다.
+스키마와 타입 일관성을 분석하세요.
+JSON 형식으로 응답하세요:
+{
+  "typeStrategy": "strict|loose|mixed",
+  "sharedTypes": ["공유타입1"],
+  "inconsistencies": [{
+    "type": "duplicate-definition|any-usage|missing-validation|naming-mismatch",
+    "description": "설명",
+    "files": ["파일1"],
+    "severity": "error|warning|info"
+  }],
+  "recommendations": ["권장1"]
+}
+불일치가 없으면 빈 배열로 응답하세요.
+
+## 인터페이스/타입 시그니처
+${interfaceSamples}
+
+## 외부 의존성
+${externalDeps || '(없음)'}`;
+
+  try {
+    const raw = await callAI(prompt, aiConfig, 1024);
+    const parsed = tryParseJSON<Partial<SchemaConsistencyInsight>>(raw, {});
+    return {
+      typeStrategy: parsed.typeStrategy ?? 'unknown',
+      sharedTypes: parsed.sharedTypes ?? [],
+      inconsistencies: parsed.inconsistencies ?? [],
+      recommendations: parsed.recommendations ?? [],
+    };
+  } catch (err) {
+    logger.warn(`Step7 Schema Consistency 분석 실패: ${String(err)}`);
+    return empty;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // 공개 API
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -401,7 +654,16 @@ export function collectDomainContext(
         .join('\n')
     : '';
 
-  return { directoryTree, packageJson, symbolSamples, entryPoints, externalDeps };
+  const classSamples = semanticsLayer ? extractClassSamples(semanticsLayer) : undefined;
+  const interfaceSamples = semanticsLayer ? extractInterfaceSamples(semanticsLayer) : undefined;
+  const testFilePaths = extractTestFilePaths(structureLayer);
+
+  return {
+    directoryTree, packageJson, symbolSamples, entryPoints, externalDeps,
+    classSamples: classSamples || undefined,
+    testFilePaths: testFilePaths.length > 0 ? testFilePaths : undefined,
+    interfaceSamples: interfaceSamples || undefined,
+  };
 }
 
 /**
@@ -457,23 +719,38 @@ export async function buildDomainLayer(
   }
 
   // Step 1: 프로젝트 요약
-  logger.dim('Step 1/4: 프로젝트 요약 생성 중...');
+  logger.dim('Step 1/7: 프로젝트 요약 생성 중...');
   const projectSummary = await runStep1ProjectSummary(projectRoot, structureLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 2: 아키텍처 분석
-  logger.dim('Step 2/4: 아키텍처 분석 중...');
+  logger.dim('Step 2/7: 아키텍처 분석 중...');
   const architecture = await runStep2Architecture(structureLayer, semanticsLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 3: 패턴 및 컨벤션 감지
-  logger.dim('Step 3/4: 패턴 및 컨벤션 감지 중...');
+  logger.dim('Step 3/7: 패턴 및 컨벤션 감지 중...');
   const { patterns, conventions } = await runStep3Patterns(semanticsLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 4: 용어집 추출
-  logger.dim('Step 4/4: 용어집 추출 중...');
+  logger.dim('Step 4/7: 용어집 추출 중...');
   const glossary = await runStep4Glossary(projectRoot, structureLayer, aiConfig);
+  await sleep(aiConfig.rateLimitMs);
+
+  // Step 5: DDD 구조 인식
+  logger.dim('Step 5/7: DDD 구조 분석 중...');
+  const ddd = await runStep5DDD(semanticsLayer, structureLayer, architecture, aiConfig);
+  await sleep(aiConfig.rateLimitMs);
+
+  // Step 6: 테스트 성숙도 평가
+  logger.dim('Step 6/7: 테스트 성숙도 분석 중...');
+  const testMaturity = await runStep6TestMaturity(projectRoot, structureLayer, semanticsLayer, aiConfig);
+  await sleep(aiConfig.rateLimitMs);
+
+  // Step 7: 스키마/타입 일관성 분석
+  logger.dim('Step 7/7: 스키마/타입 일관성 분석 중...');
+  const schemaConsistency = await runStep7SchemaConsistency(semanticsLayer, aiConfig);
 
   const domainData: DomainLayer = {
     projectSummary,
@@ -481,6 +758,9 @@ export async function buildDomainLayer(
     patterns,
     conventions,
     glossary,
+    ddd,
+    testMaturity,
+    schemaConsistency,
   };
 
   // 캐시 저장
@@ -491,7 +771,7 @@ export async function buildDomainLayer(
   });
 
   const duration = Date.now() - startTime;
-  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개 (${duration}ms)`);
+  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개, DDD ${ddd.boundedContexts.length} BC (${duration}ms)`);
 
   return {
     layer: 'domain',

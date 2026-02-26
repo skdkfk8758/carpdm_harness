@@ -36,6 +36,9 @@ export interface DomainBuildContext {
   symbolSamples: string;
   entryPoints: string[];
   externalDeps: string[];
+  classSamples?: string;
+  testFilePaths?: string[];
+  interfaceSamples?: string;
 }
 
 // === 온톨로지 데이터 모델 ===
@@ -207,6 +210,9 @@ export interface DomainLayer {
   patterns: PatternInsight[];
   conventions: ConventionInsight[];
   glossary: GlossaryEntry[];
+  ddd?: DDDInsight;
+  testMaturity?: TestMaturityInsight;
+  schemaConsistency?: SchemaConsistencyInsight;
 }
 
 export interface ArchitectureInsight {
@@ -233,6 +239,69 @@ export interface GlossaryEntry {
   term: string;
   definition: string;
   context: string;
+}
+
+// === Step 5: DDD 구조 인식 ===
+
+export interface DDDInsight {
+  boundedContexts: BoundedContextInsight[];
+  aggregateRoots: AggregateRootInsight[];
+  domainServices: string[];
+  repositories: string[];
+  valueObjects: string[];
+  domainEvents: string[];
+}
+
+export interface BoundedContextInsight {
+  name: string;
+  modules: string[];
+  description: string;
+}
+
+export interface AggregateRootInsight {
+  name: string;
+  file: string;
+  entities: string[];
+  valueObjects: string[];
+}
+
+// === Step 6: 테스트 성숙도 ===
+
+export interface TestMaturityInsight {
+  overallLevel: 'none' | 'basic' | 'moderate' | 'comprehensive';
+  testFramework: string | null;
+  testPatterns: string[];
+  coverage: TestCoverageEstimate;
+  gaps: TestGap[];
+  recommendations: string[];
+}
+
+export interface TestCoverageEstimate {
+  testedModules: string[];
+  untestedModules: string[];
+  ratio: string;
+}
+
+export interface TestGap {
+  area: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+// === Step 7: 스키마/타입 일관성 ===
+
+export interface SchemaConsistencyInsight {
+  typeStrategy: string;
+  sharedTypes: string[];
+  inconsistencies: SchemaInconsistency[];
+  recommendations: string[];
+}
+
+export interface SchemaInconsistency {
+  type: 'duplicate-definition' | 'any-usage' | 'missing-validation' | 'naming-mismatch';
+  description: string;
+  files: string[];
+  severity: 'error' | 'warning' | 'info';
 }
 
 // === 플러그인 ===

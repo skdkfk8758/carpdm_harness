@@ -7,6 +7,9 @@ import type {
   OntologyMetadata,
   OntologyIndexData,
   AnnotationSummary,
+  DDDInsight,
+  TestMaturityInsight,
+  SchemaConsistencyInsight,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -404,6 +407,194 @@ export function renderDomainMarkdown(
     }
   }
   lines.push('');
+
+  // DDD 구조 (Step 5)
+  if (layer.ddd) {
+    lines.push(renderDDDSection(layer.ddd));
+  }
+
+  // 테스트 성숙도 (Step 6)
+  if (layer.testMaturity) {
+    lines.push(renderTestMaturitySection(layer.testMaturity));
+  }
+
+  // 스키마/타입 일관성 (Step 7)
+  if (layer.schemaConsistency) {
+    lines.push(renderSchemaConsistencySection(layer.schemaConsistency));
+  }
+
+  return lines.join('\n');
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// DDD / Test Maturity / Schema Consistency 섹션 렌더링
+// ────────────────────────────────────────────────────────────────────────────
+
+/** DDD 구조 섹션 렌더링 */
+function renderDDDSection(ddd: DDDInsight): string {
+  const lines: string[] = [];
+
+  lines.push('## DDD Structure');
+  lines.push('');
+
+  // Bounded Contexts
+  if (ddd.boundedContexts.length > 0) {
+    lines.push('### Bounded Contexts');
+    lines.push('');
+    lines.push('| 이름 | 모듈 | 설명 |');
+    lines.push('|------|------|------|');
+    for (const bc of ddd.boundedContexts) {
+      lines.push(`| **${bc.name}** | ${bc.modules.map((m) => `\`${m}\``).join(', ')} | ${bc.description} |`);
+    }
+    lines.push('');
+  }
+
+  // Aggregate Roots
+  if (ddd.aggregateRoots.length > 0) {
+    lines.push('### Aggregate Roots');
+    lines.push('');
+    lines.push('| 이름 | 파일 | Entities | Value Objects |');
+    lines.push('|------|------|----------|---------------|');
+    for (const ar of ddd.aggregateRoots) {
+      lines.push(`| **${ar.name}** | \`${ar.file}\` | ${ar.entities.join(', ') || '-'} | ${ar.valueObjects.join(', ') || '-'} |`);
+    }
+    lines.push('');
+  }
+
+  // Domain Services / Repositories / Value Objects / Events
+  const lists: [string, string[]][] = [
+    ['Domain Services', ddd.domainServices],
+    ['Repositories', ddd.repositories],
+    ['Value Objects', ddd.valueObjects],
+    ['Domain Events', ddd.domainEvents],
+  ];
+
+  for (const [title, items] of lists) {
+    if (items.length > 0) {
+      lines.push(`### ${title}`);
+      lines.push('');
+      for (const item of items) {
+        lines.push(`- ${item}`);
+      }
+      lines.push('');
+    }
+  }
+
+  if (
+    ddd.boundedContexts.length === 0 && ddd.aggregateRoots.length === 0 &&
+    ddd.domainServices.length === 0 && ddd.repositories.length === 0 &&
+    ddd.valueObjects.length === 0 && ddd.domainEvents.length === 0
+  ) {
+    lines.push('_(DDD 패턴이 감지되지 않았습니다)_');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/** 테스트 성숙도 섹션 렌더링 */
+function renderTestMaturitySection(tm: TestMaturityInsight): string {
+  const lines: string[] = [];
+
+  lines.push('## Test Maturity');
+  lines.push('');
+
+  // Overview
+  const levelLabels: Record<string, string> = {
+    none: 'None',
+    basic: 'Basic',
+    moderate: 'Moderate',
+    comprehensive: 'Comprehensive',
+  };
+
+  lines.push(`| 항목 | 값 |`);
+  lines.push(`|------|-----|`);
+  lines.push(`| 성숙도 레벨 | **${levelLabels[tm.overallLevel] ?? tm.overallLevel}** |`);
+  lines.push(`| 테스트 프레임워크 | ${tm.testFramework ?? '_(없음)_'} |`);
+  lines.push(`| 커버리지 비율 | ${tm.coverage.ratio} |`);
+  lines.push('');
+
+  // Test Patterns
+  if (tm.testPatterns.length > 0) {
+    lines.push('### 테스트 패턴');
+    lines.push('');
+    for (const p of tm.testPatterns) {
+      lines.push(`- ${p}`);
+    }
+    lines.push('');
+  }
+
+  // Gaps
+  if (tm.gaps.length > 0) {
+    lines.push('### 테스트 갭');
+    lines.push('');
+    lines.push('| 영역 | 설명 | 우선순위 |');
+    lines.push('|------|------|---------|');
+    for (const gap of tm.gaps) {
+      lines.push(`| ${gap.area} | ${gap.description} | ${gap.priority} |`);
+    }
+    lines.push('');
+  }
+
+  // Recommendations
+  if (tm.recommendations.length > 0) {
+    lines.push('### 권장 사항');
+    lines.push('');
+    for (const r of tm.recommendations) {
+      lines.push(`- ${r}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/** 스키마/타입 일관성 섹션 렌더링 */
+function renderSchemaConsistencySection(sc: SchemaConsistencyInsight): string {
+  const lines: string[] = [];
+
+  lines.push('## Schema Consistency');
+  lines.push('');
+
+  lines.push(`**타입 전략**: ${sc.typeStrategy}`);
+  lines.push('');
+
+  // Shared Types
+  if (sc.sharedTypes.length > 0) {
+    lines.push('### 공유 타입');
+    lines.push('');
+    for (const t of sc.sharedTypes) {
+      lines.push(`- \`${t}\``);
+    }
+    lines.push('');
+  }
+
+  // Inconsistencies
+  if (sc.inconsistencies.length > 0) {
+    lines.push('### 불일치 항목');
+    lines.push('');
+    lines.push('| 유형 | 설명 | 파일 | 심각도 |');
+    lines.push('|------|------|------|--------|');
+    for (const inc of sc.inconsistencies) {
+      lines.push(`| ${inc.type} | ${inc.description} | ${inc.files.map((f) => `\`${f}\``).join(', ')} | ${inc.severity} |`);
+    }
+    lines.push('');
+  }
+
+  // Recommendations
+  if (sc.recommendations.length > 0) {
+    lines.push('### 권장 사항');
+    lines.push('');
+    for (const r of sc.recommendations) {
+      lines.push(`- ${r}`);
+    }
+    lines.push('');
+  }
+
+  if (sc.sharedTypes.length === 0 && sc.inconsistencies.length === 0 && sc.recommendations.length === 0) {
+    lines.push('_(스키마 분석 결과 없음)_');
+    lines.push('');
+  }
 
   return lines.join('\n');
 }
