@@ -164,16 +164,76 @@ except:
             fi
         fi
 
+        # === 3. 범위 검증 (plan.md scope 마커 기반) ===
+        SCOPE_WARNING=""
+        if [ -n "$PLAN_FILE" ]; then
+            # scope 마커에서 허용 파일 목록 추출
+            SCOPE_FILES=$(sed -n '/<!-- harness:scope:start -->/,/<!-- harness:scope:end -->/p' "$PLAN_FILE" 2>/dev/null \
+                | grep '|' | grep -v '^\s*|.*파일\|^\s*|.*---' \
+                | awk -F'|' '{gsub(/^[ \t`]+|[ \t`]+$/, "", $2); if($2!="") print $2}' 2>/dev/null)
+
+            if [ -n "$SCOPE_FILES" ] && [ -n "$RELATIVE_PATH" ]; then
+                # tests/ 디렉토리는 암묵적 허용
+                IN_SCOPE=false
+                case "$RELATIVE_PATH" in
+                    tests/*|test/*|**/tests/*|**/test/*|*.test.*|*.spec.*)
+                        IN_SCOPE=true
+                        ;;
+                esac
+
+                if [ "$IN_SCOPE" = false ]; then
+                    # 파일 경로가 scope 목록에 있는지 확인
+                    echo "$SCOPE_FILES" | while IFS= read -r allowed; do
+                        [ -z "$allowed" ] && continue
+                        if [ "$RELATIVE_PATH" = "$allowed" ]; then
+                            echo "FOUND" > /tmp/harness-scope-check-$$
+                        fi
+                    done
+                    if [ -f /tmp/harness-scope-check-$$ ]; then
+                        rm -f /tmp/harness-scope-check-$$
+                    else
+                        SCOPE_WARNING="
+- [SCOPE WARNING] ${RELATIVE_PATH} 는 plan.md 변경 파일 목록에 없습니다. 범위 밖 변경인지 확인하세요."
+                    fi
+                fi
+            fi
+        fi
+
+        # === @MX:WARN 연동 ===
+        MX_WARN_HINT=""
+        SEMANTICS_MD=""
+        for SDIR in ".agent/ontology" ".harness/ontology"; do
+            if [ -f "${SDIR}/ONTOLOGY-SEMANTICS.md" ]; then
+                SEMANTICS_MD="${SDIR}/ONTOLOGY-SEMANTICS.md"
+                break
+            fi
+        done
+        if [ -n "$SEMANTICS_MD" ] && [ -n "$RELATIVE_PATH" ]; then
+            WARN_MATCHES=$(grep "@MX:WARN" "$SEMANTICS_MD" 2>/dev/null | grep "$RELATIVE_PATH" 2>/dev/null) || true
+            if [ -n "$WARN_MATCHES" ]; then
+                MX_WARN_HINT="
+- [@MX:WARN] 이 파일에 주의 필요 심볼이 있습니다:"
+                while IFS= read -r WLINE; do
+                    WSYMBOL=$(echo "$WLINE" | sed -n 's/.*`\([^`]*\)`.*/\1/p' | head -1)
+                    WREASON=$(echo "$WLINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$4); print $4}')
+                    if [ -n "$WSYMBOL" ]; then
+                        MX_WARN_HINT="${MX_WARN_HINT}
+  - ${WSYMBOL}: ${WREASON}"
+                    fi
+                done <<< "$WARN_MATCHES"
+            fi
+        fi
+
         cat <<EOF
 [CODE CHANGE] ${FILE_PATH##*/} ${CHANGE_TYPE}
 - ${TODO_REMINDER}
 - Core Principles: Simplicity First / No Laziness / Minimal Impact / Surgical Changes
-- Surgical Changes: 요청 범위 내 파일만 수정했는지 확인 (인접 코드 개선/리팩토링 금지)
+- Surgical Changes: 요청 범위 내 파일만 수정했는지 확인 (인접 코드 개선/리팩토링 금지)${SCOPE_WARNING}
 - 기존 코드 스타일 일치: 네이밍, 포맷, 패턴을 주변 코드에 맞추기
 - DDD 확인: Model→Store→Service→Route 계층 준수
 - 명명 확인: Ubiquitous Language (docs/conventions.md)
 - 의사결정 기록: 설계 결정/트레이드오프 발생 시 .agent/context.md에 기록 (Think Before Coding)
-- 변경 기록: .harness/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}
+- 변경 기록: .harness/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}${MX_WARN_HINT}
 EOF
         ;;
 esac

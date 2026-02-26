@@ -164,6 +164,31 @@ except:
             fi
         fi
 
+        # === @MX:WARN 연동 ===
+        MX_WARN_HINT=""
+        SEMANTICS_MD=""
+        for SDIR in ".agent/ontology" ".harness/ontology"; do
+            if [ -f "${SDIR}/ONTOLOGY-SEMANTICS.md" ]; then
+                SEMANTICS_MD="${SDIR}/ONTOLOGY-SEMANTICS.md"
+                break
+            fi
+        done
+        if [ -n "$SEMANTICS_MD" ] && [ -n "$RELATIVE_PATH" ]; then
+            WARN_MATCHES=$(grep "@MX:WARN" "$SEMANTICS_MD" 2>/dev/null | grep "$RELATIVE_PATH" 2>/dev/null) || true
+            if [ -n "$WARN_MATCHES" ]; then
+                MX_WARN_HINT="
+- [@MX:WARN] 이 파일에 주의 필요 심볼이 있습니다:"
+                while IFS= read -r WLINE; do
+                    WSYMBOL=$(echo "$WLINE" | sed -n 's/.*`\([^`]*\)`.*/\1/p' | head -1)
+                    WREASON=$(echo "$WLINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$4); print $4}')
+                    if [ -n "$WSYMBOL" ]; then
+                        MX_WARN_HINT="${MX_WARN_HINT}
+  - ${WSYMBOL}: ${WREASON}"
+                    fi
+                done <<< "$WARN_MATCHES"
+            fi
+        fi
+
         cat <<EOF
 [CODE CHANGE] ${FILE_PATH##*/} ${CHANGE_TYPE}
 - ${TODO_REMINDER}
@@ -173,7 +198,7 @@ except:
 - DDD 확인: Model→Store→Service→Route 계층 준수
 - 명명 확인: Ubiquitous Language (docs/conventions.md)
 - 의사결정 기록: 설계 결정/트레이드오프 발생 시 .agent/context.md에 기록 (Think Before Coding)
-- 변경 기록: .harness/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}
+- 변경 기록: .harness/change-log.md에 자동 저장됨${ELEGANCE_HINT}${TDD_EDIT_HINT}${MX_WARN_HINT}
 EOF
         ;;
 esac
