@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadConfig } from '../core/config.js';
 import { buildOntology } from '../core/ontology/index.js';
+import { mergeExcludePatterns } from '../core/ontology/structure-builder.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import type { OntologyConfig } from '../types/ontology.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
@@ -20,7 +21,25 @@ export function registerOntologyGenerateTool(server: McpServer): void {
       try {
         const res = new McpResponseBuilder();
         const config = loadConfig(projectRoot as string);
-        let ontologyConfig: OntologyConfig = config?.ontology ?? DEFAULT_ONTOLOGY_CONFIG;
+        const userOntology = config?.ontology;
+        let ontologyConfig: OntologyConfig = userOntology
+          ? {
+              ...DEFAULT_ONTOLOGY_CONFIG,
+              ...userOntology,
+              layers: {
+                ...DEFAULT_ONTOLOGY_CONFIG.layers,
+                ...userOntology.layers,
+                structure: {
+                  ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
+                  ...userOntology.layers?.structure,
+                  excludePatterns: mergeExcludePatterns(
+                    DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
+                    userOntology.layers?.structure?.excludePatterns ?? [],
+                  ),
+                },
+              },
+            }
+          : DEFAULT_ONTOLOGY_CONFIG;
 
         if (layer) {
           const validLayers = ['structure', 'semantics', 'domain'];

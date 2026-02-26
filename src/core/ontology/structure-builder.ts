@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, extname, basename } from 'node:path';
 import { logger } from '../../utils/logger.js';
 import type {
@@ -10,6 +10,56 @@ import type {
   OntologyLayerConfig,
   IncrementalChange,
 } from '../../types/ontology.js';
+
+/**
+ * .gitignore에서 단순 디렉토리명 패턴을 추출한다.
+ * - 주석(#), 빈 줄, negation(!), glob(*, ?, [), 경로 구분자(/) 포함 패턴은 스킵
+ * - 트레일링 `/`는 제거 (디렉토리 표시)
+ * - 외부 의존성 없이 단순 파싱
+ */
+export function loadGitignorePatterns(projectRoot: string): string[] {
+  const gitignorePath = join(projectRoot, '.gitignore');
+  if (!existsSync(gitignorePath)) {
+    return [];
+  }
+
+  try {
+    const content = readFileSync(gitignorePath, 'utf-8');
+    const patterns: string[] = [];
+
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trim();
+
+      // 빈 줄, 주석
+      if (!line || line.startsWith('#')) continue;
+      // negation 패턴
+      if (line.startsWith('!')) continue;
+
+      // 트레일링 슬래시 제거
+      const cleaned = line.endsWith('/') ? line.slice(0, -1) : line;
+
+      // 경로 구분자가 포함된 패턴 스킵 (예: src/dist, /root-only)
+      if (cleaned.includes('/')) continue;
+      // glob 문자 포함 패턴 스킵 (예: *.pyc, log?, [Bb]uild)
+      if (/[*?[\]]/.test(cleaned)) continue;
+      // 빈 문자열 방지
+      if (!cleaned) continue;
+
+      patterns.push(cleaned);
+    }
+
+    return patterns;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 여러 패턴 소스를 합산하여 중복 제거된 배열 반환
+ */
+export function mergeExcludePatterns(...sources: string[][]): string[] {
+  return [...new Set(sources.flat())];
+}
 
 // 확장자 → 언어 매핑 테이블
 const EXT_TO_LANG: Record<string, string> = {
@@ -270,11 +320,14 @@ export function buildStructureLayer(
 ): StructureLayer {
   logger.info(`Structure Layer 빌드 시작: ${projectRoot}`);
 
+  const gitignorePatterns = loadGitignorePatterns(projectRoot);
+  const effectiveExcludes = mergeExcludePatterns(config.excludePatterns, gitignorePatterns);
+
   const allRelations: ModuleRelation[] = [];
   const tree = scanDirectory(
     projectRoot,
     projectRoot,
-    config.excludePatterns,
+    effectiveExcludes,
     config.maxDepth,
     0,
     allRelations,
@@ -338,11 +391,14 @@ export function updateStructureIncremental(
   }
 
   // 트리는 간단히 전체 재스캔 (stat 호출 최소화 정책 유지)
+  const gitignorePatterns = loadGitignorePatterns(projectRoot);
+  const effectiveExcludes = mergeExcludePatterns(config.excludePatterns, gitignorePatterns);
+
   const allRelations: ModuleRelation[] = [];
   const tree = scanDirectory(
     projectRoot,
     projectRoot,
-    config.excludePatterns,
+    effectiveExcludes,
     config.maxDepth,
     0,
     allRelations,

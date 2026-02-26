@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadConfig } from '../core/config.js';
 import { refreshOntology } from '../core/ontology/index.js';
+import { mergeExcludePatterns } from '../core/ontology/structure-builder.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import type { OntologyConfig } from '../types/ontology.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
@@ -19,7 +20,25 @@ export function registerOntologyRefreshTool(server: McpServer): void {
       try {
         const res = new McpResponseBuilder();
         const config = loadConfig(projectRoot as string);
-        const ontologyConfig: OntologyConfig = config?.ontology ?? DEFAULT_ONTOLOGY_CONFIG;
+        const userOntology = config?.ontology;
+        const ontologyConfig: OntologyConfig = userOntology
+          ? {
+              ...DEFAULT_ONTOLOGY_CONFIG,
+              ...userOntology,
+              layers: {
+                ...DEFAULT_ONTOLOGY_CONFIG.layers,
+                ...userOntology.layers,
+                structure: {
+                  ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
+                  ...userOntology.layers?.structure,
+                  excludePatterns: mergeExcludePatterns(
+                    DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
+                    userOntology.layers?.structure?.excludePatterns ?? [],
+                  ),
+                },
+              },
+            }
+          : DEFAULT_ONTOLOGY_CONFIG;
 
         if (!ontologyConfig.enabled) {
           return errorResult('온톨로지가 비활성화 상태입니다. 먼저 harness_ontology_generate로 활성화하세요.');

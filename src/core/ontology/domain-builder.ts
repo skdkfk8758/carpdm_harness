@@ -936,7 +936,7 @@ export async function buildDomainLayer(
   projectRoot: string,
   structureLayer: StructureLayer,
   semanticsLayer: SemanticsLayer | null,
-  _config: OntologyLayerConfig['domain'],
+  domainConfig: OntologyLayerConfig['domain'],
   aiConfig: AIProviderConfig,
 ): Promise<BuildResult & { data: DomainLayer }> {
   const startTime = Date.now();
@@ -999,24 +999,48 @@ export async function buildDomainLayer(
   const glossary = await runStep4Glossary(projectRoot, structureLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
+  // enabledSteps: undefined이면 전체 실행, 배열이면 포함된 Step만 실행
+  const enabledSteps = domainConfig.enabledSteps;
+  const isStepEnabled = (step: number): boolean => !enabledSteps || enabledSteps.includes(step);
+
   // Step 5: DDD 구조 인식
-  logger.dim('Step 5/8: DDD 구조 분석 중...');
-  const ddd = await runStep5DDD(semanticsLayer, structureLayer, architecture, aiConfig);
-  await sleep(aiConfig.rateLimitMs);
+  let ddd: DDDInsight | undefined;
+  if (isStepEnabled(5)) {
+    logger.dim('Step 5/8: DDD 구조 분석 중...');
+    ddd = await runStep5DDD(semanticsLayer, structureLayer, architecture, aiConfig);
+    await sleep(aiConfig.rateLimitMs);
+  } else {
+    logger.dim('Step 5/8: DDD 구조 분석 스킵 (enabledSteps 설정)');
+  }
 
   // Step 6: 테스트 성숙도 평가
-  logger.dim('Step 6/8: 테스트 성숙도 분석 중...');
-  const testMaturity = await runStep6TestMaturity(projectRoot, structureLayer, semanticsLayer, aiConfig);
-  await sleep(aiConfig.rateLimitMs);
+  let testMaturity: TestMaturityInsight | undefined;
+  if (isStepEnabled(6)) {
+    logger.dim('Step 6/8: 테스트 성숙도 분석 중...');
+    testMaturity = await runStep6TestMaturity(projectRoot, structureLayer, semanticsLayer, aiConfig);
+    await sleep(aiConfig.rateLimitMs);
+  } else {
+    logger.dim('Step 6/8: 테스트 성숙도 분석 스킵 (enabledSteps 설정)');
+  }
 
   // Step 7: 스키마/타입 일관성 분석
-  logger.dim('Step 7/8: 스키마/타입 일관성 분석 중...');
-  const schemaConsistency = await runStep7SchemaConsistency(semanticsLayer, aiConfig);
-  await sleep(aiConfig.rateLimitMs);
+  let schemaConsistency: SchemaConsistencyInsight | undefined;
+  if (isStepEnabled(7)) {
+    logger.dim('Step 7/8: 스키마/타입 일관성 분석 중...');
+    schemaConsistency = await runStep7SchemaConsistency(semanticsLayer, aiConfig);
+    await sleep(aiConfig.rateLimitMs);
+  } else {
+    logger.dim('Step 7/8: 스키마/타입 일관성 분석 스킵 (enabledSteps 설정)');
+  }
 
   // Step 8: Documentation Indexing
-  logger.dim('Step 8/8: 문서 인덱싱 중...');
-  const documentationIndex = await runStep8DocIndexing(projectRoot, semanticsLayer, aiConfig);
+  let documentationIndex: DocumentationIndex | undefined;
+  if (isStepEnabled(8)) {
+    logger.dim('Step 8/8: 문서 인덱싱 중...');
+    documentationIndex = await runStep8DocIndexing(projectRoot, semanticsLayer, aiConfig);
+  } else {
+    logger.dim('Step 8/8: 문서 인덱싱 스킵 (enabledSteps 설정)');
+  }
 
   const domainData: DomainLayer = {
     projectSummary,
@@ -1027,7 +1051,7 @@ export async function buildDomainLayer(
     ddd,
     testMaturity,
     schemaConsistency,
-    documentationIndex: documentationIndex.totalFiles > 0 ? documentationIndex : undefined,
+    documentationIndex: documentationIndex && documentationIndex.totalFiles > 0 ? documentationIndex : undefined,
   };
 
   // 캐시 저장
@@ -1038,8 +1062,9 @@ export async function buildDomainLayer(
   });
 
   const duration = Date.now() - startTime;
-  const docCount = documentationIndex.totalFiles;
-  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개, DDD ${ddd.boundedContexts.length} BC, 문서 ${docCount}개 (${duration}ms)`);
+  const docCount = documentationIndex?.totalFiles ?? 0;
+  const bcCount = ddd?.boundedContexts.length ?? 0;
+  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개, DDD ${bcCount} BC, 문서 ${docCount}개 (${duration}ms)`);
 
   return {
     layer: 'domain',
