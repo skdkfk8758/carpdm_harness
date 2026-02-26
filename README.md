@@ -259,16 +259,14 @@ flowchart TD
 
 ## 모듈 시스템
 
-9개 모듈로 구성됩니다.
+7개 모듈로 구성됩니다.
 
 | 모듈 | 설명 | 의존성 |
 |------|------|--------|
-| **core** | Plan-First + SPARC + External Memory | 없음 |
+| **core** | Plan-First + SPARC + External Memory + 환경 업데이트 + 패턴 클로닝 | 없음 |
 | **tdd** | Red-Green-Refactor + 자동 차단 | core |
 | **quality** | 품질 게이트 + TRUST 5 + 교차 검증 | core |
 | **ship** | 논리 커밋 + PR 생성 + 릴리스 | core |
-| **maintenance** | 환경 업데이트 | 없음 |
-| **patterns** | 패턴 클로닝 | core |
 | **ontology** | 3계층 온톨로지 + @MX 어노테이션 | core |
 | **security** | 보안 훅 + 감사 + 권한 관리 | core |
 | **team-memory** | 팀 협업 메모리 + 공유 규칙 | core |
@@ -280,7 +278,7 @@ flowchart TD
 | 프리셋 | 모듈 | 설명 |
 |--------|------|------|
 | `standard` (추천) | core, quality, ship | 일반 프로젝트 |
-| `full` | 전체 9개 | 완전한 워크플로우 |
+| `full` | 전체 7개 | 완전한 워크플로우 |
 | `tdd` | core, tdd, quality, ship | TDD 중심 |
 | `secure` | core, quality, security, ship | 보안 중심 |
 

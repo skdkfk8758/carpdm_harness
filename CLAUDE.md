@@ -94,16 +94,14 @@ npm run typecheck     # tsc --noEmit
 - `mkdtempSync`/`rmSync`로 테스트 격리
 - 도구/훅 추가 시 반드시 테스트 작성
 
-## 모듈 시스템 (9개)
+## 모듈 시스템 (7개)
 
 | 모듈 | 설명 |
 |------|------|
-| **core** | Plan-First + SPARC + 외부 메모리 |
+| **core** | Plan-First + SPARC + 외부 메모리 + 환경 업데이트 + 패턴 복제 |
 | **tdd** | Red-Green-Refactor 자동 블로킹 |
 | **quality** | TRUST 5 품질 게이트 |
 | **ship** | 논리 커밋 + PR + 릴리스 |
-| **maintenance** | 의존성 업데이트 |
-| **patterns** | 패턴 복제 |
 | **ontology** | 3계층 온톨로지 + @MX |
 | **security** | 보안 훅 + 감사 |
 | **team-memory** | 팀 공유 지식 |
@@ -111,9 +109,21 @@ npm run typecheck     # tsc --noEmit
 ## 프리셋 (4개)
 
 - **standard**: core + quality + ship + team-memory (기본 권장)
-- **full**: 전체 9개 모듈
+- **full**: 전체 7개 모듈
 - **tdd**: core + tdd + quality + ship
 - **secure**: core + quality + security + ship
+
+## 에이전트 응답 포맷
+
+단계별 작업 상태를 명확히 전달하기 위해 상태 태그를 사용한다:
+
+| 태그 | 용도 |
+|------|------|
+| `[완료]` | 단계/작업 완료 보고 |
+| `[진행중]` | 현재 진행 중인 작업 |
+| `[검증]` | 테스트/검증 결과 보고 |
+| `[기록]` | 파일/메모리에 기록 완료 |
+| `[경고]` | 주의가 필요한 상황 |
 
 ## 주의사항
 
