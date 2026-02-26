@@ -69,6 +69,38 @@ npm test 2>&1
 
 > 검증 없이 커밋하는 것은 "확인했습니다" 수준의 자기 신고입니다. 실행 증거가 있어야 합니다.
 
+### Phase 0.5: README 최신화 검증
+
+커밋 전에 README.md의 주요 수치가 실제 프로젝트와 일치하는지 교차 검증한다.
+
+#### 검증 대상 (해당 항목이 README에 존재할 때만)
+
+| 검증 항목 | 실제 값 확인 방법 |
+|-----------|-------------------|
+| MCP 도구 수 | `src/tools/index.ts`의 `register*Tool` 함수 수 |
+| 스킬 수 | `ls skills/` 디렉토리 수 |
+| 에이전트 수 | `ls agents/` 파일 수 |
+| 훅 수 | `hooks/hooks.json` 엔트리 수 |
+| 모듈 수 | `templates/module-manifest.json` 키 수 |
+| 테스트 수 | 가장 최근 `npm test` 결과의 passed 수 |
+| 버전 | `package.json` ↔ `plugin.json` ↔ `marketplace.json` ↔ `server.ts` |
+
+#### marketplace.json 설명 필드도 검증
+
+`.claude-plugin/marketplace.json`의 `description` 필드에 포함된 수치도 실제와 비교한다.
+
+#### 판정
+
+| 결과 | 행동 |
+|------|------|
+| 모든 수치 일치 | 계속 진행 |
+| 불일치 발견 | README.md / marketplace.json 수정 → 변경 파일에 포함 |
+| README.md 없음 | 건너뜀 |
+
+> 커밋할 변경사항이 수치에 영향을 주는 경우(스킬/도구/훅 추가 등)에 특히 주의한다.
+
+### Phase 1: 변경사항 분석
+
 1. Run `git status -s` to see all uncommitted changes (staged and unstaged).
 2. Run `git diff --stat HEAD` to understand the scope of changes.
 3. Run `git log --oneline -5` to see the recent commit style.

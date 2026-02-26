@@ -23,5 +23,6 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   dts: true,
+  noExternal: [/@modelcontextprotocol/, 'zod', 'diff'],
   external: [],
 });

@@ -156,6 +156,34 @@
       ]
     },
     {
+      "skill": "branch-cleanup",
+      "rules": [
+        {
+          "id": "explicit-cleanup",
+          "mode": "force",
+          "branch": "any",
+          "patterns": [
+            "브랜치\\s*(정리|삭제|제거|클린)",
+            "로컬\\s*브랜치\\s*(정리|삭제)",
+            "branch\\s*clean",
+            "cleanup\\s*branch",
+            "prune\\s*branch"
+          ]
+        },
+        {
+          "id": "next-issue-prep",
+          "mode": "suggest",
+          "branch": "feature",
+          "patterns": [
+            "다음\\s*(이슈|작업|태스크)",
+            "next\\s*(issue|task)",
+            "이슈\\s*넘어"
+          ],
+          "message": "다음 작업 전에 현재 브랜치를 정리하시겠습니까? (커밋/stash + 로컬 브랜치 정리)"
+        }
+      ]
+    },
+    {
       "skill": "design-guide",
       "rules": [
         {
