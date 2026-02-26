@@ -19,6 +19,8 @@ import { registerQualityCheckTool } from './quality-check.js';
 import { registerOntologyAnnotationsTool } from './ontology-annotations.js';
 import { registerBugReportTool } from './bug-report.js';
 import { registerGithubSetupTool } from './github-setup.js';
+import { registerManageVerifyTool } from './manage-verify.js';
+import { registerVerifyAllTool } from './verify-all.js';
 
 export function registerAllTools(server: McpServer): void {
   registerListTool(server);
@@ -41,4 +43,6 @@ export function registerAllTools(server: McpServer): void {
   registerOntologyAnnotationsTool(server);
   registerBugReportTool(server);
   registerGithubSetupTool(server);
+  registerManageVerifyTool(server);
+  registerVerifyAllTool(server);
 }
