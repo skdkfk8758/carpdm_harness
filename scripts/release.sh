@@ -126,7 +126,7 @@ fi
 # ─── Git commit + tag ───
 
 info "변경사항 커밋 중..."
-git add package.json
+git add package.json package-lock.json
 [ -f "$PLUGIN_JSON" ] && git add "$PLUGIN_JSON"
 [ -f "$MARKETPLACE_JSON" ] && git add "$MARKETPLACE_JSON"
 [ -f "$SERVER_TS" ] && git add "$SERVER_TS"
