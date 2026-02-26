@@ -1,5 +1,5 @@
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, mkdirSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join, extname, basename, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { logger } from '../../utils/logger.js';
 import type {
@@ -17,6 +17,10 @@ import type {
   DDDInsight,
   TestMaturityInsight,
   SchemaConsistencyInsight,
+  DocumentInsight,
+  DocumentationIndex,
+  DocCrossReference,
+  DocType,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -621,6 +625,251 @@ ${externalDeps || '(없음)'}`;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Step 8: Documentation Indexing
+// ────────────────────────────────────────────────────────────────────────────
+
+const DOC_DIRS = ['docs', 'doc', 'documentation'];
+const DOC_EXTENSIONS = new Set(['.md', '.txt', '.yaml', '.yml']);
+const MAX_DOC_DEPTH = 3;
+const MAX_DOC_CONTENT_CHARS = 2000;
+
+/** docs 디렉토리에서 문서 파일 스캔 */
+export function scanDocFiles(projectRoot: string): { docsRoot: string; files: string[] } {
+  for (const dir of DOC_DIRS) {
+    const absDir = join(projectRoot, dir);
+    if (existsSync(absDir) && statSync(absDir).isDirectory()) {
+      const files = collectDocFilesRecursive(absDir, 0);
+      return { docsRoot: dir, files: files.map((f) => relative(projectRoot, f)) };
+    }
+  }
+  return { docsRoot: '', files: [] };
+}
+
+function collectDocFilesRecursive(dir: string, depth: number): string[] {
+  if (depth > MAX_DOC_DEPTH) return [];
+  const results: string[] = [];
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory() && !entry.name.startsWith('.')) {
+        results.push(...collectDocFilesRecursive(fullPath, depth + 1));
+      } else if (entry.isFile() && DOC_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+        results.push(fullPath);
+      }
+    }
+  } catch {
+    // 읽기 실패 시 무시
+  }
+  return results;
+}
+
+/** 문서 내용에서 제목 추출 (첫 번째 H1 또는 파일명) */
+function extractTitle(content: string, filePath: string): string {
+  const h1Match = content.match(/^#\s+(.+)$/m);
+  if (h1Match) return h1Match[1].trim();
+  return basename(filePath, extname(filePath));
+}
+
+/** 마크다운 헤딩 추출 */
+function extractHeadings(content: string): string[] {
+  const headings: string[] = [];
+  for (const match of content.matchAll(/^(#{1,4})\s+(.+)$/gm)) {
+    headings.push(`${'#'.repeat(match[1].length)} ${match[2].trim()}`);
+  }
+  return headings;
+}
+
+/** 코드 블록 언어 태그 추출 */
+function extractCodeBlockLanguages(content: string): string[] {
+  const langs = new Set<string>();
+  for (const match of content.matchAll(/^```(\w+)/gm)) {
+    langs.add(match[1].toLowerCase());
+  }
+  return [...langs];
+}
+
+/** docType 추론 휴리스틱 */
+export function inferDocType(content: string, filePath: string): DocType {
+  const lower = content.toLowerCase();
+  const name = basename(filePath).toLowerCase();
+
+  if (/create\s+table|alter\s+table/i.test(content)) return 'schema';
+  if (lower.includes('openapi:') || lower.includes('swagger:')) return 'api-spec';
+  if (name.includes('adr') || /##\s*(decision|status)/i.test(content)) return 'adr';
+  if (name.includes('runbook') || /##\s*(steps|procedure)/i.test(content)) return 'runbook';
+  if (name.includes('guide') || name.includes('tutorial')) return 'guide';
+  if (name.includes('reference') || name.includes('api')) return 'reference';
+
+  const ext = extname(filePath).toLowerCase();
+  if (ext === '.yaml' || ext === '.yml' || ext === '.json') return 'config';
+
+  return 'other';
+}
+
+/** Phase A: 로컬 파싱 (AI 불필요) */
+export function parseDocLocally(projectRoot: string, relPath: string): DocumentInsight {
+  const absPath = join(projectRoot, relPath);
+  let content = '';
+  try {
+    content = readFileSync(absPath, 'utf-8');
+  } catch {
+    // 읽기 실패
+  }
+
+  return {
+    path: relPath,
+    title: extractTitle(content, relPath),
+    docType: inferDocType(content, relPath),
+    summary: '',
+    keyConcepts: [],
+    relatedSymbols: [],
+    codeBlockLanguages: extractCodeBlockLanguages(content),
+    headings: extractHeadings(content),
+  };
+}
+
+/** Semantics Layer 심볼과 문서 내용 크로스레퍼런스 */
+export function buildCrossReferences(
+  projectRoot: string,
+  docFiles: string[],
+  semanticsLayer: SemanticsLayer | null,
+): DocCrossReference[] {
+  if (!semanticsLayer) return [];
+
+  // exported 심볼 목록 수집 (이름 → 파일 매핑)
+  const symbolMap = new Map<string, string>();
+  for (const [name, entries] of Object.entries(semanticsLayer.symbols.byName)) {
+    if (name.length < 3) continue; // 너무 짧은 심볼 무시
+    if (entries.length > 0) {
+      symbolMap.set(name, entries[0].file);
+    }
+  }
+
+  const refs: DocCrossReference[] = [];
+
+  for (const docPath of docFiles) {
+    let content = '';
+    try {
+      content = readFileSync(join(projectRoot, docPath), 'utf-8');
+    } catch {
+      continue;
+    }
+
+    for (const [symbolName, symbolFile] of symbolMap) {
+      // 정확한 단어 경계 매칭
+      const wordRegex = new RegExp(`\\b${symbolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+      if (wordRegex.test(content)) {
+        refs.push({
+          docPath,
+          symbolName,
+          symbolFile,
+          confidence: 'high',
+        });
+      }
+    }
+  }
+
+  return refs;
+}
+
+/** Phase B: AI 기반 문서 분석 — 각 문서의 요약 + 핵심 개념 + 관련 심볼 */
+async function runStep8DocIndexing(
+  projectRoot: string,
+  semanticsLayer: SemanticsLayer | null,
+  aiConfig: AIProviderConfig,
+): Promise<DocumentationIndex> {
+  const empty: DocumentationIndex = { docsRoot: '', totalFiles: 0, documents: [], crossReferences: [] };
+
+  const { docsRoot, files } = scanDocFiles(projectRoot);
+  if (files.length === 0) return empty;
+
+  // Phase A: 로컬 파싱
+  const documents = files.map((f) => parseDocLocally(projectRoot, f));
+
+  // Phase A: 크로스레퍼런스
+  const crossReferences = buildCrossReferences(projectRoot, files, semanticsLayer);
+
+  // 심볼 이름 목록 (AI에 전달)
+  const symbolNames = semanticsLayer
+    ? Object.keys(semanticsLayer.symbols.byName).slice(0, 50).join(', ')
+    : '';
+
+  // Phase B: AI 분석 (각 문서에 대해)
+  for (const doc of documents) {
+    let content = '';
+    try {
+      content = readFileSync(join(projectRoot, doc.path), 'utf-8');
+    } catch {
+      continue;
+    }
+
+    // 대용량 문서 잘라내기
+    const truncated = content.length > MAX_DOC_CONTENT_CHARS
+      ? content.slice(0, MAX_DOC_CONTENT_CHARS) + '\n... (이하 생략)'
+      : content;
+
+    const prompt = `다음은 프로젝트 문서 파일입니다.
+요약, 핵심 개념, 관련 코드 심볼을 분석하세요.
+JSON 형식으로 응답하세요:
+{
+  "summary": "1-2문장 요약",
+  "keyConcepts": ["개념1", "개념2"],
+  "relatedSymbols": ["심볼1", "심볼2"]
+}
+
+## 파일: ${doc.path}
+## 감지된 유형: ${doc.docType}
+## 프로젝트 심볼 목록 (참고용)
+${symbolNames || '(없음)'}
+
+## 문서 내용
+${truncated}`;
+
+    try {
+      const raw = await callAI(prompt, aiConfig, 512);
+      const parsed = tryParseJSON<{
+        summary?: string;
+        keyConcepts?: string[];
+        relatedSymbols?: string[];
+      }>(raw, {});
+
+      doc.summary = parsed.summary ?? '';
+      doc.keyConcepts = parsed.keyConcepts ?? [];
+      // AI가 식별한 추가 관련 심볼
+      if (parsed.relatedSymbols) {
+        const existingSymbols = new Set(doc.relatedSymbols);
+        for (const sym of parsed.relatedSymbols) {
+          if (!existingSymbols.has(sym)) {
+            doc.relatedSymbols.push(sym);
+          }
+        }
+      }
+
+      await sleep(aiConfig.rateLimitMs);
+    } catch (err) {
+      logger.warn(`Step8 문서 분석 실패 (${doc.path}): ${String(err)}`);
+      // Phase A 결과만 유지
+    }
+  }
+
+  // 크로스레퍼런스의 심볼을 각 문서의 relatedSymbols에 반영
+  for (const ref of crossReferences) {
+    const doc = documents.find((d) => d.path === ref.docPath);
+    if (doc && !doc.relatedSymbols.includes(ref.symbolName)) {
+      doc.relatedSymbols.push(ref.symbolName);
+    }
+  }
+
+  return {
+    docsRoot,
+    totalFiles: files.length,
+    documents,
+    crossReferences,
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // 공개 API
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -658,11 +907,23 @@ export function collectDomainContext(
   const interfaceSamples = semanticsLayer ? extractInterfaceSamples(semanticsLayer) : undefined;
   const testFilePaths = extractTestFilePaths(structureLayer);
 
+  const { files: docFiles } = scanDocFiles(projectRoot);
+
+  // 각 문서 파일의 제목 + 유형 요약
+  const docSummaries = docFiles.length > 0
+    ? docFiles.map((f) => {
+        const parsed = parseDocLocally(projectRoot, f);
+        return `${f} — [${parsed.docType}] ${parsed.title}`;
+      }).join('\n')
+    : undefined;
+
   return {
     directoryTree, packageJson, symbolSamples, entryPoints, externalDeps,
     classSamples: classSamples || undefined,
     testFilePaths: testFilePaths.length > 0 ? testFilePaths : undefined,
     interfaceSamples: interfaceSamples || undefined,
+    docFiles: docFiles.length > 0 ? docFiles : undefined,
+    docSummaries,
   };
 }
 
@@ -719,38 +980,43 @@ export async function buildDomainLayer(
   }
 
   // Step 1: 프로젝트 요약
-  logger.dim('Step 1/7: 프로젝트 요약 생성 중...');
+  logger.dim('Step 1/8: 프로젝트 요약 생성 중...');
   const projectSummary = await runStep1ProjectSummary(projectRoot, structureLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 2: 아키텍처 분석
-  logger.dim('Step 2/7: 아키텍처 분석 중...');
+  logger.dim('Step 2/8: 아키텍처 분석 중...');
   const architecture = await runStep2Architecture(structureLayer, semanticsLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 3: 패턴 및 컨벤션 감지
-  logger.dim('Step 3/7: 패턴 및 컨벤션 감지 중...');
+  logger.dim('Step 3/8: 패턴 및 컨벤션 감지 중...');
   const { patterns, conventions } = await runStep3Patterns(semanticsLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 4: 용어집 추출
-  logger.dim('Step 4/7: 용어집 추출 중...');
+  logger.dim('Step 4/8: 용어집 추출 중...');
   const glossary = await runStep4Glossary(projectRoot, structureLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 5: DDD 구조 인식
-  logger.dim('Step 5/7: DDD 구조 분석 중...');
+  logger.dim('Step 5/8: DDD 구조 분석 중...');
   const ddd = await runStep5DDD(semanticsLayer, structureLayer, architecture, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 6: 테스트 성숙도 평가
-  logger.dim('Step 6/7: 테스트 성숙도 분석 중...');
+  logger.dim('Step 6/8: 테스트 성숙도 분석 중...');
   const testMaturity = await runStep6TestMaturity(projectRoot, structureLayer, semanticsLayer, aiConfig);
   await sleep(aiConfig.rateLimitMs);
 
   // Step 7: 스키마/타입 일관성 분석
-  logger.dim('Step 7/7: 스키마/타입 일관성 분석 중...');
+  logger.dim('Step 7/8: 스키마/타입 일관성 분석 중...');
   const schemaConsistency = await runStep7SchemaConsistency(semanticsLayer, aiConfig);
+  await sleep(aiConfig.rateLimitMs);
+
+  // Step 8: Documentation Indexing
+  logger.dim('Step 8/8: 문서 인덱싱 중...');
+  const documentationIndex = await runStep8DocIndexing(projectRoot, semanticsLayer, aiConfig);
 
   const domainData: DomainLayer = {
     projectSummary,
@@ -761,6 +1027,7 @@ export async function buildDomainLayer(
     ddd,
     testMaturity,
     schemaConsistency,
+    documentationIndex: documentationIndex.totalFiles > 0 ? documentationIndex : undefined,
   };
 
   // 캐시 저장
@@ -771,7 +1038,8 @@ export async function buildDomainLayer(
   });
 
   const duration = Date.now() - startTime;
-  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개, DDD ${ddd.boundedContexts.length} BC (${duration}ms)`);
+  const docCount = documentationIndex.totalFiles;
+  logger.ok(`Domain Layer 빌드 완료 — 패턴 ${patterns.length}개, 용어 ${glossary.length}개, DDD ${ddd.boundedContexts.length} BC, 문서 ${docCount}개 (${duration}ms)`);
 
   return {
     layer: 'domain',
