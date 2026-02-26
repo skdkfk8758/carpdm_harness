@@ -549,6 +549,145 @@ function checkTeamMemorySync(cwd) {
   }
   return null;
 }
+function readFileContent(filePath) {
+  try {
+    if (!existsSync(filePath)) return null;
+    return readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+}
+function findAgentFile(cwd, name) {
+  const agentPath = join2(cwd, ".agent", name);
+  if (existsSync(agentPath)) return agentPath;
+  const rootPath = join2(cwd, name);
+  if (existsSync(rootPath)) return rootPath;
+  return null;
+}
+function generateHandoff(cwd) {
+  const planPath = findAgentFile(cwd, "plan.md");
+  const todoPath = findAgentFile(cwd, "todo.md");
+  if (!planPath && !todoPath) return;
+  const now = /* @__PURE__ */ new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  let planStatus = "UNKNOWN";
+  let planTitle = "";
+  const planContent = planPath ? readFileContent(planPath) : null;
+  if (planContent) {
+    const statusMatch = planContent.match(/상태:\s*(DRAFT|APPROVED|IN_PROGRESS|COMPLETED)/);
+    if (statusMatch) planStatus = statusMatch[1];
+    const titleMatch = planContent.match(/^#\s+Plan:\s*(.+)/m);
+    if (titleMatch) planTitle = titleMatch[1];
+  }
+  let doneItems = [];
+  let remainItems = [];
+  const todoContent = todoPath ? readFileContent(todoPath) : null;
+  if (todoContent) {
+    const lines = todoContent.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("- [x]")) {
+        doneItems.push(trimmed.replace("- [x] ", ""));
+      } else if (trimmed.startsWith("- [ ]")) {
+        remainItems.push(trimmed.replace("- [ ] ", ""));
+      }
+    }
+  }
+  if (doneItems.length === 0 && remainItems.length === 0 && planStatus === "UNKNOWN") return;
+  let changedFiles = [];
+  const changeLogPath = join2(cwd, ".harness", "change-log.md");
+  const changeLogContent = readFileContent(changeLogPath);
+  if (changeLogContent) {
+    const lines = changeLogContent.split("\n");
+    const fileLines = lines.filter((l) => l.includes("|")).slice(-20);
+    for (const line of fileLines) {
+      const parts = line.split("|").map((p) => p.trim());
+      if (parts.length >= 3 && parts[2] && !parts[2].startsWith("\uD30C\uC77C")) {
+        changedFiles.push(parts[2]);
+      }
+    }
+    changedFiles = [...new Set(changedFiles)];
+  }
+  const doneSection = doneItems.length > 0 ? doneItems.map((i) => `- ${i}`).join("\n") : "- (\uC774\uBC88 \uC138\uC158\uC5D0\uC11C \uC644\uB8CC\uD55C \uD56D\uBAA9 \uC5C6\uC74C)";
+  const remainSection = remainItems.length > 0 ? remainItems.map((i) => `- ${i}`).join("\n") : "- (\uB0A8\uC740 \uC791\uC5C5 \uC5C6\uC74C)";
+  const filesSection = changedFiles.length > 0 ? changedFiles.map((f) => `- ${f}`).join("\n") : "- (\uBCC0\uACBD \uD30C\uC77C \uC815\uBCF4 \uC5C6\uC74C)";
+  const handoffContent = `# Handoff: \uC138\uC158 \uC778\uC218\uC778\uACC4
+
+> \uC0DD\uC131\uC77C: ${dateStr}
+> \uC790\uB3D9 \uC0DD\uC131\uB428 (session-end hook)
+
+## \uD604\uC7AC \uC0C1\uD0DC
+
+- **Plan**: ${planTitle || "(\uC81C\uBAA9 \uC5C6\uC74C)"} \u2014 ${planStatus}
+- **\uC9C4\uD589\uB960**: ${doneItems.length}/${doneItems.length + remainItems.length} completed
+
+## \uC644\uB8CC \uD56D\uBAA9
+
+${doneSection}
+
+## \uBBF8\uC644\uB8CC \uD56D\uBAA9
+
+${remainSection}
+
+## \uBCC0\uACBD \uD30C\uC77C
+
+${filesSection}
+`;
+  const handoffPath = join2(cwd, ".agent", "handoff.md");
+  const handoffDir = dirname(handoffPath);
+  if (!existsSync(handoffDir)) {
+    mkdirSync(handoffDir, { recursive: true });
+  }
+  writeFileSync(handoffPath, handoffContent, "utf-8");
+}
+function appendSessionLog(cwd) {
+  const todoPath = findAgentFile(cwd, "todo.md");
+  const planPath = findAgentFile(cwd, "plan.md");
+  if (!todoPath) return;
+  const todoContent = readFileContent(todoPath);
+  if (!todoContent) return;
+  const doneCount = (todoContent.match(/- \[x\]/g) || []).length;
+  const remainCount = (todoContent.match(/- \[ \]/g) || []).length;
+  if (doneCount === 0) return;
+  const now = /* @__PURE__ */ new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  let planTitle = "";
+  const planContent = planPath ? readFileContent(planPath) : null;
+  if (planContent) {
+    const titleMatch = planContent.match(/^#\s+Plan:\s*(.+)/m);
+    if (titleMatch) planTitle = titleMatch[1];
+  }
+  const logEntry = `## [${dateStr}] \uC138\uC158
+- **\uBAA9\uD45C**: ${planTitle || "(plan.md \uCC38\uC870)"}
+- **\uC9C4\uD589**: ${doneCount}/${doneCount + remainCount} completed${remainCount > 0 ? ` (${remainCount} remaining)` : " \u2014 \uC644\uB8CC"}
+
+`;
+  const logPath = join2(cwd, ".agent", "session-log.md");
+  const logDir = dirname(logPath);
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true });
+  }
+  if (existsSync(logPath)) {
+    const existing = readFileSync(logPath, "utf-8");
+    const separatorIdx = existing.indexOf("\n---\n");
+    if (separatorIdx !== -1) {
+      const header = existing.slice(0, separatorIdx + 5);
+      const body = existing.slice(separatorIdx + 5);
+      writeFileSync(logPath, header + "\n" + logEntry + body, "utf-8");
+    } else {
+      writeFileSync(logPath, existing + "\n" + logEntry, "utf-8");
+    }
+  } else {
+    writeFileSync(logPath, `# Session Log
+
+> \uC138\uC158 \uC885\uB8CC \uC2DC \uC790\uB3D9\uC73C\uB85C \uD56D\uBAA9\uC774 \uCD94\uAC00\uB429\uB2C8\uB2E4.
+> \uCD5C\uC2E0 \uC138\uC158\uC774 \uB9E8 \uC704\uC5D0 \uC704\uCE58\uD569\uB2C8\uB2E4.
+
+---
+
+${logEntry}`, "utf-8");
+  }
+}
 function checkBugModeCompletion(cwd) {
   const stateDir = harnessStateDir(cwd);
   const taskModePath = join2(stateDir, "task-mode");
@@ -603,6 +742,14 @@ function main() {
   }
   const cwd = input.cwd || input.directory || process.cwd();
   const messages = [];
+  try {
+    generateHandoff(cwd);
+  } catch {
+  }
+  try {
+    appendSessionLog(cwd);
+  } catch {
+  }
   const syncMessage = checkTeamMemorySync(cwd);
   if (syncMessage) messages.push(syncMessage);
   const claudeMessage = checkClaudeMdSync(cwd);
