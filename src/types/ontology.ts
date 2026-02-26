@@ -39,6 +39,8 @@ export interface DomainBuildContext {
   classSamples?: string;
   testFilePaths?: string[];
   interfaceSamples?: string;
+  docFiles?: string[];
+  docSummaries?: string;
 }
 
 // === 온톨로지 데이터 모델 ===
@@ -213,6 +215,7 @@ export interface DomainLayer {
   ddd?: DDDInsight;
   testMaturity?: TestMaturityInsight;
   schemaConsistency?: SchemaConsistencyInsight;
+  documentationIndex?: DocumentationIndex;
 }
 
 export interface ArchitectureInsight {
@@ -302,6 +305,35 @@ export interface SchemaInconsistency {
   description: string;
   files: string[];
   severity: 'error' | 'warning' | 'info';
+}
+
+// === Step 8: Documentation Indexing ===
+
+export type DocType = 'schema' | 'api-spec' | 'guide' | 'reference' | 'runbook' | 'adr' | 'config' | 'other';
+
+export interface DocumentInsight {
+  path: string;
+  title: string;
+  docType: DocType;
+  summary: string;
+  keyConcepts: string[];
+  relatedSymbols: string[];
+  codeBlockLanguages: string[];
+  headings: string[];
+}
+
+export interface DocumentationIndex {
+  docsRoot: string;
+  totalFiles: number;
+  documents: DocumentInsight[];
+  crossReferences: DocCrossReference[];
+}
+
+export interface DocCrossReference {
+  docPath: string;
+  symbolName: string;
+  symbolFile: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 // === 플러그인 ===
