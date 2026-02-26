@@ -10,7 +10,16 @@
         { "source": "core/commands/read-domain-context.md", "destination": ".claude/commands/read-domain-context.md" },
         { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" },
         { "source": "maintenance/commands/update-all.md", "destination": ".claude/commands/update-all.md" },
-        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" }
+        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" },
+        { "source": "core/commands/todo.md", "destination": ".claude/commands/todo.md" },
+        { "source": "core/commands/todo-update.md", "destination": ".claude/commands/todo-update.md" },
+        { "source": "core/commands/status.md", "destination": ".claude/commands/status.md" },
+        { "source": "core/commands/preflight.md", "destination": ".claude/commands/preflight.md" },
+        { "source": "core/commands/plan.md", "destination": ".claude/commands/plan.md" },
+        { "source": "core/commands/resume.md", "destination": ".claude/commands/resume.md" },
+        { "source": "core/commands/context.md", "destination": ".claude/commands/context.md" },
+        { "source": "core/commands/lesson.md", "destination": ".claude/commands/lesson.md" },
+        { "source": "core/commands/branch-info.md", "destination": ".claude/commands/branch-info.md" }
       ],
       "hooks": [
         { "source": "core/hooks/_harness-common.sh", "destination": ".claude/hooks/_harness-common.sh", "executable": true },
@@ -57,7 +66,11 @@
         { "source": "quality/commands/verify.md", "destination": ".claude/commands/verify.md" },
         { "source": "quality/commands/verify-loop.md", "destination": ".claude/commands/verify-loop.md" },
         { "source": "quality/commands/handoff-verify.md", "destination": ".claude/commands/handoff-verify.md" },
-        { "source": "quality/commands/trust-check.md", "destination": ".claude/commands/trust-check.md" }
+        { "source": "quality/commands/trust-check.md", "destination": ".claude/commands/trust-check.md" },
+        { "source": "quality/commands/quick-check.md", "destination": ".claude/commands/quick-check.md" },
+        { "source": "quality/commands/review-prep.md", "destination": ".claude/commands/review-prep.md" },
+        { "source": "quality/commands/bug.md", "destination": ".claude/commands/bug.md" },
+        { "source": "quality/commands/deps-check.md", "destination": ".claude/commands/deps-check.md" }
       ],
       "hooks": [
         { "source": "quality/hooks/code-change.sh", "destination": ".claude/hooks/code-change.sh", "executable": true }
@@ -71,7 +84,9 @@
       "commands": [
         { "source": "ship/commands/logical-commit.md", "destination": ".claude/commands/logical-commit.md" },
         { "source": "ship/commands/ship-pr.md", "destination": ".claude/commands/ship-pr.md" },
-        { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" }
+        { "source": "ship/commands/ship-release.md", "destination": ".claude/commands/ship-release.md" },
+        { "source": "ship/commands/diff-summary.md", "destination": ".claude/commands/diff-summary.md" },
+        { "source": "ship/commands/changelog.md", "destination": ".claude/commands/changelog.md" }
       ],
       "hooks": [],
       "docs": [],
