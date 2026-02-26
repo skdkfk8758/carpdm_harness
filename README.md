@@ -73,7 +73,7 @@ npm install --production && npm run build
 
 ## MCP 도구
 
-20개 MCP 도구를 제공합니다.
+22개 MCP 도구를 제공합니다.
 
 ### 핵심 도구
 
@@ -114,6 +114,13 @@ npm install --production && npm run build
 | `harness_memory_list` | 팀 메모리 항목 조회 |
 | `harness_bug_report` | 버그 기록 + GitHub Issue 생성 |
 | `harness_github_setup` | GitHub 라벨 자동 생성 (20개 표준 라벨) |
+
+### 검증
+
+| 도구 | 설명 |
+|------|------|
+| `harness_manage_verify` | 검증 항목 관리 (추가/삭제/조회) |
+| `harness_verify_all` | 전체 검증 항목 일괄 실행 |
 
 ---
 
@@ -310,7 +317,7 @@ cd carpdm_harness
 npm install
 npm run build          # tsup (13 entries) + copy-templates
 npx tsc --noEmit       # 타입 체크
-npx vitest run         # 테스트 (179 tests)
+npx vitest run         # 테스트 (255 tests)
 
 # MCP Inspector
 npx @modelcontextprotocol/inspector node dist/server.js
