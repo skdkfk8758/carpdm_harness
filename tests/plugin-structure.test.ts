@@ -72,7 +72,7 @@ describe('플러그인 구조 검증', () => {
         .filter(d => d.isDirectory())
         .map(d => join(skillsDir, d.name, 'SKILL.md'))
         .filter(p => existsSync(p));
-      expect(skillFiles.length).toBe(24);
+      expect(skillFiles.length).toBe(26);
     });
   });
 
