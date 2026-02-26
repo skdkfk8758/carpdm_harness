@@ -28,8 +28,8 @@ Claude Code 플러그인으로 설치하여 AI 협업 워크플로우(모듈화,
 ### Step 1: Install
 
 ```
-/plugin marketplace add https://github.com/skdkfk8758/carpdm_harness harness
-/plugin install carpdm-harness@harness
+/plugin marketplace add https://github.com/skdkfk8758/carpdm_harness
+/plugin install carpdm-harness@carpdm
 ```
 
 ### Step 2: Setup
