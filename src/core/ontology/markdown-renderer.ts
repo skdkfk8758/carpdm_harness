@@ -10,6 +10,7 @@ import type {
   DDDInsight,
   TestMaturityInsight,
   SchemaConsistencyInsight,
+  DocumentationIndex,
 } from '../../types/ontology.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -423,6 +424,11 @@ export function renderDomainMarkdown(
     lines.push(renderSchemaConsistencySection(layer.schemaConsistency));
   }
 
+  // Documentation Index (Step 8)
+  if (layer.documentationIndex) {
+    lines.push(renderDocumentationSection(layer.documentationIndex));
+  }
+
   return lines.join('\n');
 }
 
@@ -593,6 +599,59 @@ function renderSchemaConsistencySection(sc: SchemaConsistencyInsight): string {
 
   if (sc.sharedTypes.length === 0 && sc.inconsistencies.length === 0 && sc.recommendations.length === 0) {
     lines.push('_(스키마 분석 결과 없음)_');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/** Documentation Index 섹션 렌더링 */
+function renderDocumentationSection(index: DocumentationIndex): string {
+  const lines: string[] = [];
+
+  lines.push('## Documentation Index');
+  lines.push('');
+  lines.push(`> \`${index.docsRoot}/\` 디렉토리 — ${fmtNum(index.totalFiles)}개 문서`);
+  lines.push('');
+
+  // 문서 목록 테이블
+  lines.push('### 문서 목록');
+  lines.push('');
+  lines.push('| 파일 | 유형 | 제목 | 핵심 개념 |');
+  lines.push('|------|------|------|----------|');
+  for (const doc of index.documents) {
+    const concepts = doc.keyConcepts.length > 0 ? doc.keyConcepts.join(', ') : '-';
+    lines.push(`| \`${doc.path}\` | ${doc.docType} | ${doc.title} | ${concepts} |`);
+  }
+  lines.push('');
+
+  // 요약이 있는 문서 상세
+  const withSummary = index.documents.filter((d) => d.summary);
+  if (withSummary.length > 0) {
+    lines.push('### 문서 요약');
+    lines.push('');
+    for (const doc of withSummary) {
+      lines.push(`**${doc.title}** (\`${doc.path}\`)`);
+      lines.push(`> ${doc.summary}`);
+      if (doc.relatedSymbols.length > 0) {
+        lines.push(`> 관련 심볼: ${doc.relatedSymbols.map((s) => `\`${s}\``).join(', ')}`);
+      }
+      lines.push('');
+    }
+  }
+
+  // 크로스레퍼런스 테이블
+  if (index.crossReferences.length > 0) {
+    lines.push('### 코드 크로스레퍼런스');
+    lines.push('');
+    lines.push('| 문서 | 심볼 | 코드 파일 | 신뢰도 |');
+    lines.push('|------|------|----------|--------|');
+    for (const ref of index.crossReferences.slice(0, 30)) {
+      lines.push(`| \`${ref.docPath}\` | \`${ref.symbolName}\` | \`${ref.symbolFile}\` | ${ref.confidence} |`);
+    }
+    if (index.crossReferences.length > 30) {
+      lines.push(`\n_...총 ${fmtNum(index.crossReferences.length)}개 중 30개 표시_`);
+    }
     lines.push('');
   }
 
