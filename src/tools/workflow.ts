@@ -319,6 +319,10 @@ function handleAdvance(pRoot: string, result: string | undefined, autoDispatch?:
       if (currentStep.omcSkill) {
         res.line(`  OMC 스킬: ${currentStep.omcSkill}`);
       }
+      if (currentStep.harnessTool) {
+        res.line(`  harness 도구: ${currentStep.harnessTool}`);
+        res.info(`이 단계에서 ${currentStep.harnessTool}({ projectRoot: "${pRoot}" })를 실행하세요.`);
+      }
       if (currentStep.checkpoint) {
         res.blank();
         res.warn(`이 단계는 체크포인트가 있습니다: ${currentStep.checkpoint}`);

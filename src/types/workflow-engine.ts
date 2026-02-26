@@ -42,6 +42,8 @@ export interface StepState {
   checkpoint?: string;
   checkpointApproved?: boolean;
   omcSkill?: string;
+  /** 이 단계에서 자동 실행할 harness MCP 도구 이름 */
+  harnessTool?: string;
   startedAt?: string;
   completedAt?: string;
   result?: string;

@@ -13,6 +13,8 @@ export interface PipelineStep {
   checkpoint?: string;
   optional?: boolean;
   omcSkill?: string;
+  /** 이 단계에서 자동 실행할 harness MCP 도구 이름 */
+  harnessTool?: string;
   guardCondition?: string;
   timeout?: number;
   retryable?: boolean;
@@ -38,7 +40,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 3, agent: 'architect', action: '아키텍처 검증', optional: true },
       { order: 4, agent: 'executor', action: '구현', checkpoint: '구현 완료', omcSkill: OMC_SKILLS.autopilot },
       { order: 5, agent: 'test-engineer', action: '테스트 작성/실행', omcSkill: OMC_SKILLS.tdd },
-      { order: 6, agent: 'verifier', action: '검증', checkpoint: '검증 통과' },
+      { order: 6, agent: 'verifier', action: '검증', checkpoint: '검증 통과', harnessTool: 'harness_verify_all'},
       { order: 7, agent: 'git-master', action: '커밋/PR', optional: true, omcSkill: OMC_SKILLS['git-master'] },
     ],
     recommendedCapabilities: ['serena', 'context7'],
@@ -53,7 +55,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 2, agent: 'debugger', action: '원인 분석', checkpoint: '근본 원인 확인', omcSkill: OMC_SKILLS.analyze },
       { order: 3, agent: 'executor', action: '수정 구현', omcSkill: OMC_SKILLS.autopilot },
       { order: 4, agent: 'test-engineer', action: '회귀 테스트', omcSkill: OMC_SKILLS.tdd },
-      { order: 5, agent: 'verifier', action: '수정 검증', checkpoint: '검증 통과' },
+      { order: 5, agent: 'verifier', action: '수정 검증', checkpoint: '검증 통과', harnessTool: 'harness_verify_all' },
     ],
   },
   refactor: {
@@ -65,7 +67,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 2, agent: 'architect', action: '아키텍처 리뷰' },
       { order: 3, agent: 'executor', action: '리팩토링 실행', omcSkill: OMC_SKILLS.autopilot },
       { order: 4, agent: 'quality-reviewer', action: '품질 검토', omcSkill: OMC_SKILLS['code-review'] },
-      { order: 5, agent: 'verifier', action: '검증', checkpoint: '검증 통과' },
+      { order: 5, agent: 'verifier', action: '검증', checkpoint: '검증 통과', harnessTool: 'harness_verify_all'},
     ],
     recommendedCapabilities: ['serena'],
     teamMode: 'autopilot',
@@ -76,7 +78,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
     requiredModules: ['core', 'quality', 'ship'],
     pipeline: [
       { order: 1, agent: 'security-reviewer', action: '보안 검토', optional: true, omcSkill: OMC_SKILLS['security-review'] },
-      { order: 2, agent: 'verifier', action: '릴리스 준비 검증', checkpoint: '릴리스 준비 완료' },
+      { order: 2, agent: 'verifier', action: '릴리스 준비 검증', checkpoint: '릴리스 준비 완료', harnessTool: 'harness_verify_all' },
       { order: 3, agent: 'qa-tester', action: 'QA 테스트' },
       { order: 4, agent: 'git-master', action: '릴리스 태깅/배포', omcSkill: OMC_SKILLS['git-master'] },
     ],
@@ -90,7 +92,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
       { order: 1, agent: 'security-reviewer', action: '취약점 스캔', checkpoint: '취약점 목록 확정', omcSkill: OMC_SKILLS['security-review'] },
       { order: 2, agent: 'executor', action: '보안 패치 구현', omcSkill: OMC_SKILLS.autopilot },
       { order: 3, agent: 'test-engineer', action: '보안 테스트', omcSkill: OMC_SKILLS.tdd },
-      { order: 4, agent: 'verifier', action: '보안 검증', checkpoint: '검증 통과' },
+      { order: 4, agent: 'verifier', action: '보안 검증', checkpoint: '검증 통과', harnessTool: 'harness_verify_all' },
     ],
     recommendedCapabilities: ['serena', 'codex'],
   },

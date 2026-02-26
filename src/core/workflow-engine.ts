@@ -181,6 +181,7 @@ export function startWorkflow(
     optional: step.optional,
     checkpoint: step.checkpoint,
     omcSkill: step.omcSkill,
+    harnessTool: step.harnessTool,
     startedAt: step.order === 1 ? now : undefined,
     retryCount: 0,
   }));
