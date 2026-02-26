@@ -51,13 +51,11 @@ export const CONFIG_FILENAME = 'carpdm-harness.config.json';
 export interface OmcConfig {
   autoSync: boolean;
   workflowIntegration: boolean;
-  agentPipelineHints: boolean;
   ontologySync: boolean;
 }
 
 export const DEFAULT_OMC_CONFIG: OmcConfig = {
   autoSync: true,
   workflowIntegration: true,
-  agentPipelineHints: true,
   ontologySync: true,
 };
