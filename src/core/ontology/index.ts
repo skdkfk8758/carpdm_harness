@@ -15,13 +15,14 @@ import type {
   AgentFileStatus,
 } from '../../types/ontology.js';
 import { PluginRegistry } from './plugin-registry.js';
-import { buildStructureLayer } from './structure-builder.js';
+import { buildStructureLayer, loadGitignorePatterns, mergeExcludePatterns } from './structure-builder.js';
 import { buildSemanticsLayer } from './semantics-builder.js';
 import { buildDomainLayer, collectDomainContext } from './domain-builder.js';
 import { renderOntologyMarkdown, renderIndexMarkdown } from './markdown-renderer.js';
 import {
   loadOntologyCache,
   saveOntologyCache,
+  computeAllFileHashes,
   computeIncrementalChanges,
   applyIncrementalUpdate,
 } from './incremental-updater.js';
@@ -210,12 +211,17 @@ export async function buildOntology(
 
   // 캐시 저장 (파일 해시 기반)
   if (structureData) {
-    // 간단히 현재 시각만 기록하고 fileHashes는 빈 상태로 초기화
-    // (incremental-updater.ts에서 computeIncrementalChanges 호출 시 갱신됨)
+    const gitignorePatterns = loadGitignorePatterns(projectRoot);
+    const effectiveExcludes = mergeExcludePatterns(
+      config.layers.structure.excludePatterns,
+      gitignorePatterns,
+    );
+    const fileHashes = computeAllFileHashes(projectRoot, effectiveExcludes);
+
     saveOntologyCache(projectRoot, config.outputDir, {
       version,
       builtAt: now,
-      fileHashes: {},
+      fileHashes,
       layerData: {
         structure: structureData ?? undefined,
         semantics: semanticsData ?? undefined,
@@ -268,10 +274,16 @@ export async function refreshOntology(
     domain: cache.layerData.domain ?? null,
   };
 
-  const changes = await computeIncrementalChanges(
+  const gitignorePatterns = loadGitignorePatterns(projectRoot);
+  const effectiveExcludes = mergeExcludePatterns(
+    config.layers.structure.excludePatterns,
+    gitignorePatterns,
+  );
+
+  const { changes, currentHashes } = await computeIncrementalChanges(
     projectRoot,
     cache,
-    config.layers.structure.excludePatterns,
+    effectiveExcludes,
   );
 
   const pluginRegistry = PluginRegistry.createDefault();
@@ -287,10 +299,11 @@ export async function refreshOntology(
   const outputFiles = await writeOntologyFiles(projectRoot, existingData, config.outputDir);
   report.outputFiles = outputFiles;
 
-  // 캐시 업데이트
+  // 캐시 업데이트 (현재 파일 해시 포함)
   saveOntologyCache(projectRoot, config.outputDir, {
     ...cache,
     builtAt: new Date().toISOString(),
+    fileHashes: currentHashes,
     layerData: {
       structure: existingData.structure ?? undefined,
       semantics: existingData.semantics ?? undefined,

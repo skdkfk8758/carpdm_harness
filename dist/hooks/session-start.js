@@ -225,6 +225,126 @@ ${infoText}
     }
   } catch {
   }
+  try {
+    const lessonsPath = existsSync(join2(cwd, ".agent", "lessons.md")) ? join2(cwd, ".agent", "lessons.md") : existsSync(join2(cwd, "lessons.md")) ? join2(cwd, "lessons.md") : null;
+    if (lessonsPath) {
+      const lessonsContent = readFileSync(lessonsPath, "utf-8");
+      const lessonEntries = [];
+      const lines = lessonsContent.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(/^- \*\*상황\*\*/)) {
+          let block = lines[i];
+          for (let j = i + 1; j < lines.length; j++) {
+            if (lines[j].match(/^\s+(- [❌✅]|-)/) || lines[j].match(/^\s+카테고리:/)) {
+              block += "\n" + lines[j];
+            } else {
+              break;
+            }
+          }
+          lessonEntries.push(block);
+        }
+      }
+      if (lessonEntries.length > 0) {
+        const recent = lessonEntries.slice(-5);
+        const infoIdx = messages.findIndex((m) => m.includes("[CARPDM-HARNESS]"));
+        if (infoIdx >= 0) {
+          messages[infoIdx] = messages[infoIdx].replace(
+            "</session-restore>",
+            `
+[LESSONS] \uC774\uC804 \uC138\uC158 \uAD50\uD6C8 (${recent.length}/${lessonEntries.length}\uAC1C):
+${recent.join("\n")}
+
+</session-restore>`
+          );
+        }
+      }
+    }
+  } catch {
+  }
+  try {
+    const handoffPath = join2(cwd, ".agent", "handoff.md");
+    if (existsSync(handoffPath)) {
+      const handoffContent = readFileSync(handoffPath, "utf-8");
+      const trimmed = handoffContent.replace(/^#.*\n/gm, "").replace(/^>.*\n/gm, "").trim();
+      if (trimmed.length > 50) {
+        messages.push(
+          `<session-restore>
+
+[PREVIOUS SESSION HANDOFF]
+
+${handoffContent}
+
+</session-restore>
+
+---
+`
+        );
+      }
+    }
+  } catch {
+  }
+  try {
+    const ontologyDir = join2(cwd, ".agent", "ontology");
+    const structurePath = join2(ontologyDir, "ONTOLOGY-STRUCTURE.md");
+    if (existsSync(structurePath)) {
+      const summaryParts = [];
+      try {
+        const structContent = readFileSync(structurePath, "utf-8");
+        const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
+        const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
+        if (filesMatch || dirsMatch) {
+          summaryParts.push(`- \uAD6C\uC870: \uD30C\uC77C ${filesMatch?.[1]?.trim() ?? "?"}\uAC1C, \uB514\uB809\uD1A0\uB9AC ${dirsMatch?.[1]?.trim() ?? "?"}\uAC1C`);
+        }
+        const langLines = [...structContent.matchAll(/\| (\w+) \| ([\d,]+) \|/g)];
+        if (langLines.length > 0) {
+          const top3 = langLines.slice(0, 3).map((m) => `${m[1]}(${m[2]})`);
+          summaryParts.push(`- \uC5B8\uC5B4: ${top3.join(", ")}`);
+        }
+      } catch {
+      }
+      try {
+        const domainPath = join2(ontologyDir, "ONTOLOGY-DOMAIN.md");
+        if (existsSync(domainPath)) {
+          const domainContent = readFileSync(domainPath, "utf-8");
+          const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
+          if (summaryMatch && !summaryMatch[1].includes("_(\uC694\uC57D \uC5C6\uC74C)_")) {
+            summaryParts.push(`- \uC694\uC57D: ${summaryMatch[1].trim().slice(0, 200)}`);
+          }
+        }
+      } catch {
+      }
+      try {
+        const semanticsPath = join2(ontologyDir, "ONTOLOGY-SEMANTICS.md");
+        if (existsSync(semanticsPath)) {
+          const semContent = readFileSync(semanticsPath, "utf-8");
+          const anchorSection = semContent.indexOf("@MX:ANCHOR");
+          if (anchorSection !== -1) {
+            const sectionText = semContent.slice(anchorSection, semContent.indexOf("\n### ", anchorSection + 1));
+            const anchors = [...sectionText.matchAll(/\| `([^`]+)` \| `[^`]*` \| (\d+) \|/g)];
+            if (anchors.length > 0) {
+              const top5 = anchors.slice(0, 5).map((m) => `${m[1]}(fan_in=${m[2]})`);
+              summaryParts.push(`- @MX:ANCHOR (\uC218\uC815 \uC8FC\uC758): ${top5.join(", ")}`);
+            }
+          }
+        }
+      } catch {
+      }
+      if (summaryParts.length > 0) {
+        const infoIdx = messages.findIndex((m) => m.includes("[CARPDM-HARNESS]"));
+        if (infoIdx >= 0) {
+          messages[infoIdx] = messages[infoIdx].replace(
+            "</session-restore>",
+            `
+[ONTOLOGY] \uD504\uB85C\uC81D\uD2B8 \uC9C0\uC2DD \uB9F5:
+${summaryParts.join("\n")}
+
+</session-restore>`
+          );
+        }
+      }
+    }
+  } catch {
+  }
   const updateLines = [];
   try {
     const harnessConfig = existsSync(configPath) ? JSON.parse(readFileSync(configPath, "utf-8")) : null;

@@ -759,6 +759,188 @@ function checkTeamMemorySync(cwd: string): string | null {
 // CLAUDE.md auto-sync check
 // ============================================================
 
+// ============================================================
+// Handoff auto-generation
+// ============================================================
+
+function readFileContent(filePath: string): string | null {
+  try {
+    if (!existsSync(filePath)) return null;
+    return readFileSync(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+function findAgentFile(cwd: string, name: string): string | null {
+  const agentPath = join(cwd, '.agent', name);
+  if (existsSync(agentPath)) return agentPath;
+  const rootPath = join(cwd, name);
+  if (existsSync(rootPath)) return rootPath;
+  return null;
+}
+
+function generateHandoff(cwd: string): void {
+  const planPath = findAgentFile(cwd, 'plan.md');
+  const todoPath = findAgentFile(cwd, 'todo.md');
+
+  // plan/todo가 모두 없으면 생성 스킵
+  if (!planPath && !todoPath) return;
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // plan.md 상태 추출
+  let planStatus = 'UNKNOWN';
+  let planTitle = '';
+  const planContent = planPath ? readFileContent(planPath) : null;
+  if (planContent) {
+    const statusMatch = planContent.match(/상태:\s*(DRAFT|APPROVED|IN_PROGRESS|COMPLETED)/);
+    if (statusMatch) planStatus = statusMatch[1];
+    const titleMatch = planContent.match(/^#\s+Plan:\s*(.+)/m);
+    if (titleMatch) planTitle = titleMatch[1];
+  }
+
+  // todo.md에서 완료/미완료 항목 추출
+  let doneItems: string[] = [];
+  let remainItems: string[] = [];
+  const todoContent = todoPath ? readFileContent(todoPath) : null;
+  if (todoContent) {
+    const lines = todoContent.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('- [x]')) {
+        doneItems.push(trimmed.replace('- [x] ', ''));
+      } else if (trimmed.startsWith('- [ ]')) {
+        remainItems.push(trimmed.replace('- [ ] ', ''));
+      }
+    }
+  }
+
+  // 변경사항 없는 세션 감지: done도 remain도 없으면 스킵
+  if (doneItems.length === 0 && remainItems.length === 0 && planStatus === 'UNKNOWN') return;
+
+  // change-log.md에서 최근 변경 파일 추출
+  let changedFiles: string[] = [];
+  const changeLogPath = join(cwd, '.harness', 'change-log.md');
+  const changeLogContent = readFileContent(changeLogPath);
+  if (changeLogContent) {
+    const lines = changeLogContent.split('\n');
+    // 최근 20개 항목에서 파일명 추출
+    const fileLines = lines.filter(l => l.includes('|')).slice(-20);
+    for (const line of fileLines) {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length >= 3 && parts[2] && !parts[2].startsWith('파일')) {
+        changedFiles.push(parts[2]);
+      }
+    }
+    changedFiles = [...new Set(changedFiles)]; // 중복 제거
+  }
+
+  // handoff.md 생성
+  const doneSection = doneItems.length > 0
+    ? doneItems.map(i => `- ${i}`).join('\n')
+    : '- (이번 세션에서 완료한 항목 없음)';
+  const remainSection = remainItems.length > 0
+    ? remainItems.map(i => `- ${i}`).join('\n')
+    : '- (남은 작업 없음)';
+  const filesSection = changedFiles.length > 0
+    ? changedFiles.map(f => `- ${f}`).join('\n')
+    : '- (변경 파일 정보 없음)';
+
+  const handoffContent = `# Handoff: 세션 인수인계
+
+> 생성일: ${dateStr}
+> 자동 생성됨 (session-end hook)
+
+## 현재 상태
+
+- **Plan**: ${planTitle || '(제목 없음)'} — ${planStatus}
+- **진행률**: ${doneItems.length}/${doneItems.length + remainItems.length} completed
+
+## 완료 항목
+
+${doneSection}
+
+## 미완료 항목
+
+${remainSection}
+
+## 변경 파일
+
+${filesSection}
+`;
+
+  const handoffPath = join(cwd, '.agent', 'handoff.md');
+  const handoffDir = dirname(handoffPath);
+  if (!existsSync(handoffDir)) {
+    mkdirSync(handoffDir, { recursive: true });
+  }
+  writeFileSync(handoffPath, handoffContent, 'utf-8');
+}
+
+// ============================================================
+// Session log auto-append
+// ============================================================
+
+function appendSessionLog(cwd: string): void {
+  const todoPath = findAgentFile(cwd, 'todo.md');
+  const planPath = findAgentFile(cwd, 'plan.md');
+
+  // todo가 없으면 스킵 (기록할 내용 없음)
+  if (!todoPath) return;
+
+  const todoContent = readFileContent(todoPath);
+  if (!todoContent) return;
+
+  // 완료/미완료 카운트
+  const doneCount = (todoContent.match(/- \[x\]/g) || []).length;
+  const remainCount = (todoContent.match(/- \[ \]/g) || []).length;
+
+  // 아무 진행도 없으면 스킵
+  if (doneCount === 0) return;
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // plan에서 목표 추출
+  let planTitle = '';
+  const planContent = planPath ? readFileContent(planPath) : null;
+  if (planContent) {
+    const titleMatch = planContent.match(/^#\s+Plan:\s*(.+)/m);
+    if (titleMatch) planTitle = titleMatch[1];
+  }
+
+  const logEntry = `## [${dateStr}] 세션
+- **목표**: ${planTitle || '(plan.md 참조)'}
+- **진행**: ${doneCount}/${doneCount + remainCount} completed${remainCount > 0 ? ` (${remainCount} remaining)` : ' — 완료'}
+
+`;
+
+  const logPath = join(cwd, '.agent', 'session-log.md');
+  const logDir = dirname(logPath);
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true });
+  }
+
+  if (existsSync(logPath)) {
+    // 기존 내용의 --- 구분자 바로 다음에 새 항목 삽입 (최신이 위로)
+    const existing = readFileSync(logPath, 'utf-8');
+    const separatorIdx = existing.indexOf('\n---\n');
+    if (separatorIdx !== -1) {
+      const header = existing.slice(0, separatorIdx + 5); // \n---\n 포함
+      const body = existing.slice(separatorIdx + 5);
+      writeFileSync(logPath, header + '\n' + logEntry + body, 'utf-8');
+    } else {
+      // 구분자 없으면 맨 뒤에 추가
+      writeFileSync(logPath, existing + '\n' + logEntry, 'utf-8');
+    }
+  } else {
+    // 새로 생성
+    writeFileSync(logPath, `# Session Log\n\n> 세션 종료 시 자동으로 항목이 추가됩니다.\n> 최신 세션이 맨 위에 위치합니다.\n\n---\n\n${logEntry}`, 'utf-8');
+  }
+}
+
 /** Bug Mode 세션 종료 시 버그 기록 제안 */
 function checkBugModeCompletion(cwd: string): string | null {
   const stateDir = harnessStateDirFn(cwd);
@@ -837,6 +1019,18 @@ function main(): void {
   // Step 2: Team-memory sync check + CLAUDE.md sync check + Bug Mode check (only when not blocking)
   const cwd = input.cwd || input.directory || process.cwd();
   const messages: string[] = [];
+
+  // Step 2a: Auto-generate handoff + session-log (non-persistent modes only)
+  try {
+    generateHandoff(cwd);
+  } catch {
+    // handoff 생성 실패 — 무시
+  }
+  try {
+    appendSessionLog(cwd);
+  } catch {
+    // session-log 추가 실패 — 무시
+  }
 
   const syncMessage = checkTeamMemorySync(cwd);
   if (syncMessage) messages.push(syncMessage);

@@ -219,7 +219,6 @@ export function registerInitTool(server: McpServer): void {
               semantics: { ...DEFAULT_ONTOLOGY_CONFIG.layers.semantics, languages },
               domain: { ...DEFAULT_ONTOLOGY_CONFIG.layers.domain, enabled: domainEnabled },
             },
-            plugins: availablePlugins.length > 0 ? availablePlugins : [],
             ai: aiConfig,
           };
         } else {

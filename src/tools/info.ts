@@ -66,7 +66,6 @@ export function registerInfoTool(server: McpServer): void {
         res.table([
           ['활성화', '예'],
           ['출력 디렉토리', ontologyConfig.outputDir],
-          ['플러그인', ontologyConfig.plugins.join(', ') || '없음'],
           ['자동 갱신', ontologyConfig.autoUpdate.enabled ? `예 (${ontologyConfig.autoUpdate.gitHook})` : '아니오'],
           ['AI 제공자', ontologyConfig.ai ? ontologyConfig.ai.provider : '없음'],
         ]);

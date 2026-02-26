@@ -52,9 +52,14 @@
 - Route:
 
 ## 4. 변경 파일 목록 (Affected Files)
+
+<!-- harness:scope:start -->
+
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
 | | CREATE/MODIFY/DELETE | |
+
+<!-- harness:scope:end -->
 
 ## 5. 구현 계획 (Implementation Plan)
 ### Step 1: [제목]

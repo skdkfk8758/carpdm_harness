@@ -8,7 +8,9 @@
       "commands": [
         { "source": "core/commands/plan-gate.md", "destination": ".claude/commands/plan-gate.md" },
         { "source": "core/commands/read-domain-context.md", "destination": ".claude/commands/read-domain-context.md" },
-        { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" }
+        { "source": "core/commands/memory-manager.md", "destination": ".claude/commands/memory-manager.md" },
+        { "source": "maintenance/commands/update-all.md", "destination": ".claude/commands/update-all.md" },
+        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" }
       ],
       "hooks": [
         { "source": "core/hooks/_harness-common.sh", "destination": ".claude/hooks/_harness-common.sh", "executable": true },
@@ -20,12 +22,17 @@
         { "source": "core/docs/plan-template.md", "destination": "docs/templates/plan-template.md" },
         { "source": "core/docs/todo-template.md", "destination": "docs/templates/todo-template.md" },
         { "source": "core/docs/context-template.md", "destination": "docs/templates/context-template.md" },
-        { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" }
+        { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" },
+        { "source": "core/docs/handoff-template.md", "destination": "docs/templates/handoff-template.md" },
+        { "source": "core/docs/session-log-template.md", "destination": "docs/templates/session-log-template.md" },
+        { "source": "core/docs/sdd-template.md", "destination": "docs/templates/sdd-template.md" }
       ],
       "agentFiles": [
         { "source": "core/agent/plan.md", "destination": ".agent/plan.md" },
         { "source": "core/agent/todo.md", "destination": ".agent/todo.md" },
-        { "source": "core/agent/context.md", "destination": ".agent/context.md" }
+        { "source": "core/agent/context.md", "destination": ".agent/context.md" },
+        { "source": "core/agent/lessons.md", "destination": ".agent/lessons.md" },
+        { "source": "core/agent/session-log.md", "destination": ".agent/session-log.md" }
       ]
     },
     "tdd": {
@@ -73,26 +80,6 @@
         { "source": "ship/github/ISSUE_TEMPLATE/feature-request.yml", "destination": ".github/ISSUE_TEMPLATE/feature-request.yml" },
         { "source": "ship/github/pull_request_template.md", "destination": ".github/pull_request_template.md" }
       ]
-    },
-    "maintenance": {
-      "name": "maintenance",
-      "description": "환경 업데이트 자동화",
-      "dependencies": [],
-      "commands": [
-        { "source": "maintenance/commands/update-all.md", "destination": ".claude/commands/update-all.md" }
-      ],
-      "hooks": [],
-      "docs": []
-    },
-    "patterns": {
-      "name": "patterns",
-      "description": "패턴 클로닝 — 기존 도메인 패턴 복제",
-      "dependencies": ["core"],
-      "commands": [
-        { "source": "patterns/commands/pattern-cloner.md", "destination": ".claude/commands/pattern-cloner.md" }
-      ],
-      "hooks": [],
-      "docs": []
     },
     "ontology": {
       "name": "ontology",

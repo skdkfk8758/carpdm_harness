@@ -234,6 +234,134 @@ async function main(): Promise<void> {
     // git 미설치 또는 비 git 프로젝트 — 무시
   }
 
+  // ── 1.6. lessons.md 최근 교훈 주입 ──────────────────────────────────────────
+  try {
+    const lessonsPath = existsSync(join(cwd, '.agent', 'lessons.md'))
+      ? join(cwd, '.agent', 'lessons.md')
+      : existsSync(join(cwd, 'lessons.md'))
+        ? join(cwd, 'lessons.md')
+        : null;
+
+    if (lessonsPath) {
+      const lessonsContent = readFileSync(lessonsPath, 'utf-8');
+      // 실제 교훈 항목만 추출 (- **상황**: 으로 시작하는 블록)
+      const lessonEntries: string[] = [];
+      const lines = lessonsContent.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(/^- \*\*상황\*\*/)) {
+          // 교훈 블록 수집 (현재 줄 + 들여쓰기된 후속 줄)
+          let block = lines[i];
+          for (let j = i + 1; j < lines.length; j++) {
+            if (lines[j].match(/^\s+(- [❌✅]|-)/) || lines[j].match(/^\s+카테고리:/)) {
+              block += '\n' + lines[j];
+            } else {
+              break;
+            }
+          }
+          lessonEntries.push(block);
+        }
+      }
+
+      if (lessonEntries.length > 0) {
+        // 최근 5개만 주입
+        const recent = lessonEntries.slice(-5);
+        const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+        if (infoIdx >= 0) {
+          messages[infoIdx] = messages[infoIdx].replace(
+            '</session-restore>',
+            `\n[LESSONS] 이전 세션 교훈 (${recent.length}/${lessonEntries.length}개):\n${recent.join('\n')}\n\n</session-restore>`,
+          );
+        }
+      }
+    }
+  } catch {
+    // lessons.md 읽기 실패 — 무시
+  }
+
+  // ── 1.7. handoff.md 인수인계 컨텍스트 주입 ────────────────────────────────
+  try {
+    const handoffPath = join(cwd, '.agent', 'handoff.md');
+    if (existsSync(handoffPath)) {
+      const handoffContent = readFileSync(handoffPath, 'utf-8');
+      // 비어있지 않은 handoff만 주입
+      const trimmed = handoffContent.replace(/^#.*\n/gm, '').replace(/^>.*\n/gm, '').trim();
+      if (trimmed.length > 50) {
+        messages.push(
+          `<session-restore>\n\n[PREVIOUS SESSION HANDOFF]\n\n${handoffContent}\n\n</session-restore>\n\n---\n`,
+        );
+      }
+    }
+  } catch {
+    // handoff.md 읽기 실패 — 무시
+  }
+
+  // ── 1.8. 온톨로지 요약 자동 주입 ──────────────────────────────────────────
+  try {
+    const ontologyDir = join(cwd, '.agent', 'ontology');
+    const structurePath = join(ontologyDir, 'ONTOLOGY-STRUCTURE.md');
+
+    if (existsSync(structurePath)) {
+      const summaryParts: string[] = [];
+
+      // Structure: 파일/디렉토리 수 + 언어 상위 3개
+      try {
+        const structContent = readFileSync(structurePath, 'utf-8');
+        const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
+        const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
+        if (filesMatch || dirsMatch) {
+          summaryParts.push(`- 구조: 파일 ${filesMatch?.[1]?.trim() ?? '?'}개, 디렉토리 ${dirsMatch?.[1]?.trim() ?? '?'}개`);
+        }
+        const langLines = [...structContent.matchAll(/\| (\w+) \| ([\d,]+) \|/g)];
+        if (langLines.length > 0) {
+          const top3 = langLines.slice(0, 3).map(m => `${m[1]}(${m[2]})`);
+          summaryParts.push(`- 언어: ${top3.join(', ')}`);
+        }
+      } catch { /* 무시 */ }
+
+      // Domain: 프로젝트 요약 (1줄)
+      try {
+        const domainPath = join(ontologyDir, 'ONTOLOGY-DOMAIN.md');
+        if (existsSync(domainPath)) {
+          const domainContent = readFileSync(domainPath, 'utf-8');
+          const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
+          if (summaryMatch && !summaryMatch[1].includes('_(요약 없음)_')) {
+            summaryParts.push(`- 요약: ${summaryMatch[1].trim().slice(0, 200)}`);
+          }
+        }
+      } catch { /* 무시 */ }
+
+      // Semantics: @MX:ANCHOR 상위 5개 (수정 시 영향 큰 심볼)
+      try {
+        const semanticsPath = join(ontologyDir, 'ONTOLOGY-SEMANTICS.md');
+        if (existsSync(semanticsPath)) {
+          const semContent = readFileSync(semanticsPath, 'utf-8');
+          // ANCHOR 섹션 내 항목만 (fan_in 컬럼이 있는 테이블)
+          const anchorSection = semContent.indexOf('@MX:ANCHOR');
+          if (anchorSection !== -1) {
+            const sectionText = semContent.slice(anchorSection, semContent.indexOf('\n### ', anchorSection + 1));
+            const anchors = [...sectionText.matchAll(/\| `([^`]+)` \| `[^`]*` \| (\d+) \|/g)];
+            if (anchors.length > 0) {
+              const top5 = anchors.slice(0, 5).map(m => `${m[1]}(fan_in=${m[2]})`);
+              summaryParts.push(`- @MX:ANCHOR (수정 주의): ${top5.join(', ')}`);
+            }
+          }
+        }
+      } catch { /* 무시 */ }
+
+      if (summaryParts.length > 0) {
+        const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+        if (infoIdx >= 0) {
+          messages[infoIdx] = messages[infoIdx].replace(
+            '</session-restore>',
+            `\n[ONTOLOGY] 프로젝트 지식 맵:\n${summaryParts.join('\n')}\n\n</session-restore>`,
+          );
+        }
+      }
+    }
+  } catch {
+    // 온톨로지 읽기 실패 — 무시
+  }
+
   // ── 2. 업데이트 체크 (harness + OMC) ────────────────────────────────────────
   const updateLines: string[] = [];
 

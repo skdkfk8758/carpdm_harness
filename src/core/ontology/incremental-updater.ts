@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { logger } from '../../utils/logger.js';
 import type {
   IncrementalChange,
+  IncrementalChangeResult,
   OntologyCache,
   OntologyConfig,
   OntologyData,
@@ -80,15 +81,14 @@ export function saveOntologyCache(
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * 프로젝트 내 모든 파일 해시를 재계산하여 캐시와 비교
- * added / modified / deleted 분류
+ * 프로젝트 내 모든 파일의 SHA-256 해시를 계산하여 반환
+ * buildOntology에서 캐시 저장용으로 사용합니다.
  */
-export async function computeIncrementalChanges(
+export function computeAllFileHashes(
   projectRoot: string,
-  cache: OntologyCache,
   excludePatterns: string[],
-): Promise<IncrementalChange> {
-  const currentHashes: Record<string, string> = {};
+): Record<string, string> {
+  const hashes: Record<string, string> = {};
 
   function walkDir(dirPath: string): void {
     let entries;
@@ -99,7 +99,6 @@ export async function computeIncrementalChanges(
     }
 
     for (const entry of entries) {
-      // exclude 패턴 체크
       if (excludePatterns.some((p) => entry.name === p || entry.name.startsWith(p))) {
         continue;
       }
@@ -110,13 +109,25 @@ export async function computeIncrementalChanges(
       if (entry.isDirectory()) {
         walkDir(fullPath);
       } else if (entry.isFile()) {
-        currentHashes[relPath] = computeFileHash(fullPath);
+        hashes[relPath] = computeFileHash(fullPath);
       }
     }
   }
 
   walkDir(projectRoot);
+  return hashes;
+}
 
+/**
+ * 프로젝트 내 모든 파일 해시를 재계산하여 캐시와 비교
+ * added / modified / deleted 분류 + 현재 해시 맵 반환
+ */
+export async function computeIncrementalChanges(
+  projectRoot: string,
+  cache: OntologyCache,
+  excludePatterns: string[],
+): Promise<IncrementalChangeResult> {
+  const currentHashes = computeAllFileHashes(projectRoot, excludePatterns);
   const cachedHashes = cache.fileHashes;
 
   const added: string[] = [];
@@ -143,7 +154,10 @@ export async function computeIncrementalChanges(
     `변경 감지 완료 — 추가 ${added.length}, 수정 ${modified.length}, 삭제 ${deleted.length}`,
   );
 
-  return { added, modified, deleted };
+  return {
+    changes: { added, modified, deleted },
+    currentHashes,
+  };
 }
 
 // ────────────────────────────────────────────────────────────────────────────

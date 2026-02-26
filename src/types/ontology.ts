@@ -5,14 +5,13 @@ export interface OntologyConfig {
   outputDir: string;                    // 기본값: '.agent/ontology'
   layers: OntologyLayerConfig;
   autoUpdate: AutoUpdateConfig;
-  plugins: string[];
   ai: AIProviderConfig | null;
 }
 
 export interface OntologyLayerConfig {
   structure: { enabled: boolean; maxDepth: number; excludePatterns: string[] };
   semantics: { enabled: boolean; languages: string[] };
-  domain:    { enabled: boolean; provider: string; model: string; maxTokens: number };
+  domain:    { enabled: boolean; provider: string; model: string; maxTokens: number; enabledSteps?: number[] };
 }
 
 export interface AutoUpdateConfig {
@@ -374,6 +373,11 @@ export interface IncrementalChange {
   deleted: string[];
 }
 
+export interface IncrementalChangeResult {
+  changes: IncrementalChange;
+  currentHashes: Record<string, string>;
+}
+
 export interface OntologyCache {
   version: string;
   builtAt: string;
@@ -403,7 +407,38 @@ export const DEFAULT_ONTOLOGY_CONFIG: OntologyConfig = {
   enabled: false,
   outputDir: '.agent/ontology',
   layers: {
-    structure: { enabled: true, maxDepth: 10, excludePatterns: ['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache'] },
+    structure: { enabled: true, maxDepth: 10, excludePatterns: [
+      // JavaScript / TypeScript
+      'node_modules', '.next', '.nuxt', '.output', '.svelte-kit',
+      // Python
+      '.venv', 'venv', '__pycache__', '.mypy_cache', '.pytest_cache', '.ruff_cache', '.tox', '.eggs',
+      // Java / Kotlin / Scala
+      'target', '.gradle', '.idea',
+      // Ruby
+      'vendor', '.bundle',
+      // Go
+      '.gopath',
+      // Rust
+      // (target already listed above)
+      // PHP
+      // (vendor already listed above)
+      // .NET
+      'bin', 'obj', 'packages',
+      // Build / Output
+      'dist', 'build', 'out', 'output',
+      // Test / Coverage
+      'coverage', '.nyc_output',
+      // Version Control / OS
+      '.git', '.hg', '.svn', '.DS_Store',
+      // Cache / Temp
+      '.cache', '.tmp', 'tmp', '.temp',
+      // IDE
+      '.vscode', '.idea', '.eclipse',
+      // Infrastructure
+      '.terraform', '.serverless',
+      // AI Agent / Tool
+      '.omc', '.serena', '.agent', '.harness',
+    ] },
     semantics: { enabled: true, languages: [] },
     domain:    { enabled: false, provider: 'anthropic', model: 'claude-sonnet-4-20250514', maxTokens: 4096 },
   },
@@ -413,7 +448,6 @@ export const DEFAULT_ONTOLOGY_CONFIG: OntologyConfig = {
     debounceMs: 5000,
     incrementalOnly: true,
   },
-  plugins: [],
   ai: null,
 };
 

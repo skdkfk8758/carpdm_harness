@@ -1,11 +1,5 @@
 import { OMC_SKILLS } from '../core/omc-compat.js';
 
-export interface OmcAgentMapping {
-  agent: string;
-  role: string;
-  description: string;
-}
-
 export interface PipelineStep {
   order: number;
   agent: string;
