@@ -6,12 +6,22 @@
     "name": "carpdm",
     "email": "carpdm@users.noreply.github.com"
   },
-  "plugins": [{
-    "name": "carpdm-harness",
-    "source": "./",
-    "description": "OMC 통합 AI 협업 워크플로우 — 9개 모듈, 18개 MCP 도구, 22개 스킬, 4개 에이전트",
-    "version": "4.1.2",
-    "category": "productivity",
-    "tags": ["ai-workflow", "plan-first", "tdd", "ontology", "team-memory", "quality-gate", "sparc"]
-  }]
+  "plugins": [
+    {
+      "name": "carpdm-harness",
+      "source": "./",
+      "description": "OMC 통합 AI 협업 워크플로우 — 9개 모듈, 18개 MCP 도구, 22개 스킬, 4개 에이전트",
+      "version": "4.2.0",
+      "category": "productivity",
+      "tags": [
+        "ai-workflow",
+        "plan-first",
+        "tdd",
+        "ontology",
+        "team-memory",
+        "quality-gate",
+        "sparc"
+      ]
+    }
+  ]
 }

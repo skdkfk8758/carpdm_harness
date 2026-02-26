@@ -132,7 +132,7 @@ git add package.json
 [ -f "$SERVER_TS" ] && git add "$SERVER_TS"
 
 git commit -m "$(cat <<EOF
-release: v$NEW_VERSION
+chore(release): bump version to v$NEW_VERSION
 
 버전 $CURRENT_VERSION → $NEW_VERSION ($BUMP_TYPE release)
 - package.json 버전 업데이트
