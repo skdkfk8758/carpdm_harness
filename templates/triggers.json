@@ -8,6 +8,20 @@
     "task": [
       "(추가|구현|만들|개발|생성|작성|변경|수정|리팩토링|최적화|개선|삭제|제거|이동|분리|통합|연동|적용).*(해\\s*줘|하자|해\\s*주세요|합시다|하겠)",
       "\\b(implement|build|create|develop|add|write|refactor|optimize)\\b.+\\b(feature|function|module|component|page|api|endpoint|service|hook|skill)"
+    ],
+    "design-system": [
+      "머티리얼", "material\\s*design", "MUI",
+      "카본", "carbon",
+      "플루언트", "fluent",
+      "폴라리스", "polaris",
+      "에어비앤비", "airbnb\\s*d[ls]",
+      "아틀라시안", "atlassian",
+      "라이트닝", "lightning",
+      "스펙트럼", "spectrum",
+      "베이스\\s*웹?", "uber\\s*base", "baseui",
+      "프라이머", "primer",
+      "HIG", "human\\s*interface",
+      "디자인\\s*시스템", "design\\s*system"
     ]
   },
   "triggers": [
@@ -138,6 +152,58 @@
           "branch": "feature",
           "patterns": ["\\bship\\b", "머지", "\\bmerge\\b", "릴리스", "\\brelease\\b"],
           "message": "현재 feature 브랜치({branch})에서 작업 중입니다. 작업을 마무리하고 PR을 생성하시겠습니까?"
+        }
+      ]
+    },
+    {
+      "skill": "branch-cleanup",
+      "rules": [
+        {
+          "id": "explicit-cleanup",
+          "mode": "force",
+          "branch": "any",
+          "patterns": [
+            "브랜치\\s*(정리|삭제|제거|클린)",
+            "로컬\\s*브랜치\\s*(정리|삭제)",
+            "branch\\s*clean",
+            "cleanup\\s*branch",
+            "prune\\s*branch"
+          ]
+        },
+        {
+          "id": "next-issue-prep",
+          "mode": "suggest",
+          "branch": "feature",
+          "patterns": [
+            "다음\\s*(이슈|작업|태스크)",
+            "next\\s*(issue|task)",
+            "이슈\\s*넘어"
+          ],
+          "message": "다음 작업 전에 현재 브랜치를 정리하시겠습니까? (커밋/stash + 로컬 브랜치 정리)"
+        }
+      ]
+    },
+    {
+      "skill": "design-guide",
+      "rules": [
+        {
+          "id": "explicit-design-system",
+          "mode": "suggest",
+          "branch": "any",
+          "allOf": ["design-system"],
+          "message": "디자인 시스템이 감지되었습니다. 디자인 가이드를 참조하여 일관된 UI를 구현합니다."
+        },
+        {
+          "id": "design-recommend",
+          "mode": "suggest",
+          "branch": "any",
+          "patterns": [
+            "디자인\\s*(추천|골라|선택|뭐로)",
+            "어떤\\s*디자인",
+            "UI\\s*(프레임워크|라이브러리)\\s*(추천|뭐)",
+            "recommend.*design"
+          ],
+          "message": "프로젝트 성격에 맞는 디자인 시스템을 추천해 드릴까요?"
         }
       ]
     },
