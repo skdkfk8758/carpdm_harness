@@ -1,6 +1,6 @@
 {
   "$schema": "https://cdn.jsdelivr.net/gh/anthropics/claude-code-plugins@main/marketplace.schema.json",
-  "name": "carpdm-harness",
+  "name": "carpdm",
   "description": "AI 협업 워크플로우 플러그인 — Plan-First + DDD + SPARC + TRUST 5 + Ontology + Team Memory",
   "owner": {
     "name": "carpdm",
