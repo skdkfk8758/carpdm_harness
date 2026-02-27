@@ -112,6 +112,7 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
   'scaffold',         // tool 미구현 (Phase 2 예정)
   'branch-cleanup',   // 순수 instruction skill (git 명령 안내)
   'design-guide',     // 순수 instruction skill (디자인 시스템 가이드)
+  'plugin-update',    // 순수 instruction skill (GitHub 버전 확인 + claude plugin update)
   'workflow-advance',  // harness_workflow action="advance"의 convenience wrapper
   'workflow-start',    // harness_workflow action="start"의 convenience wrapper
   'workflow-status',   // harness_workflow action="status"의 convenience wrapper

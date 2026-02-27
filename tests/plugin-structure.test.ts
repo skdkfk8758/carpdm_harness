@@ -65,14 +65,14 @@ describe('플러그인 구조 검증', () => {
 
   // ─── skills/ ───
   describe('skills/ 디렉토리', () => {
-    it('24개의 SKILL.md 파일이 존재한다', () => {
+    it('25개의 SKILL.md 파일이 존재한다', () => {
       const skillsDir = join(ROOT, 'skills');
       expect(existsSync(skillsDir)).toBe(true);
       const skillFiles = readdirSync(skillsDir, { withFileTypes: true })
         .filter(d => d.isDirectory())
         .map(d => join(skillsDir, d.name, 'SKILL.md'))
         .filter(p => existsSync(p));
-      expect(skillFiles.length).toBe(26);
+      expect(skillFiles.length).toBe(27);
     });
   });
 
