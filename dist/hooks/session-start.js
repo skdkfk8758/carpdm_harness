@@ -474,7 +474,23 @@ If ToolSearch returns no results, MCP servers are not configured -- use Claude a
 ---
 `
   );
-  outputResult(messages.length > 0 ? messages.join("\n") : void 0);
+  const finalContext = messages.length > 0 ? trimContext(messages, 4096) : void 0;
+  outputResult(finalContext);
+}
+function trimContext(messages, maxBytes) {
+  const joined = messages.join("\n");
+  if (Buffer.byteLength(joined, "utf-8") <= maxBytes) return joined;
+  const trimTags = ["UPDATES AVAILABLE", "MCP TOOL DISCOVERY", "ONTOLOGY", "LESSONS"];
+  let trimmed = [...messages];
+  for (const tag of trimTags) {
+    if (Buffer.byteLength(trimmed.join("\n"), "utf-8") <= maxBytes) break;
+    trimmed = trimmed.filter((m) => !m.includes(`[${tag}]`));
+  }
+  const result = trimmed.join("\n");
+  if (Buffer.byteLength(result, "utf-8") > maxBytes) {
+    return result.slice(0, maxBytes);
+  }
+  return result;
 }
 function outputResult(additionalContext) {
   const output = { result: "continue" };
