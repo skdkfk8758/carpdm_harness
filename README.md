@@ -179,12 +179,18 @@ idle → running → waiting_checkpoint → completed
 ```mermaid
 flowchart TD
     A[사용자 프롬프트] --> B{prompt-enricher}
-    B -->|OMC 키워드| C[OMC 스킬]
-    B -->|계획/설계 키워드| D["/plan-gate"]
-    B -->|main + 작업 키워드| E["/work-start"]
-    B -->|feature + 완료/PR 키워드| F["/work-finish"]
-    B -->|feature + 커밋 키워드| G["/logical-commit"]
-    B -->|일반 프롬프트| H[기본 처리]
+    B -->|1단계: OMC 키워드| C[OMC 스킬]
+    B -->|1.5단계: 계획/설계 키워드| D["/plan-gate"]
+    B -->|1.5단계: main + 작업 키워드| E["/work-start"]
+    B -->|1.5단계: feature + 완료/PR 키워드| F["/work-finish"]
+    B -->|1.5단계: feature + 커밋 키워드| G["/logical-commit"]
+    B -->|1.7단계: 구현 의도 감지| HE{Hybrid Enforcement}
+    B -->|2단계: 일반 프롬프트| H[기본 처리 + 행동 가드]
+
+    HE -->|plan 없음| D
+    HE -->|plan DRAFT| WARN1[승인 먼저 요구]
+    HE -->|plan OK + todo 없음| WARN2[todo 작성 지시]
+    HE -->|모두 준비됨| H
 
     D --> I[인터뷰 5단계]
     I --> J[SPARC plan.md 작성]
@@ -211,12 +217,13 @@ flowchart TD
 | 키워드 | 트리거 스킬 | 조건 |
 |--------|-------------|------|
 | "계획 세워줘", "설계해줘", "플래닝", "인터뷰 시작", "SPARC" | `/plan-gate` | 브랜치 무관 |
+| "implement the plan", "계획을 구현", "플랜대로" | `/plan-gate` (강제) | plan.md 없을 때 |
 | "작업 시작", "work start", "새 작업" | `/work-start` | main 브랜치 |
 | 이슈번호(#N) + 코딩 동사 | `/work-start` | main 브랜치 |
 | "작업 완료", "PR 올려", "create PR" | `/work-finish` | feature 브랜치 |
 | "커밋해줘", "logical commit" | `/logical-commit` | feature 브랜치 |
 | "ship", "머지", "release" | `/work-finish` (제안) | feature 브랜치 |
-| 코딩 동사 ("구현해줘", "추가해줘") | `/work-start` (제안) | main 브랜치 |
+| 코딩 동사 ("구현해줘", "추가해줘") | `/plan-gate` (제안) | 브랜치 무관 |
 
 ---
 
@@ -227,7 +234,7 @@ flowchart TD
 | 이벤트 | 훅 | 역할 |
 |--------|-----|------|
 | SessionStart | session-start | 세션 초기화 + 환경 감지 |
-| UserPromptSubmit | prompt-enricher | OMC 키워드 감지 + 워크플로우 상태 요약 |
+| UserPromptSubmit | prompt-enricher | OMC 키워드 감지 + 구현 준비 검증 + 워크플로우 상태 + 행동 가드 |
 | SubagentStart | subagent-context | 워크플로우 단계 컨텍스트 주입 |
 | PreToolUse | workflow-guard (x2) | 워크플로우/harness 도구 가드 |
 | PostToolUse | event-logger | harness 도구 이벤트 로깅 |
@@ -315,7 +322,7 @@ cd carpdm_harness
 npm install
 npm run build          # tsup (13 entries) + copy-templates
 npx tsc --noEmit       # 타입 체크
-npx vitest run         # 테스트 (255 tests)
+npx vitest run         # 테스트 (373 tests)
 
 # MCP Inspector
 npx @modelcontextprotocol/inspector node dist/server.js
