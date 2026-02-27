@@ -9,6 +9,15 @@ import {
   detectOmcMode,
 } from './hook-utils.js';
 import type { WorkflowStateData } from './hook-utils.js';
+import { resolveWorkflowPhase, buildRationalizationContext } from '../core/rationalization-guard.js';
+import {
+  detectRedFlags,
+  detectCompletionIntent,
+  buildRedFlagContext,
+  buildCompletionChecklist,
+} from '../core/red-flag-detector.js';
+import { DEFAULT_BEHAVIORAL_GUARD_CONFIG } from '../types/behavioral-guard.js';
+import type { BehavioralGuardConfig } from '../types/behavioral-guard.js';
 import {
   omcStateDir,
   omcGlobalStateDir,
@@ -25,6 +34,7 @@ import {
   resolveMessage,
 } from '../core/skill-trigger-engine.js';
 import type { MatchContext } from '../core/skill-trigger-engine.js';
+import { checkImplementationReadiness } from '../core/implementation-readiness.js';
 
 interface PromptEnricherInput {
   cwd?: string;
@@ -412,9 +422,9 @@ function detectKeywords(
     matches.push({ name: 'tdd', args: '' });
   }
 
-  // Research
+  // Research (구문 패턴으로 오탐 방지: "research" 단독 매칭 → "research this/the/about/on/into" 등)
   if (
-    /\b(research)\b/i.test(cleanPrompt) ||
+    /\bresearch\s+(this|the|about|on|into)\b/i.test(cleanPrompt) ||
     /\banalyze\s+data\b/i.test(cleanPrompt) ||
     /\bstatistics\b/i.test(cleanPrompt)
   ) {
@@ -669,6 +679,35 @@ function buildWorkflowContext(instance: WorkflowStateData, cwd: string): string 
   return contextLines.join('\n');
 }
 
+// ===== 행동 가드 헬퍼 =====
+
+function loadBehavioralGuardConfig(cwd: string): BehavioralGuardConfig {
+  try {
+    const configPath = join(cwd, 'carpdm-harness.config.json');
+    if (!existsSync(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
+    const config = JSON.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+    const guard = config.behavioralGuard as Partial<BehavioralGuardConfig> | undefined;
+    if (!guard) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
+    return {
+      rationalization: guard.rationalization || DEFAULT_BEHAVIORAL_GUARD_CONFIG.rationalization,
+      redFlagDetection: guard.redFlagDetection || DEFAULT_BEHAVIORAL_GUARD_CONFIG.redFlagDetection,
+    };
+  } catch {
+    return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
+  }
+}
+
+function buildStandaloneRedFlagContext(prompt: string): string | null {
+  const isCompletion = detectCompletionIntent(prompt);
+  if (!isCompletion) return null;
+
+  const redFlagResult = detectRedFlags(prompt);
+  if (redFlagResult.hasRedFlags) {
+    return buildRedFlagContext(redFlagResult);
+  }
+  return buildCompletionChecklist();
+}
+
 // ===== 메인 =====
 
 function main(): void {
@@ -716,15 +755,69 @@ function main(): void {
     // 작업 키워드 감지 실패 시 계속 진행
   }
 
-  // 2단계: 활성 워크플로우 컨텍스트 주입
+  // 1.7단계: 구현 준비 상태 검증 (Hybrid Enforcement)
+  try {
+    if (prompt) {
+      const cleanForReadiness = sanitizeForKeywordDetection(prompt);
+      const readiness = checkImplementationReadiness(cleanForReadiness, cwd);
+      if (readiness.status === 'force-plan-gate') {
+        outputResult('continue', createHarnessSkillInvocation('plan-gate', prompt));
+        return;
+      } else if (readiness.status !== 'pass') {
+        outputResult('continue', readiness.message!);
+        return;
+      }
+    }
+  } catch {
+    // 준비 상태 검증 실패 시 계속 진행
+  }
+
+  // behavioralGuard 설정 로드
+  const guardConfig = loadBehavioralGuardConfig(cwd);
+
+  // 2단계: 활성 워크플로우 컨텍스트 주입 + 합리화 방지 + 적신호 탐지
   const { instance } = loadActiveWorkflowFromFiles(cwd);
   if (!instance || !instance.status || instance.status === 'completed' || instance.status === 'aborted') {
+    // 2.5단계: 워크플로우 없어도 완료 의도 + 적신호 감지 시 주입
+    if (prompt && guardConfig.redFlagDetection === 'on') {
+      const extraContext = buildStandaloneRedFlagContext(prompt);
+      if (extraContext) {
+        outputResult('continue', extraContext);
+        return;
+      }
+    }
     outputResult('continue');
     return;
   }
 
-  const workflowContext = buildWorkflowContext(instance, cwd);
-  outputResult('continue', workflowContext);
+  const contextParts: string[] = [];
+
+  // 기존 워크플로우 컨텍스트
+  contextParts.push(buildWorkflowContext(instance, cwd));
+
+  // 합리화 방지 컨텍스트 (phase 기반)
+  if (guardConfig.rationalization === 'on') {
+    const phase = resolveWorkflowPhase(instance);
+    const rationalizationCtx = buildRationalizationContext(phase);
+    if (rationalizationCtx) {
+      contextParts.push(rationalizationCtx);
+    }
+  }
+
+  // 적신호 탐지 (완료 의도 감지 시)
+  if (prompt && guardConfig.redFlagDetection === 'on') {
+    const isCompletion = detectCompletionIntent(prompt);
+    if (isCompletion) {
+      const redFlagResult = detectRedFlags(prompt);
+      if (redFlagResult.hasRedFlags) {
+        contextParts.push(buildRedFlagContext(redFlagResult));
+      } else {
+        contextParts.push(buildCompletionChecklist());
+      }
+    }
+  }
+
+  outputResult('continue', contextParts.join('\n\n'));
 }
 
 main();
