@@ -1,6 +1,6 @@
 // src/hooks/prompt-enricher.ts
 import { readFileSync as readFileSync4, writeFileSync, mkdirSync, existsSync as existsSync4, unlinkSync } from "fs";
-import { join as join5 } from "path";
+import { join as join6 } from "path";
 import { homedir as homedir2 } from "os";
 import { execSync } from "child_process";
 
@@ -444,7 +444,30 @@ function resolveMessage(template, extracts) {
 
 // src/core/implementation-readiness.ts
 import { existsSync as existsSync3, readFileSync as readFileSync3 } from "fs";
+import { join as join5 } from "path";
+
+// src/core/project-paths.ts
 import { join as join4 } from "path";
+function agentPlanPath(projectRoot) {
+  return join4(projectRoot, ".agent", "plan.md");
+}
+function rootPlanPath(projectRoot) {
+  return join4(projectRoot, "plan.md");
+}
+function planSearchPaths(projectRoot) {
+  return [agentPlanPath(projectRoot), rootPlanPath(projectRoot)];
+}
+function agentTodoPath(projectRoot) {
+  return join4(projectRoot, ".agent", "todo.md");
+}
+function rootTodoPath(projectRoot) {
+  return join4(projectRoot, "todo.md");
+}
+function todoSearchPaths(projectRoot) {
+  return [agentTodoPath(projectRoot), rootTodoPath(projectRoot)];
+}
+
+// src/core/implementation-readiness.ts
 var IMPLEMENTATION_INTENT_PATTERNS = [
   // EN: "implement the plan", "implement following plan"
   /\bimplement\s+(the\s+)?(following\s+)?plan\b/i,
@@ -458,7 +481,7 @@ var IMPLEMENTATION_INTENT_PATTERNS = [
   /(?:플랜|계획)\s*대로/i
 ];
 function getPlanStatus(cwd) {
-  const paths = [join4(cwd, ".agent", "plan.md"), join4(cwd, "plan.md")];
+  const paths = planSearchPaths(cwd);
   for (const p of paths) {
     if (!existsSync3(p)) continue;
     try {
@@ -473,7 +496,7 @@ function getPlanStatus(cwd) {
   return "NONE";
 }
 function getTodoStatus(cwd) {
-  const paths = [join4(cwd, ".agent", "todo.md"), join4(cwd, "todo.md")];
+  const paths = todoSearchPaths(cwd);
   for (const p of paths) {
     if (!existsSync3(p)) continue;
     try {
@@ -492,7 +515,7 @@ function hasImplementationIntent(cleanPrompt) {
   return IMPLEMENTATION_INTENT_PATTERNS.some((p) => p.test(cleanPrompt));
 }
 function checkImplementationReadiness(cleanPrompt, cwd) {
-  if (!existsSync3(join4(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
+  if (!existsSync3(join5(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
   if (!hasImplementationIntent(cleanPrompt)) return { status: "pass" };
   const planStatus = getPlanStatus(cwd);
   const todoStatus = getTodoStatus(cwd);
@@ -720,7 +743,7 @@ function isTeamEnabled(cwd) {
     return false;
   };
   try {
-    const globalPath = join5(homedir2(), ".claude", "settings.json");
+    const globalPath = join6(homedir2(), ".claude", "settings.json");
     if (existsSync4(globalPath)) {
       const settings = JSON.parse(readFileSync4(globalPath, "utf-8"));
       if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
@@ -729,7 +752,7 @@ function isTeamEnabled(cwd) {
   }
   if (cwd) {
     try {
-      const localPath = join5(cwd, ".claude", "settings.local.json");
+      const localPath = join6(cwd, ".claude", "settings.local.json");
       if (existsSync4(localPath)) {
         const settings = JSON.parse(readFileSync4(localPath, "utf-8"));
         if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
@@ -858,7 +881,7 @@ function getCurrentBranch(cwd) {
 }
 function hasActiveWork(cwd) {
   try {
-    const workStatePath = join5(cwd, ".harness", "state", "current-work.json");
+    const workStatePath = join6(cwd, ".harness", "state", "current-work.json");
     if (!existsSync4(workStatePath)) return false;
     const state = JSON.parse(readFileSync4(workStatePath, "utf-8"));
     return !state.completedAt;
@@ -954,7 +977,7 @@ function buildWorkflowContext(instance, cwd) {
 }
 function loadBehavioralGuardConfig(cwd) {
   try {
-    const configPath = join5(cwd, "carpdm-harness.config.json");
+    const configPath = join6(cwd, "carpdm-harness.config.json");
     if (!existsSync4(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
     const config = JSON.parse(readFileSync4(configPath, "utf-8"));
     const guard = config.behavioralGuard;

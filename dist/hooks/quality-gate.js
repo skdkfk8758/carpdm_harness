@@ -154,7 +154,12 @@ function main() {
     return;
   }
   if (isOmcTeamMode(cwd)) {
-    outputResult("continue", "[quality-gate] OMC team/swarm \uBAA8\uB4DC \uD65C\uC131 - \uD488\uC9C8 \uAC8C\uC774\uD2B8 \uB85C\uAE45\uB9CC \uC218\uD589");
+    outputResult("continue", [
+      "[quality-gate] \u26A0 OMC team/swarm \uBAA8\uB4DC\uAC00 \uD65C\uC131 \uC0C1\uD0DC\uC785\uB2C8\uB2E4.",
+      "  - \uD488\uC9C8 \uAC8C\uC774\uD2B8\uB294 \uB85C\uAE45\uB9CC \uC218\uD589\uD569\uB2C8\uB2E4 (\uCC28\uB2E8 \uC5C6\uC74C).",
+      "  - \uD558\uB2C8\uC2A4 \uC6CC\uD06C\uD50C\uB85C\uC6B0\uC640 \uB3D9\uC2DC \uC2E4\uD589 \uC2DC \uC0C1\uD0DC \uBD88\uC77C\uCE58\uAC00 \uBC1C\uC0DD\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "  - OMC \uBAA8\uB4DC \uC885\uB8CC \uD6C4 \uC6CC\uD06C\uD50C\uB85C\uC6B0\uB97C \uC2DC\uC791\uD558\uB824\uBA74: /oh-my-claudecode:cancel"
+    ].join("\n"));
     return;
   }
   let stagedFiles = [];
