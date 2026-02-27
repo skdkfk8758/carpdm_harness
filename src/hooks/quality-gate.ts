@@ -63,9 +63,14 @@ function main(): void {
     return;
   }
 
-  // OMC 모드 확인 - team/swarm 모드에서는 로깅만
+  // OMC 모드 확인 - team/swarm 모드에서는 품질 게이트 완화 (로깅 + 경고)
   if (isOmcTeamMode(cwd)) {
-    outputResult('continue', '[quality-gate] OMC team/swarm 모드 활성 - 품질 게이트 로깅만 수행');
+    outputResult('continue', [
+      '[quality-gate] ⚠ OMC team/swarm 모드가 활성 상태입니다.',
+      '  - 품질 게이트는 로깅만 수행합니다 (차단 없음).',
+      '  - 하니스 워크플로우와 동시 실행 시 상태 불일치가 발생할 수 있습니다.',
+      '  - OMC 모드 종료 후 워크플로우를 시작하려면: /oh-my-claudecode:cancel',
+    ].join('\n'));
     return;
   }
 
