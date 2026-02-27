@@ -72,7 +72,7 @@ export function registerInfoTool(server: McpServer): void {
 
         const layers: Array<'structure' | 'semantics' | 'domain'> = ['structure', 'semantics', 'domain'];
         res.blank();
-        res.info('계층별 상태:');
+        res.subheader('계층별 상태');
 
         for (const layer of layers) {
           const enabled = ontologyConfig.layers[layer].enabled;
