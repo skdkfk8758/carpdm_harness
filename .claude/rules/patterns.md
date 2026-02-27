@@ -118,12 +118,16 @@ protected execCommand(cmd: string, cwd: string): { stdout: string; exitCode: num
 ```typescript
 // Fluent API로 에이전트 친화적 응답 구성
 const res = new McpResponseBuilder();
-res.header('제목')
-  .blank()
-  .info('정보 메시지')
-  .warn('경고 메시지')
-  .table([['키', '값'], ['status', 'ok']])
-  .codeBlock('코드', 'typescript')
+res.header('제목')             // --- 제목 ---
+  .subheader('섹션')           //   [섹션]
+  .check(true, '항목 통과')     //   ✓ 항목 통과
+  .check(false, '항목 실패')    //   ✗ 항목 실패
+  .info('정보 메시지')          // ℹ 정보 메시지
+  .ok('성공 메시지')            // ✓ 성공 메시지
+  .warn('경고 메시지')          // ⚠ 경고 메시지
+  .error('에러 메시지')         // ✗ 에러 메시지
+  .divider()                   // ────────────────────
+  .table([['키', '값']])       //   키 : 값
   .blank()
   .toResult();  // → ToolResult { content: [{ type: 'text', text: '...' }] }
 ```
