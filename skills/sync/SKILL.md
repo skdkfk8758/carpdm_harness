@@ -12,12 +12,12 @@ carpdm-harness 플러그인을 최신 버전으로 갱신하고, 현재 프로�
 GitHub에서 최신 플러그인 코드를 가져옵니다.
 
 ```bash
-claude plugin update carpdm-harness
+claude plugin update carpdm-harness@carpdm
 ```
 
 실패 시:
 - `claude plugin list`로 설치 상태 확인
-- 미설치면: `claude plugin add https://github.com/skdkfk8758/carpdm_harness`
+- 미설치면: `claude plugin install carpdm-harness@carpdm`
 - 그래도 실패하면 사용자에게 수동 안내
 
 ### Phase 2: 프로젝트 템플릿 동기화
