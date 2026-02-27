@@ -4,9 +4,9 @@ Analyze all uncommitted changes in the working directory and commit them in logi
 
 ## Instructions
 
-### Phase 0: 검증 게이트
+### Phase 0: 검증 게이트 (Hybrid Enforcement)
 
-커밋 전에 검증이 완료되었는지 확인한다.
+커밋 전에 검증이 완료되었는지 **반드시** 확인한다. 검증 증거 없이는 커밋하지 않는다.
 
 #### 0-1. 기존 검증 결과 확인
 
@@ -21,16 +21,17 @@ if [ -f ".omc/state/verify-result" ]; then
 fi
 ```
 
-| 상태 | 행동 |
-|------|------|
-| verify-loop-result PASS 존재 | 계속 진행 |
-| verify-result PASS만 존재 (FAIL 없음) | 계속 진행 |
-| verify 결과 FAIL 존재 | 차단: "검증 실패 항목이 있습니다. 수정 후 다시 시도하세요" |
-| verify 결과 없음 | **→ 0-2 인라인 검증 실행** |
+| 상태 | 강도 | 행동 |
+|------|------|------|
+| verify-loop-result PASS 존재 | PASS | `[VERIFY GATE: PASS]` → 계속 진행 |
+| verify-result PASS만 존재 (FAIL 없음) | PASS | `[VERIFY GATE: PASS]` → 계속 진행 |
+| verify 결과 FAIL 존재 | **Hard** | `[VERIFY GATE: BLOCKED]` → 차단. "검증 실패 항목이 있습니다. 수정 후 다시 시도하세요" |
+| verify 결과 없음 | **Soft** | `[VERIFY GATE: INLINE]` → 0-2 인라인 검증을 **강제 실행** (스킵 불가) |
 
-#### 0-2. 인라인 검증 (verify 결과 없을 때 자동 실행)
+#### 0-2. 인라인 검증 (verify 결과 없을 때 강제 실행)
 
-기존 검증 결과가 없으면 커밋 전 경량 검증을 직접 실행한다.
+기존 검증 결과가 없으면 커밋 전 경량 검증을 **자동으로 실행**한다.
+이 단계는 스킵할 수 없다 — "이 세션에서 이미 테스트했다"는 자기 신고를 대체하는 실행 증거이다.
 프로젝트의 `package.json` scripts 또는 빌드 도구를 감지하여 가용한 검증만 수행한다.
 
 **감지 및 실행 순서:**
@@ -57,15 +58,13 @@ npm test 2>&1
 | `go.mod` | `go build ./...` | `go vet ./...` | `go test ./...` |
 | `Cargo.toml` | `cargo build` | — | `cargo test` |
 
-> 감지된 도구가 하나도 없으면 경고만 출력하고 계속 진행한다.
-
 **판정:**
 
-| 결과 | 행동 |
-|------|------|
-| 모든 검증 통과 (exit 0) | `[인라인 검증 PASS]` 출력 → 계속 진행 |
-| 하나라도 실패 (exit ≠ 0) | 차단: 실패 출력을 표시하고 "수정 후 다시 시도하세요" |
-| 검증 도구 없음 | 경고: "검증 도구를 감지하지 못했습니다" → 계속 진행 |
+| 결과 | 강도 | 행동 |
+|------|------|------|
+| 모든 검증 통과 (exit 0) | PASS | `[VERIFY GATE: INLINE PASS]` → 계속 진행 |
+| 하나라도 실패 (exit ≠ 0) | **Hard** | `[VERIFY GATE: BLOCKED]` → 차단. 실패 출력을 표시하고 "수정 후 다시 시도하세요" |
+| 검증 도구 없음 | **Soft** | `[VERIFY GATE: NO TOOLS]` → AskUserQuestion으로 "검증 없이 커밋할까요?" 확인 후 진행 |
 
 > 검증 없이 커밋하는 것은 "확인했습니다" 수준의 자기 신고입니다. 실행 증거가 있어야 합니다.
 
