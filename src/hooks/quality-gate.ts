@@ -2,6 +2,8 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { omcStateDir, OMC_TEAM_MODES } from '../core/omc-compat.js';
+import { detectRedFlags, buildRedFlagContext } from '../core/red-flag-detector.js';
+import { DEFAULT_BEHAVIORAL_GUARD_CONFIG } from '../types/behavioral-guard.js';
 
 interface HookInput {
   tool_name?: string;
@@ -142,6 +144,21 @@ function main(): void {
     }
   } catch {
     warnings.push('Trackable: [INFO] 브랜치 확인 실패');
+  }
+
+  // 적신호 스캔: 커밋 메시지에서 행동 패턴 감지
+  const behavioralGuard = (config.behavioralGuard || {}) as { redFlagDetection?: string };
+  const redFlagMode = behavioralGuard.redFlagDetection || DEFAULT_BEHAVIORAL_GUARD_CONFIG.redFlagDetection;
+  if (redFlagMode === 'on') {
+    const commitMsgMatch = command.match(/git\s+commit\s+(?:.*\s)?-m\s+["']([^"']+)["']/);
+    if (commitMsgMatch) {
+      const commitMsg = commitMsgMatch[1];
+      const redFlagResult = detectRedFlags(commitMsg);
+      if (redFlagResult.hasRedFlags) {
+        const redFlagReport = buildRedFlagContext(redFlagResult);
+        warnings.push(`RedFlag: [WARN] 커밋 메시지에서 적신호 감지\n${redFlagReport}`);
+      }
+    }
   }
 
   const report = [

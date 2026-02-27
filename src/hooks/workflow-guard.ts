@@ -146,8 +146,15 @@ function main(): void {
     contextLines.push(`단계 완료 시: harness_workflow({ action: "advance" })`);
   }
 
-  // guardLevel: block일 때 harness_workflow가 아닌 도구 호출 시 차단
-  if (guardLevel === 'block' && !toolName.startsWith('harness_')) {
+  // guardLevel: block일 때 harness_ 및 Claude Code 기본 도구 외의 도구 호출 시 차단
+  const CLAUDE_BUILTIN_TOOLS = new Set([
+    'Bash', 'Read', 'Edit', 'Write', 'MultiEdit',
+    'Glob', 'Grep', 'WebFetch', 'WebSearch',
+    'Task', 'TodoWrite', 'AskUserQuestion',
+    'Skill', 'NotebookEdit',
+  ]);
+
+  if (guardLevel === 'block' && !toolName.startsWith('harness_') && !CLAUDE_BUILTIN_TOOLS.has(toolName)) {
     outputResult('block', contextLines.join('\n'));
     return;
   }

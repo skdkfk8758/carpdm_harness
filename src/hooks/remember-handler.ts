@@ -22,7 +22,7 @@ const NOTEPAD_TEMPLATE = `# Notepad
 <!-- User content. Never auto-pruned. -->
 `;
 
-const TARGET_TOOLS = new Set(['Task', 'task', 'TaskCreate', 'TaskUpdate']);
+const TARGET_TOOLS = new Set(['Task', 'task', 'TaskCreate', 'TaskUpdate', 'TodoWrite']);
 
 function getResponseText(toolResponse: unknown): string {
   if (typeof toolResponse === 'string') return toolResponse;
