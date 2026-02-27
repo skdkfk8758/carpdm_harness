@@ -9,6 +9,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { planSearchPaths, todoSearchPaths } from './project-paths.js';
 
 export const IMPLEMENTATION_INTENT_PATTERNS: RegExp[] = [
   // EN: "implement the plan", "implement following plan"
@@ -38,7 +39,7 @@ export interface ReadinessCheckResult {
 }
 
 export function getPlanStatus(cwd: string): PlanStatus {
-  const paths = [join(cwd, '.agent', 'plan.md'), join(cwd, 'plan.md')];
+  const paths = planSearchPaths(cwd);
   for (const p of paths) {
     if (!existsSync(p)) continue;
     try {
@@ -52,7 +53,7 @@ export function getPlanStatus(cwd: string): PlanStatus {
 }
 
 export function getTodoStatus(cwd: string): TodoStatus {
-  const paths = [join(cwd, '.agent', 'todo.md'), join(cwd, 'todo.md')];
+  const paths = todoSearchPaths(cwd);
   for (const p of paths) {
     if (!existsSync(p)) continue;
     try {
