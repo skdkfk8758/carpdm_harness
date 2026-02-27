@@ -114,6 +114,11 @@ echo "=== Phase 2: 플러그인 업데이트 ==="
 claude plugin update oh-my-claudecode 2>/dev/null && \
     echo "[OK] oh-my-claudecode 업데이트 완료" || \
     echo "[WARN] oh-my-claudecode 업데이트 실패 또는 미설치"
+
+# carpdm-harness 업데이트
+claude plugin update carpdm-harness@carpdm 2>/dev/null && \
+    echo "[OK] carpdm-harness 업데이트 완료" || \
+    echo "[WARN] carpdm-harness 업데이트 실패 또는 미설치"
 ```
 
 ### Phase 3: CLI 도구 업데이트
