@@ -67,7 +67,7 @@ var NOTEPAD_TEMPLATE = `# Notepad
 ## MANUAL
 <!-- User content. Never auto-pruned. -->
 `;
-var TARGET_TOOLS = /* @__PURE__ */ new Set(["Task", "task", "TaskCreate", "TaskUpdate"]);
+var TARGET_TOOLS = /* @__PURE__ */ new Set(["Task", "task", "TaskCreate", "TaskUpdate", "TodoWrite"]);
 function getResponseText(toolResponse) {
   if (typeof toolResponse === "string") return toolResponse;
   if (toolResponse && typeof toolResponse === "object") {

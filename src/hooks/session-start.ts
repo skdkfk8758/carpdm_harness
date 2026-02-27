@@ -476,7 +476,32 @@ async function main(): Promise<void> {
     `<session-restore>\n\n[MCP TOOL DISCOVERY REQUIRED]\n\nMCP tools (ask_codex, ask_gemini) are deferred and NOT in your tool list yet.\nBefore first use, call ToolSearch("mcp") to discover all available MCP tools.\nIf ToolSearch returns no results, MCP servers are not configured -- use Claude agent fallbacks instead.\n\n</session-restore>\n\n---\n`,
   );
 
-  outputResult(messages.length > 0 ? messages.join('\n') : undefined);
+  // 컨텍스트 예산 관리: 4KB 상한 트리밍
+  const finalContext = messages.length > 0 ? trimContext(messages, 4096) : undefined;
+  outputResult(finalContext);
+}
+
+/**
+ * 컨텍스트 메시지를 우선순위 역순으로 제거하여 maxBytes 이하로 트리밍합니다.
+ * 제거 우선순위 (낮은 것부터): UPDATE → COMPONENTS → ONTOLOGY → LESSONS
+ */
+function trimContext(messages: string[], maxBytes: number): string {
+  const joined = messages.join('\n');
+  if (Buffer.byteLength(joined, 'utf-8') <= maxBytes) return joined;
+
+  const trimTags = ['UPDATES AVAILABLE', 'MCP TOOL DISCOVERY', 'ONTOLOGY', 'LESSONS'];
+  let trimmed = [...messages];
+  for (const tag of trimTags) {
+    if (Buffer.byteLength(trimmed.join('\n'), 'utf-8') <= maxBytes) break;
+    trimmed = trimmed.filter(m => !m.includes(`[${tag}]`));
+  }
+
+  const result = trimmed.join('\n');
+  // 모든 메시지 제거해도 초과 시 앞부분만 반환
+  if (Buffer.byteLength(result, 'utf-8') > maxBytes) {
+    return result.slice(0, maxBytes);
+  }
+  return result;
 }
 
 function outputResult(additionalContext?: string): void {

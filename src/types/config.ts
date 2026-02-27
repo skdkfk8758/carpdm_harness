@@ -3,6 +3,7 @@ import type { OntologyConfig } from './ontology.js';
 import type { CapabilityResult } from './capabilities.js';
 import type { QualityGateConfig } from './quality-gate.js';
 import type { WorkflowEngineConfig } from './workflow-engine.js';
+import type { BehavioralGuardConfig } from './behavioral-guard.js';
 
 export interface HarnessConfig {
   version: string;
@@ -22,6 +23,7 @@ export interface HarnessConfig {
   qualityGate?: QualityGateConfig;
   workflowEngine?: WorkflowEngineConfig;
   omcConfig?: OmcConfig;
+  behavioralGuard?: BehavioralGuardConfig;
 }
 
 export interface ConfigOptions {

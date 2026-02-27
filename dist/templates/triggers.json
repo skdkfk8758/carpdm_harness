@@ -82,6 +82,15 @@
           "allOf": ["issue", "impl"],
           "noneOf": ["bug"],
           "message": "이슈({issue}) 해결에 구현이 필요합니다. 요구사항 정리를 위해 인터뷰를 권장합니다."
+        },
+        {
+          "id": "implement-without-plan",
+          "mode": "suggest",
+          "branch": "any",
+          "allOf": ["impl"],
+          "noneOf": ["bug", "issue"],
+          "condition": "no-active-work",
+          "message": "구현 작업이 감지되었습니다. plan.md → todo.md 작성 후 구현을 권장합니다. 계획이 필요하면 /plan-gate를 실행하세요."
         }
       ]
     },

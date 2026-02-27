@@ -125,7 +125,23 @@ function main() {
   } else {
     contextLines.push(`\uB2E8\uACC4 \uC644\uB8CC \uC2DC: harness_workflow({ action: "advance" })`);
   }
-  if (guardLevel === "block" && !toolName.startsWith("harness_")) {
+  const CLAUDE_BUILTIN_TOOLS = /* @__PURE__ */ new Set([
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "MultiEdit",
+    "Glob",
+    "Grep",
+    "WebFetch",
+    "WebSearch",
+    "Task",
+    "TodoWrite",
+    "AskUserQuestion",
+    "Skill",
+    "NotebookEdit"
+  ]);
+  if (guardLevel === "block" && !toolName.startsWith("harness_") && !CLAUDE_BUILTIN_TOOLS.has(toolName)) {
     outputResult("block", contextLines.join("\n"));
     return;
   }
