@@ -24,7 +24,9 @@ if ! echo "$MSG" | grep -qE "$PATTERN"; then
 fi
 
 # --- 이슈 번호 참조 권장 (경고만) ---
-if ! echo "$MSG" | grep -qE '(#[0-9]+|[A-Z]+-[0-9]+)'; then
+# 첫 줄 + 본문 전체에서 검색 (Co-Authored-By 등 메타 라인 제외)
+BODY=$(grep -v '^Co-Authored-By:' "$MSG_FILE" || true)
+if ! echo "$BODY" | grep -qE '(#[0-9]+|[A-Z]+-[0-9]+)'; then
   echo ""
   echo "⚠️  커밋 메시지에 이슈 번호가 없습니다."
   echo "  권장: feat(hooks): add validation (#13)"
