@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadConfig } from '../core/config.js';
 import { detectCapabilities, requireOmc, cacheCapabilities } from '../core/capability-detector.js';
+import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -54,6 +55,32 @@ export function registerSetupTool(server: McpServer): void {
           res.ok(`감지된 도구: ${detectedTools.join(', ')}`);
         } else {
           res.info('추가 외부 도구 없음 (기본 구성으로 진행)');
+        }
+
+        // 미감지 도구별 영향 안내
+        const toolImpacts: [boolean, string][] = [
+          [!capabilities.tools.serena.detected, 'Serena 미감지 → architect/verifier 단계에서 LSP 기반 코드 분석 불가'],
+          [!capabilities.tools.context7.detected, 'Context7 미감지 → 라이브러리 문서 자동 조회 불가'],
+          [!capabilities.tools.codex.detected, 'Codex 미감지 → MCP 위임 (병렬 실행) 불가'],
+          [!capabilities.tools.gemini.detected, 'Gemini 미감지 → MCP 위임 (병렬 실행) 불가'],
+        ];
+        const missing = toolImpacts.filter(([absent]) => absent);
+        if (missing.length > 0 && missing.length < 4) {
+          res.blank();
+          for (const [, msg] of missing) {
+            res.info(msg);
+          }
+        }
+
+        // Step 3.5: 중복 감지
+        const scanResult = scanOverlaps(pRoot, null, capabilities);
+        if (scanResult.totalOverlaps > 0) {
+          res.blank();
+          res.header(`중복 감지: ${scanResult.totalOverlaps}개 항목`);
+          res.line(renderOverlapInterview(scanResult));
+          res.blank();
+          res.info('harness_init 호출 시 overlapChoices 파라미터로 선택을 전달하세요.');
+          res.info('또는 overlapChoices: \'{"applyDefaults":true}\' 로 권장 설정을 일괄 적용합니다.');
         }
 
         // Step 4: 프리셋 추천

@@ -4,6 +4,7 @@ import type { CapabilityResult } from './capabilities.js';
 import type { QualityGateConfig } from './quality-gate.js';
 import type { WorkflowEngineConfig } from './workflow-engine.js';
 import type { BehavioralGuardConfig } from './behavioral-guard.js';
+import type { OverlapPreferences } from './overlap.js';
 
 export interface HarnessConfig {
   version: string;
@@ -24,6 +25,7 @@ export interface HarnessConfig {
   workflowEngine?: WorkflowEngineConfig;
   omcConfig?: OmcConfig;
   behavioralGuard?: BehavioralGuardConfig;
+  overlapPreferences?: OverlapPreferences;
 }
 
 export interface ConfigOptions {

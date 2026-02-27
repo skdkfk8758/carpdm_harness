@@ -10,34 +10,50 @@ export class McpResponseBuilder {
   private lines: string[] = [];
 
   header(title: string): this {
-    this.lines.push(`\n## ${title}\n`);
+    this.lines.push('', `--- ${title} ---`, '');
+    return this;
+  }
+
+  subheader(title: string): this {
+    this.lines.push('', `  [${title}]`, '');
     return this;
   }
 
   info(msg: string): this {
-    this.lines.push(`[INFO] ${msg}`);
+    this.lines.push(`ℹ ${msg}`);
     return this;
   }
 
   ok(msg: string): this {
-    this.lines.push(`[OK] ${msg}`);
+    this.lines.push(`✓ ${msg}`);
     return this;
   }
 
   warn(msg: string): this {
-    this.lines.push(`[WARN] ${msg}`);
+    this.lines.push(`⚠ ${msg}`);
     return this;
   }
 
   error(msg: string): this {
-    this.lines.push(`[ERROR] ${msg}`);
+    this.lines.push(`✗ ${msg}`);
+    return this;
+  }
+
+  check(passed: boolean, msg: string): this {
+    this.lines.push(passed ? `  ✓ ${msg}` : `  ✗ ${msg}`);
+    return this;
+  }
+
+  divider(): this {
+    this.lines.push('────────────────────');
     return this;
   }
 
   table(rows: [string, string][]): this {
+    if (rows.length === 0) return this;
     const maxKey = Math.max(...rows.map(([k]) => k.length));
     for (const [key, value] of rows) {
-      this.lines.push(`  ${key.padEnd(maxKey)}  ${value}`);
+      this.lines.push(`  ${key.padEnd(maxKey)} : ${value}`);
     }
     return this;
   }
@@ -84,5 +100,5 @@ export function textResult(text: string, isError = false): ToolResult {
 }
 
 export function errorResult(message: string): ToolResult {
-  return textResult(`[ERROR] ${message}`, true);
+  return textResult(`✗ ${message}`, true);
 }

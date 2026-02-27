@@ -18,6 +18,9 @@ import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ont
 import { CONFIG_FILENAME } from '../types/config.js';
 import { requireOmc, detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
 import { bootstrapProjectSettings, getCapabilityAllowRules } from '../core/settings-bootstrap.js';
+import { scanOverlaps } from '../core/overlap-detector.js';
+import { applyOverlapChoices } from '../core/overlap-applier.js';
+import type { OverlapChoices } from '../types/overlap.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -36,8 +39,10 @@ export function registerInitTool(server: McpServer): void {
         .describe('온톨로지 분석 대상 언어 (typescript,python 또는 프리셋: frontend|backend|fullstack)'),
       ontologyAiApiKeyEnv: z.string().optional()
         .describe('AI Domain 레이어용 API 키 환경변수명 (예: ANTHROPIC_API_KEY)'),
+      overlapChoices: z.string().optional()
+        .describe('중복 처리 선택 JSON. harness_setup 결과를 참고하여 전달. {"applyDefaults":true}로 권장 설정 일괄 적용'),
     },
-    async ({ projectRoot, preset, modules: modulesStr, skipHooks, dryRun, enableOntology, ontologyLanguages, ontologyAiApiKeyEnv }) => {
+    async ({ projectRoot, preset, modules: modulesStr, skipHooks, dryRun, enableOntology, ontologyLanguages, ontologyAiApiKeyEnv, overlapChoices: overlapChoicesStr }) => {
       try {
         logger.clear();
         const res = new McpResponseBuilder();
@@ -141,6 +146,30 @@ export function registerInitTool(server: McpServer): void {
           if (bsResult.askAdded > 0) res.line(`  ask: +${bsResult.askAdded}`);
           if (bsResult.envAdded > 0) res.line(`  env: +${bsResult.envAdded}`);
           if (bsResult.languageSet) res.line(`  language: Korea`);
+
+          // Phase 4.5: 중복 적용
+          if (overlapChoicesStr) {
+            try {
+              const choices = JSON.parse(overlapChoicesStr as string) as OverlapChoices;
+              const caps = detectCapabilities(pRoot);
+              const scan = scanOverlaps(pRoot, config, caps);
+              if (scan.totalOverlaps > 0) {
+                const overlapResult = applyOverlapChoices(pRoot, scan, choices);
+                config.overlapPreferences = {
+                  lastOptimizedAt: new Date().toISOString(),
+                  decisions: choices.applyDefaults
+                    ? Object.fromEntries(scan.items.map(i => [i.id, i.recommended]))
+                    : choices.decisions ?? {},
+                };
+                res.ok(`중복 처리 완료: ${overlapResult.applied}개 적용, ${overlapResult.skipped}개 유지`);
+                for (const e of overlapResult.errors) {
+                  res.warn(e);
+                }
+              }
+            } catch (err) {
+              res.warn(`중복 처리 실패 (무시하고 계속): ${String(err)}`);
+            }
+          }
         }
 
         if (!pDryRun) {

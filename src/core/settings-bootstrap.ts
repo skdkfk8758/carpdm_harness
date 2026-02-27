@@ -415,3 +415,67 @@ export function getCapabilityAllowRules(capabilities: {
 
   return rules;
 }
+
+// ============================================================
+// 권한 규칙 수정 (overlap-applier 전용)
+// ============================================================
+
+export interface PermissionOperation {
+  rule: string;
+  from?: 'allow' | 'deny' | 'ask';  // 제거할 목록
+  to?: 'allow' | 'deny' | 'ask';    // 추가할 목록
+}
+
+/**
+ * settings.local.json의 permission 규칙을 수정합니다.
+ * bootstrapProjectSettings의 additive-only 원칙과 분리된 별도 함수입니다.
+ */
+export function modifyPermissionRules(
+  projectRoot: string,
+  operations: PermissionOperation[],
+): { removed: number; added: number } {
+  const settingsPath = join(projectRoot, '.claude', 'settings.local.json');
+  let settings: SettingsJson = {};
+
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8')) as SettingsJson;
+    } catch {
+      settings = {};
+    }
+  }
+
+  if (!settings.permissions) settings.permissions = {};
+  if (!Array.isArray(settings.permissions.allow)) settings.permissions.allow = [];
+  if (!Array.isArray(settings.permissions.deny)) settings.permissions.deny = [];
+  if (!Array.isArray(settings.permissions.ask)) settings.permissions.ask = [];
+
+  let removed = 0;
+  let added = 0;
+
+  for (const op of operations) {
+    // from 목록에서 제거
+    if (op.from) {
+      const list = settings.permissions[op.from] as string[];
+      const idx = list.indexOf(op.rule);
+      if (idx !== -1) {
+        list.splice(idx, 1);
+        removed++;
+      }
+    }
+
+    // to 목록에 추가 (중복 방지)
+    if (op.to) {
+      const list = settings.permissions[op.to] as string[];
+      if (!list.includes(op.rule)) {
+        list.push(op.rule);
+        added++;
+      }
+    }
+  }
+
+  mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+
+  return { removed, added };
+}
