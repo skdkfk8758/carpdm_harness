@@ -4,7 +4,7 @@ import { registerAllTools } from './tools/index.js';
 
 const server = new McpServer({
   name: 'carpdm-harness',
-  version: '4.7.0',
+  version: '4.8.0',
 });
 
 registerAllTools(server);
