@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { join } from 'node:path';
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
+import { detectCapabilities } from '../core/capability-detector.js';
+import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.js';
+import { applyOverlapChoices } from '../core/overlap-applier.js';
+import type { OverlapChoices } from '../types/overlap.js';
 import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
 import { getAllModules } from '../core/module-registry.js';
 import { safeCopyFile, computeFileHash, backupFile, safeWriteFile, ensureDir } from '../core/file-ops.js';
@@ -26,8 +30,10 @@ export function registerUpdateTool(server: McpServer): void {
       dryRun: z.boolean().optional().describe('diff만 표시'),
       acceptAll: z.boolean().optional().describe('모든 변경 자동 수락'),
       refreshOntology: z.boolean().optional().describe('온톨로지 갱신'),
+      overlapChoices: z.string().optional()
+        .describe('중복 처리 선택 JSON. harness_setup/update 결과를 참고하여 전달'),
     },
-    async ({ projectRoot, module: targetModule, dryRun, acceptAll, refreshOntology: doRefreshOntology }) => {
+    async ({ projectRoot, module: targetModule, dryRun, acceptAll, refreshOntology: doRefreshOntology, overlapChoices: overlapChoicesStr }) => {
       try {
         logger.clear();
         const res = new McpResponseBuilder();
@@ -151,6 +157,56 @@ export function registerUpdateTool(server: McpServer): void {
             res.ok('.agent/memory.md 동기화 완료');
           } catch (err) {
             res.warn(`memory.md 동기화 실패: ${String(err)}`);
+          }
+        }
+
+        // 중복 처리
+        if (!pDryRun) {
+          try {
+            const caps = detectCapabilities(pRoot);
+            const scan = scanOverlaps(pRoot, config, caps);
+
+            if (overlapChoicesStr) {
+              // 명시적 선택이 있으면 적용
+              const choices = JSON.parse(overlapChoicesStr as string) as OverlapChoices;
+              if (scan.totalOverlaps > 0) {
+                const overlapResult = applyOverlapChoices(pRoot, scan, choices);
+                config.overlapPreferences = {
+                  lastOptimizedAt: new Date().toISOString(),
+                  decisions: choices.applyDefaults
+                    ? Object.fromEntries(scan.items.map(i => [i.id, i.recommended]))
+                    : choices.decisions ?? {},
+                };
+                res.ok(`중복 처리 완료: ${overlapResult.applied}개 적용, ${overlapResult.skipped}개 유지`);
+                for (const e of overlapResult.errors) {
+                  res.warn(e);
+                }
+              }
+            } else if (config.overlapPreferences) {
+              // 이전 선호도 자동 재적용
+              const existingDecisions = config.overlapPreferences.decisions;
+              if (Object.keys(existingDecisions).length > 0 && scan.totalOverlaps > 0) {
+                applyOverlapChoices(pRoot, scan, { decisions: existingDecisions });
+                res.ok('이전 중복 처리 선호도 자동 적용됨');
+              }
+
+              // 새로 발견된 중복 안내
+              const newItems = scan.items.filter(i => !existingDecisions[i.id]);
+              if (newItems.length > 0) {
+                res.blank();
+                res.header(`새 중복 감지: ${newItems.length}개`);
+                res.line(renderOverlapInterview({ totalOverlaps: newItems.length, items: newItems }));
+                res.info('harness_update({ overlapChoices: \'{"applyDefaults":true}\' })로 권장 설정 일괄 적용');
+              }
+            } else if (scan.totalOverlaps > 0) {
+              // 최초 중복 감지 안내
+              res.blank();
+              res.header(`중복 감지: ${scan.totalOverlaps}개 항목`);
+              res.line(renderOverlapInterview(scan));
+              res.info('harness_update({ overlapChoices: \'{"applyDefaults":true}\' })로 권장 설정 일괄 적용');
+            }
+          } catch (err) {
+            res.warn(`중복 감지 실패 (무시하고 계속): ${String(err)}`);
           }
         }
 
