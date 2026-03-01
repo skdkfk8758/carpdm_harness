@@ -101,10 +101,8 @@ function searchFieldInDirRecursive(dirPath: string, field: string): boolean {
 
 /** trigger가 참조하지만 skills/ 디렉토리가 없는 skill — prompt-enricher 컨텍스트 주입용 */
 const KNOWN_TRIGGER_SKILL_GAPS = new Set([
-  'plan-gate',      // prompt-enricher에서 직접 컨텍스트 생성
   'work-start',     // prompt-enricher에서 직접 컨텍스트 생성
   'work-finish',    // prompt-enricher에서 직접 컨텍스트 생성
-  'logical-commit', // prompt-enricher에서 직접 컨텍스트 생성
 ]);
 
 /** skill은 있지만 대응 tool이 없는 경우 — 순수 instruction skill 또는 상위 tool의 하위 액션 */
@@ -116,12 +114,31 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
   'workflow-advance',  // harness_workflow action="advance"의 convenience wrapper
   'workflow-start',    // harness_workflow action="start"의 convenience wrapper
   'workflow-status',   // harness_workflow action="status"의 convenience wrapper
+  'todo-loop',        // 순수 instruction skill (ralph-todo 루프 시작)
+  'branch-info',      // 순수 instruction skill (브랜치 상태 조회)
+  'bug',              // 순수 instruction skill (버그 기록)
+  'changelog',        // 순수 instruction skill (변경 내역 생성)
+  'context',          // 순수 instruction skill (작업 컨텍스트 조회)
+  'diff-summary',     // 순수 instruction skill (변경사항 요약)
+  'lesson',           // 순수 instruction skill (교훈 기록)
+  'logical-commit',   // 순수 instruction skill (논리 커밋)
+  'plan',             // 순수 instruction skill (작업 계획 조회)
+  'plan-gate',        // 순수 instruction skill (Plan Gate 프로세스)
+  'plan-restore',     // 순수 instruction skill (아카이브 복원, harness_plan_archive 도구 사용)
+  'preflight',        // 순수 instruction skill (작업 전 점검)
+  'quick-check',      // 순수 instruction skill (빠른 검증)
+  'resume',           // 순수 instruction skill (세션 이어받기)
+  'review-prep',      // 순수 instruction skill (PR 리뷰 준비)
+  'status',           // 순수 instruction skill (상태 조회)
+  'todo',             // 순수 instruction skill (작업 목록 조회)
+  'todo-update',      // 순수 instruction skill (작업 항목 갱신)
 ]);
 
 /** tool은 있지만 skill wrapper가 없는 경우 */
 const KNOWN_TOOL_WITHOUT_SKILL = new Set([
-  'github-setup', // 도구 직접 호출 전용 (Phase 2에서 skill 추가 예정)
-  'bug-report',   // 도구 직접 호출 전용
+  'github-setup',   // 도구 직접 호출 전용 (Phase 2에서 skill 추가 예정)
+  'bug-report',     // 도구 직접 호출 전용
+  'plan-archive',   // plan-restore skill이 이 도구를 사용 (1:N 매핑)
 ]);
 
 /** config에 선언되었지만 코드에서 읽지 않는 필드 */
