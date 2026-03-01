@@ -1,6 +1,6 @@
 ---
 name: harness-verify-all
-description: TRUST 5 + 프로젝트 커스텀 verify 스킬 통합 검증을 실행합니다. "통합 검증", "전체 검증", "verify all"을 요청할 때 사용합니다.
+description: TRUST 5 + 프로젝트 커스텀 verify 스킬 통합 검증을 실행합니다. "통합 검증", "전체 검증", "verify all", "품질 검사", "quality check", "TRUST 검증"을 요청할 때 사용합니다.
 ---
 
 현재 프로젝트 루트를 감지하고 `harness_verify_all` MCP 도구를 호출하세요.
@@ -8,7 +8,7 @@ description: TRUST 5 + 프로젝트 커스텀 verify 스킬 통합 검증을 실
 ## 인자 매핑
 - 파일 경로 목록이면 `files` 배열로 전달
 - `"verbose"` 또는 `"상세"` 포함 시 `verbose: true`
-- `"TRUST만"` 또는 `"trust only"` 포함 시 `skipCustom: true`
+- `"trust"`, `"TRUST만"`, `"trust only"`, `"품질"` 포함 시 `skipCustom: true` (TRUST 5만 실행)
 - `"커스텀만"` 또는 `"custom only"` 포함 시 `skipTrust: true`
 - 인자 없으면 git 변경 파일 대상으로 전체 검증
 

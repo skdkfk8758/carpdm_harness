@@ -58,18 +58,12 @@ describe('Verify 시스템 구조 검증', () => {
   });
 
   describe('스킬 wrapper', () => {
-    it('manage-verify SKILL.md가 존재한다', () => {
-      expect(existsSync(join(ROOT, 'skills/manage-verify/SKILL.md'))).toBe(true);
-    });
-
     it('verify-all SKILL.md가 존재한다', () => {
       expect(existsSync(join(ROOT, 'skills/verify-all/SKILL.md'))).toBe(true);
     });
 
-    it('manage-verify SKILL.md에 올바른 frontmatter가 있다', () => {
-      const content = readFileSync(join(ROOT, 'skills/manage-verify/SKILL.md'), 'utf-8');
-      expect(content).toMatch(/^---\n/);
-      expect(content).toContain('name: harness-manage-verify');
+    it('manage-verify는 도구 직접 호출로 통합되어 스킬이 없다', () => {
+      expect(existsSync(join(ROOT, 'skills/manage-verify/SKILL.md'))).toBe(false);
     });
 
     it('verify-all SKILL.md에 올바른 frontmatter가 있다', () => {

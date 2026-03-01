@@ -1,11 +1,14 @@
 ---
 name: harness-workflow
-description: OMC 워크플로우 오케스트레이션. "워크플로우", "workflow", "파이프라인"을 요청할 때 사용합니다.
+description: OMC 워크플로우 오케스트레이션. "워크플로우", "workflow", "파이프라인", "워크플로우 시작", "워크플로우 상태", "다음 단계"를 요청할 때 사용합니다.
 ---
 
 현재 프로젝트 루트를 감지하고 `harness_workflow` MCP 도구를 호출하세요.
 
 ## 인자 매핑
+- `"start"`, `"시작"` → `action: "start"` (워크플로우 시작)
+- `"advance"`, `"다음"`, `"다음 단계"` → `action: "advance"` (다음 단계 진행)
+- `"status"`, `"상태"` → `action: "status"` (진행 상태 조회)
 - 워크플로우 이름(`feature`|`bugfix`|`refactor`|`release`|`security`)이면 `workflow`로 전달
 - 이름 없이 호출하면 사용 가능한 워크플로우 목록 표시
 - `"dry-run"` 포함 시 미리보기만
