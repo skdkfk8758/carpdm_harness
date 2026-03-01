@@ -16,6 +16,8 @@ import { getPackageVersion } from '../utils/version.js';
 import { refreshOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
+import { initKnowledgeVault, updateKnowledgeIndex, syncOntologyToVault } from '../core/knowledge-vault.js';
+import { DEFAULT_KNOWLEDGE_CONFIG } from '../types/config.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
@@ -157,6 +159,28 @@ export function registerUpdateTool(server: McpServer): void {
             res.ok('.agent/memory.md 동기화 완료');
           } catch (err) {
             res.warn(`memory.md 동기화 실패: ${String(err)}`);
+          }
+
+          // Knowledge Vault 동기화
+          try {
+            const knowledgeConfig = config.knowledge ?? DEFAULT_KNOWLEDGE_CONFIG;
+            if (knowledgeConfig.enabled) {
+              const { knowledgeDir: kDir } = await import('../core/omc-compat.js');
+              const kDirPath = kDir(pRoot);
+              if (!existsSync(kDirPath)) {
+                initKnowledgeVault(pRoot, knowledgeConfig);
+                config.knowledge = knowledgeConfig;
+                res.ok('Knowledge Vault 초기 생성 (.knowledge/)');
+              } else {
+                updateKnowledgeIndex(pRoot);
+                if (knowledgeConfig.syncOntology) {
+                  syncOntologyToVault(pRoot);
+                }
+                res.ok('Knowledge Vault 동기화 완료');
+              }
+            }
+          } catch (err) {
+            res.warn(`Knowledge Vault 동기화 실패 (무시하고 계속): ${String(err)}`);
           }
         }
 

@@ -25,7 +25,7 @@ carpdm-harness는 Claude Code 플러그인입니다. 코드를 수정할 때 항
 ```
 src/
 ├── server.ts          # MCP 서버 진입점 (McpServer + StdioTransport)
-├── tools/             # 20개 MCP 도구 (harness_* 네임스페이스)
+├── tools/             # 23개 MCP 도구 (harness_* 네임스페이스)
 ├── hooks/             # 11개 라이프사이클 훅 (별도 빌드 엔트리)
 ├── core/              # 비즈니스 로직 (36 모듈)
 │   ├── quality-gate/  # TRUST 5 검증 시스템 (5 validators)

@@ -27,6 +27,7 @@ import {
   OMC_STATEFUL_MODES,
   OMC_KEYWORD_PRIORITY,
   MCP_DELEGATION_KEYWORDS,
+  knowledgeBranchDir,
 } from '../core/omc-compat.js';
 import {
   loadTriggers,
@@ -353,6 +354,15 @@ function detectKeywords(
     matches.push({ name: 'cancel', args: '' });
   }
 
+  // Ralph-Todo (Ralph + Todo 통합 루프 — ralph 일반보다 우선)
+  if (
+    /\b(todo[\s-]?loop|ralph[\s-]?todo|todo[\s-]?ralph)\b/i.test(cleanPrompt) ||
+    /\btodo.*반복\b/i.test(cleanPrompt) ||
+    /\b반복.*todo\b/i.test(cleanPrompt)
+  ) {
+    matches.push({ name: 'ralph-todo', args: '' });
+  }
+
   // Ralph
   if (/\b(ralph|don't stop|must complete|until done)\b/i.test(cleanPrompt)) {
     matches.push({ name: 'ralph', args: '' });
@@ -516,6 +526,51 @@ function detectKeywords(
   } else {
     return teamWarning + createMultiSkillInvocation(skillMatches, prompt);
   }
+}
+
+// ===== Knowledge Vault 컨텍스트 =====
+
+/**
+ * 현재 브랜치의 Knowledge Vault 문서에서 컨텍스트를 추출합니다.
+ * .knowledge/branches/{branch}/ 내 design.md, decisions.md, spec.md에서 핵심 내용을 읽습니다.
+ */
+function readKnowledgeContext(cwd: string, branch: string | null): string | null {
+  if (!branch) return null;
+  const branchDir = knowledgeBranchDir(cwd, branch);
+  if (!existsSync(branchDir)) return null;
+
+  const lines: string[] = [`[Knowledge Context]`, `Branch: ${branch}`];
+  const MAX_LINES_PER_FILE = 15;
+  const targetFiles = ['design.md', 'decisions.md', 'spec.md'];
+
+  for (const filename of targetFiles) {
+    const filePath = join(branchDir, filename);
+    if (!existsSync(filePath)) continue;
+
+    let content: string;
+    try {
+      content = readFileSync(filePath, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    // 프론트매터 제거 후 비어있지 않은 본문만 추출
+    let body = content;
+    if (body.startsWith('---')) {
+      const endIdx = body.indexOf('---', 3);
+      if (endIdx !== -1) body = body.substring(endIdx + 3);
+    }
+    body = body.trim();
+    if (!body || body.split('\n').length <= 2) continue;
+
+    const truncated = body.split('\n').slice(0, MAX_LINES_PER_FILE).join('\n');
+    lines.push('', `--- ${filename} ---`, truncated);
+  }
+
+  // 유의미한 컨텐츠가 없으면 null
+  if (lines.length <= 2) return null;
+
+  return lines.join('\n');
 }
 
 // ===== 작업 워크플로우 자동 감지 =====
@@ -775,22 +830,35 @@ function main(): void {
   // behavioralGuard 설정 로드
   const guardConfig = loadBehavioralGuardConfig(cwd);
 
+  // 1.9단계: Knowledge Vault 브랜치 컨텍스트 (워크플로우 유무와 무관하게 수집)
+  let knowledgeContext: string | null = null;
+  try {
+    const branch = getCurrentBranch(cwd);
+    knowledgeContext = readKnowledgeContext(cwd, branch);
+  } catch {
+    // Knowledge Context 실패 시 무시
+  }
+
   // 2단계: 활성 워크플로우 컨텍스트 주입 + 합리화 방지 + 적신호 탐지
   const { instance } = loadActiveWorkflowFromFiles(cwd);
   if (!instance || !instance.status || instance.status === 'completed' || instance.status === 'aborted') {
-    // 2.5단계: 워크플로우 없어도 완료 의도 + 적신호 감지 시 주입
+    // 2.5단계: 워크플로우 없어도 Knowledge Context + 적신호 감지 시 주입
+    const parts: string[] = [];
+    if (knowledgeContext) parts.push(knowledgeContext);
     if (prompt && guardConfig.redFlagDetection === 'on') {
       const extraContext = buildStandaloneRedFlagContext(prompt);
-      if (extraContext) {
-        outputResult('continue', extraContext);
-        return;
-      }
+      if (extraContext) parts.push(extraContext);
     }
-    outputResult('continue');
+    outputResult('continue', parts.length > 0 ? parts.join('\n\n') : undefined);
     return;
   }
 
   const contextParts: string[] = [];
+
+  // Knowledge Vault 브랜치 컨텍스트
+  if (knowledgeContext) {
+    contextParts.push(knowledgeContext);
+  }
 
   // 기존 워크플로우 컨텍스트
   contextParts.push(buildWorkflowContext(instance, cwd));

@@ -81,6 +81,15 @@ export function agentHandoffPath(projectRoot: string): string {
 }
 
 // ============================================================
+// 아카이브 (.agent/archive/)
+// ============================================================
+
+/** .agent/archive/ 디렉토리 */
+export function agentArchiveDir(projectRoot: string): string {
+  return join(projectRoot, '.agent', 'archive');
+}
+
+// ============================================================
 // 온톨로지 (.agent/ontology/)
 // ============================================================
 

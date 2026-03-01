@@ -18,14 +18,14 @@ import { homedir } from 'node:os';
 
 /** 모든 OMC 실행 모드 */
 export const OMC_MODES = [
-  'ralph', 'autopilot', 'ultrapilot', 'ultrawork',
+  'ralph', 'ralph-todo', 'autopilot', 'ultrapilot', 'ultrawork',
   'ecomode', 'pipeline', 'swarm', 'ultraqa', 'team',
 ] as const;
 export type OmcMode = (typeof OMC_MODES)[number];
 
 /** 영속 모드 (session-end에서 종료 차단) */
 export const OMC_PERSISTENT_MODES = [
-  'ralph', 'autopilot', 'ultrapilot', 'ultrawork',
+  'ralph', 'ralph-todo', 'autopilot', 'ultrapilot', 'ultrawork',
   'ecomode', 'pipeline', 'swarm', 'ultraqa',
 ] as const;
 
@@ -39,17 +39,17 @@ export const OMC_TEAM_MODES = ['team', 'swarm', 'ultrapilot'] as const;
 
 /** 키워드 감지 시 state 파일을 생성하는 모드 */
 export const OMC_STATEFUL_MODES = [
-  'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
+  'ralph', 'ralph-todo', 'autopilot', 'team', 'ultrawork', 'ecomode',
 ] as const;
 
 /** cancel 시 삭제하는 모드 state 파일 */
 export const OMC_CANCEL_MODES = [
-  'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode', 'pipeline',
+  'ralph', 'ralph-todo', 'autopilot', 'team', 'ultrawork', 'ecomode', 'pipeline',
 ] as const;
 
 /** 키워드 충돌 해소 우선순위 */
 export const OMC_KEYWORD_PRIORITY = [
-  'cancel', 'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
+  'cancel', 'ralph-todo', 'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
   'pipeline', 'ralplan', 'plan', 'tdd', 'research', 'ultrathink',
   'deepsearch', 'analyze', 'codex', 'gemini',
 ] as const;
@@ -160,6 +160,60 @@ export function harnessCapabilitiesPath(projectRoot: string): string {
 /** 팀 메모리 파일 */
 export function harnessTeamMemoryPath(projectRoot: string): string {
   return join(projectRoot, '.harness', 'team-memory.json');
+}
+
+// ============================================================
+// Knowledge Vault 경로 빌더 — 로컬 지식 베이스 (.knowledge/)
+// ============================================================
+
+/** 브랜치명을 디렉토리 안전한 이름으로 변환 (feat/42-login → feat-42-login) */
+export function sanitizeBranchName(branch: string): string {
+  return branch.replace(/\//g, '-');
+}
+
+/** Knowledge Vault 루트 디렉토리 */
+export function knowledgeDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge');
+}
+
+/** 브랜치별 작업 문서 디렉토리 */
+export function knowledgeBranchesDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', 'branches');
+}
+
+/** 특정 브랜치의 작업 문서 디렉토리 */
+export function knowledgeBranchDir(projectRoot: string, branch: string): string {
+  return join(projectRoot, '.knowledge', 'branches', sanitizeBranchName(branch));
+}
+
+/** 완료된 브랜치 아카이브 디렉토리 */
+export function knowledgeArchiveDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', 'branches', '_archive');
+}
+
+/** 도메인별 지식 디렉토리 */
+export function knowledgeDomainsDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', 'domains');
+}
+
+/** 온톨로지 vault 렌더링 디렉토리 */
+export function knowledgeOntologyDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', 'ontology');
+}
+
+/** vault 내 템플릿 디렉토리 */
+export function knowledgeTemplatesDir(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', '_templates');
+}
+
+/** vault 전체 인덱스 파일 */
+export function knowledgeIndexPath(projectRoot: string): string {
+  return join(projectRoot, '.knowledge', '_index.md');
+}
+
+/** 팀 공유용 온톨로지 스냅샷 디렉토리 (git-tracked) */
+export function docsOntologyDir(projectRoot: string): string {
+  return join(projectRoot, 'docs', 'ontology');
 }
 
 // ============================================================

@@ -26,6 +26,7 @@ export interface HarnessConfig {
   omcConfig?: OmcConfig;
   behavioralGuard?: BehavioralGuardConfig;
   overlapPreferences?: OverlapPreferences;
+  knowledge?: KnowledgeConfig;
 }
 
 export interface ConfigOptions {
@@ -62,4 +63,24 @@ export const DEFAULT_OMC_CONFIG: OmcConfig = {
   autoSync: true,
   workflowIntegration: true,
   ontologySync: true,
+};
+
+export interface KnowledgeConfig {
+  enabled: boolean;
+  vaultDir: string;
+  autoCreateBranch: boolean;
+  autoArchive: boolean;
+  syncOntology: boolean;
+  publishOntology: boolean;
+  syncAutoMemory: boolean;
+}
+
+export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
+  enabled: true,
+  vaultDir: '.knowledge',
+  autoCreateBranch: true,
+  autoArchive: true,
+  syncOntology: true,
+  publishOntology: false,
+  syncAutoMemory: true,
 };
