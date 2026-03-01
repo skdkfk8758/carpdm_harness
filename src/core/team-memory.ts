@@ -116,6 +116,13 @@ export function addEntry(
   saveStore(projectRoot, store);
   syncRuleFile(projectRoot, entry.category, store);
   syncMemoryMd(projectRoot, store);
+
+  // Knowledge Vault + auto-memory 동기화 (비동기, 실패 무시)
+  // 순환 참조 방지를 위해 dynamic import 사용
+  import('./knowledge-vault.js')
+    .then(({ syncAutoMemory }) => syncAutoMemory(projectRoot, store))
+    .catch(() => {});
+
   return entry;
 }
 

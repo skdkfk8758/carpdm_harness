@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { existsSync } from 'node:fs';
 import { loadConfig } from '../core/config.js';
 import { detectCapabilities, requireOmc, cacheCapabilities } from '../core/capability-detector.js';
 import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.js';
@@ -81,6 +82,15 @@ export function registerSetupTool(server: McpServer): void {
           res.blank();
           res.info('harness_init 호출 시 overlapChoices 파라미터로 선택을 전달하세요.');
           res.info('또는 overlapChoices: \'{"applyDefaults":true}\' 로 권장 설정을 일괄 적용합니다.');
+        }
+
+        // Step 3.7: Obsidian 감지
+        const obsidianInstalled = existsSync('/Applications/Obsidian.app')
+          || existsSync('/usr/local/bin/obsidian');
+        if (obsidianInstalled) {
+          res.ok('Obsidian 감지 → Knowledge Vault를 Obsidian에서 열 수 있습니다');
+        } else {
+          res.info('Obsidian 미감지 → Knowledge Vault는 일반 마크다운 폴더로 동작합니다 (Obsidian 선택사항)');
         }
 
         // Step 4: 프리셋 추천

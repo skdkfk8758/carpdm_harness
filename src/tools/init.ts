@@ -21,6 +21,8 @@ import { bootstrapProjectSettings, getCapabilityAllowRules } from '../core/setti
 import { scanOverlaps } from '../core/overlap-detector.js';
 import { applyOverlapChoices } from '../core/overlap-applier.js';
 import type { OverlapChoices } from '../types/overlap.js';
+import { initKnowledgeVault, syncOntologyToVault } from '../core/knowledge-vault.js';
+import { DEFAULT_KNOWLEDGE_CONFIG } from '../types/config.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -189,17 +191,25 @@ export function registerInitTool(server: McpServer): void {
             res.warn(`triggers.json 설치 실패: ${String(err)}`);
           }
 
-          // .gitignore에 .harness/ 추가
+          // .gitignore에 .harness/ + .knowledge/ 추가
           const gitignorePath = join(pRoot, '.gitignore');
+          const gitignoreEntries = ['.harness/', '.knowledge/'];
           if (existsSync(gitignorePath)) {
-            const content = readFileSync(gitignorePath, 'utf-8');
-            if (!content.includes('.harness/')) {
-              writeFileSync(gitignorePath, content.trimEnd() + '\n.harness/\n');
-              res.info('.gitignore에 .harness/ 추가');
+            let content = readFileSync(gitignorePath, 'utf-8');
+            const added: string[] = [];
+            for (const entry of gitignoreEntries) {
+              if (!content.includes(entry)) {
+                content = content.trimEnd() + '\n' + entry + '\n';
+                added.push(entry);
+              }
+            }
+            if (added.length > 0) {
+              writeFileSync(gitignorePath, content);
+              res.info(`.gitignore에 ${added.join(', ')} 추가`);
             }
           } else {
-            writeFileSync(gitignorePath, '.harness/\n');
-            res.info('.gitignore 생성 (.harness/)');
+            writeFileSync(gitignorePath, gitignoreEntries.join('\n') + '\n');
+            res.info('.gitignore 생성 (.harness/, .knowledge/)');
           }
         }
 
@@ -303,6 +313,21 @@ export function registerInitTool(server: McpServer): void {
             res.ok('ONTOLOGY-INDEX.md 생성 완료');
           } catch (err) {
             res.warn(`INDEX 생성 실패: ${String(err)}`);
+          }
+
+          // Knowledge Vault 초기화
+          try {
+            const knowledgeConfig = { ...DEFAULT_KNOWLEDGE_CONFIG };
+            config.knowledge = knowledgeConfig;
+            initKnowledgeVault(pRoot, knowledgeConfig);
+            res.ok('Knowledge Vault 초기화 완료 (.knowledge/)');
+            // 온톨로지가 있으면 vault에 동기화
+            if (pEnableOntology) {
+              syncOntologyToVault(pRoot);
+              res.ok('온톨로지 → Knowledge Vault 동기화 완료');
+            }
+          } catch (err) {
+            res.warn(`Knowledge Vault 초기화 실패 (무시하고 계속): ${String(err)}`);
           }
 
           // memory.md 초기 동기화
