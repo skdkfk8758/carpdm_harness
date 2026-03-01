@@ -1,11 +1,12 @@
 // src/hooks/quality-gate.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 import { execSync } from "child_process";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 var OMC_TEAM_MODES = ["team", "swarm", "ultrapilot"];
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
@@ -121,7 +122,7 @@ var DEFAULT_BEHAVIORAL_GUARD_CONFIG = {
 function main() {
   let input;
   try {
-    const raw = readFileSync("/dev/stdin", "utf-8");
+    const raw = readFileSync2("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     outputResult("continue");
@@ -136,13 +137,13 @@ function main() {
   }
   const cwd = input.cwd || process.cwd();
   const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync(configPath)) {
+  if (!existsSync2(configPath)) {
     outputResult("continue");
     return;
   }
   let config;
   try {
-    config = JSON.parse(readFileSync(configPath, "utf-8"));
+    config = JSON.parse(readFileSync2(configPath, "utf-8"));
   } catch {
     outputResult("continue");
     return;
@@ -187,9 +188,9 @@ function main() {
   const secretFiles = [];
   for (const file of stagedFiles) {
     const filePath = join2(cwd, file);
-    if (!existsSync(filePath)) continue;
+    if (!existsSync2(filePath)) continue;
     try {
-      const content = readFileSync(filePath, "utf-8");
+      const content = readFileSync2(filePath, "utf-8");
       for (const pattern of secretPatterns) {
         if (pattern.test(content)) {
           secretFound = true;
@@ -251,12 +252,12 @@ ${redFlagReport}`);
 }
 function isOmcTeamMode(cwd) {
   const stateDir = omcStateDir(cwd);
-  if (!existsSync(stateDir)) return false;
+  if (!existsSync2(stateDir)) return false;
   try {
     const stateFiles = readdirSync(stateDir).filter((f) => f.endsWith("-state.json"));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join2(stateDir, file), "utf-8"));
+        const state = JSON.parse(readFileSync2(join2(stateDir, file), "utf-8"));
         if (state.active) {
           const mode = file.replace("-state.json", "");
           if (OMC_TEAM_MODES.includes(mode)) {

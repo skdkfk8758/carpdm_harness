@@ -1,16 +1,17 @@
 // src/hooks/prompt-enricher.ts
-import { readFileSync as readFileSync4, writeFileSync, mkdirSync, existsSync as existsSync4, unlinkSync } from "fs";
+import { readFileSync as readFileSync5, writeFileSync, mkdirSync, existsSync as existsSync5, unlinkSync } from "fs";
 import { join as join6 } from "path";
 import { homedir as homedir2 } from "os";
 import { execSync } from "child_process";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 var OMC_STATEFUL_MODES = [
   "ralph",
   "ralph-todo",
@@ -114,12 +115,12 @@ function outputResult(result, additionalContext) {
 }
 function loadActiveWorkflowFromFiles(cwd) {
   const activePath = join2(cwd, ".harness", "workflows", "active.json");
-  if (!existsSync(activePath)) {
+  if (!existsSync2(activePath)) {
     return { active: null, instance: null };
   }
   let activeData;
   try {
-    activeData = JSON.parse(readFileSync(activePath, "utf-8"));
+    activeData = JSON.parse(readFileSync2(activePath, "utf-8"));
   } catch {
     return { active: null, instance: null };
   }
@@ -128,11 +129,11 @@ function loadActiveWorkflowFromFiles(cwd) {
     return { active: activeData, instance: null };
   }
   const statePath = join2(cwd, ".harness", "workflows", activeId, "state.json");
-  if (!existsSync(statePath)) {
+  if (!existsSync2(statePath)) {
     return { active: activeData, instance: null };
   }
   try {
-    const instance = JSON.parse(readFileSync(statePath, "utf-8"));
+    const instance = JSON.parse(readFileSync2(statePath, "utf-8"));
     return { active: activeData, instance };
   } catch {
     return { active: activeData, instance: null };
@@ -140,12 +141,12 @@ function loadActiveWorkflowFromFiles(cwd) {
 }
 function detectOmcMode(cwd) {
   const stateDir = omcStateDir(cwd);
-  if (!existsSync(stateDir)) return null;
+  if (!existsSync2(stateDir)) return null;
   try {
     const stateFiles = readdirSync(stateDir).filter((f) => f.endsWith("-state.json"));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join2(stateDir, file), "utf-8"));
+        const state = JSON.parse(readFileSync2(join2(stateDir, file), "utf-8"));
         if (state.active) {
           return file.replace("-state.json", "");
         }
@@ -342,7 +343,7 @@ var DEFAULT_BEHAVIORAL_GUARD_CONFIG = {
 };
 
 // src/core/skill-trigger-engine.ts
-import { readFileSync as readFileSync2, existsSync as existsSync2 } from "fs";
+import { readFileSync as readFileSync3, existsSync as existsSync3 } from "fs";
 import { join as join3 } from "path";
 function loadTriggers(projectRoot) {
   const empty = { version: "1.0", keywordGroups: {}, triggers: [] };
@@ -361,8 +362,8 @@ function loadTriggers(projectRoot) {
 }
 function loadManifestFile(filePath) {
   try {
-    if (!existsSync2(filePath)) return null;
-    const raw = readFileSync2(filePath, "utf-8");
+    if (!existsSync3(filePath)) return null;
+    const raw = readFileSync3(filePath, "utf-8");
     return JSON.parse(raw);
   } catch {
     return null;
@@ -452,7 +453,7 @@ function resolveMessage(template, extracts) {
 }
 
 // src/core/implementation-readiness.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3 } from "fs";
+import { existsSync as existsSync4, readFileSync as readFileSync4 } from "fs";
 import { join as join5 } from "path";
 
 // src/core/project-paths.ts
@@ -492,9 +493,9 @@ var IMPLEMENTATION_INTENT_PATTERNS = [
 function getPlanStatus(cwd) {
   const paths = planSearchPaths(cwd);
   for (const p of paths) {
-    if (!existsSync3(p)) continue;
+    if (!existsSync4(p)) continue;
     try {
-      const content = readFileSync3(p, "utf-8");
+      const content = readFileSync4(p, "utf-8");
       if (/\bAPPROVED\b/.test(content)) return "APPROVED";
       if (/\bDRAFT\b/.test(content)) return "DRAFT";
       return "EXISTS";
@@ -507,9 +508,9 @@ function getPlanStatus(cwd) {
 function getTodoStatus(cwd) {
   const paths = todoSearchPaths(cwd);
   for (const p of paths) {
-    if (!existsSync3(p)) continue;
+    if (!existsSync4(p)) continue;
     try {
-      const content = readFileSync3(p, "utf-8");
+      const content = readFileSync4(p, "utf-8");
       const done = (content.match(/\[x\]/gi) || []).length;
       const remaining = (content.match(/\[ \]/g) || []).length;
       const total = done + remaining;
@@ -524,7 +525,7 @@ function hasImplementationIntent(cleanPrompt) {
   return IMPLEMENTATION_INTENT_PATTERNS.some((p) => p.test(cleanPrompt));
 }
 function checkImplementationReadiness(cleanPrompt, cwd) {
-  if (!existsSync3(join5(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
+  if (!existsSync4(join5(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
   if (!hasImplementationIntent(cleanPrompt)) return { status: "pass" };
   const planStatus = getPlanStatus(cwd);
   const todoStatus = getTodoStatus(cwd);
@@ -599,7 +600,7 @@ function activateState(directory, prompt, stateName, sessionId) {
     last_checked_at: (/* @__PURE__ */ new Date()).toISOString()
   };
   const localDir = omcStateDir(directory);
-  if (!existsSync4(localDir)) {
+  if (!existsSync5(localDir)) {
     try {
       mkdirSync(localDir, { recursive: true });
     } catch {
@@ -610,7 +611,7 @@ function activateState(directory, prompt, stateName, sessionId) {
   } catch {
   }
   const globalDir = omcGlobalStateDir();
-  if (!existsSync4(globalDir)) {
+  if (!existsSync5(globalDir)) {
     try {
       mkdirSync(globalDir, { recursive: true });
     } catch {
@@ -626,11 +627,11 @@ function clearStateFiles(directory, modeNames) {
     const localPath = omcStatePath(directory, name);
     const globalPath = omcGlobalStatePath(name);
     try {
-      if (existsSync4(localPath)) unlinkSync(localPath);
+      if (existsSync5(localPath)) unlinkSync(localPath);
     } catch {
     }
     try {
-      if (existsSync4(globalPath)) unlinkSync(globalPath);
+      if (existsSync5(globalPath)) unlinkSync(globalPath);
     } catch {
     }
   }
@@ -753,8 +754,8 @@ function isTeamEnabled(cwd) {
   };
   try {
     const globalPath = join6(homedir2(), ".claude", "settings.json");
-    if (existsSync4(globalPath)) {
-      const settings = JSON.parse(readFileSync4(globalPath, "utf-8"));
+    if (existsSync5(globalPath)) {
+      const settings = JSON.parse(readFileSync5(globalPath, "utf-8"));
       if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
     }
   } catch {
@@ -762,8 +763,8 @@ function isTeamEnabled(cwd) {
   if (cwd) {
     try {
       const localPath = join6(cwd, ".claude", "settings.local.json");
-      if (existsSync4(localPath)) {
-        const settings = JSON.parse(readFileSync4(localPath, "utf-8"));
+      if (existsSync5(localPath)) {
+        const settings = JSON.parse(readFileSync5(localPath, "utf-8"));
         if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
       }
     } catch {
@@ -887,16 +888,16 @@ function detectKeywords(prompt, directory, sessionId) {
 function readKnowledgeContext(cwd, branch) {
   if (!branch) return null;
   const branchDir = knowledgeBranchDir(cwd, branch);
-  if (!existsSync4(branchDir)) return null;
+  if (!existsSync5(branchDir)) return null;
   const lines = [`[Knowledge Context]`, `Branch: ${branch}`];
   const MAX_LINES_PER_FILE = 15;
   const targetFiles = ["design.md", "decisions.md", "spec.md"];
   for (const filename of targetFiles) {
     const filePath = join6(branchDir, filename);
-    if (!existsSync4(filePath)) continue;
+    if (!existsSync5(filePath)) continue;
     let content;
     try {
-      content = readFileSync4(filePath, "utf-8");
+      content = readFileSync5(filePath, "utf-8");
     } catch {
       continue;
     }
@@ -923,8 +924,8 @@ function getCurrentBranch(cwd) {
 function hasActiveWork(cwd) {
   try {
     const workStatePath = join6(cwd, ".harness", "state", "current-work.json");
-    if (!existsSync4(workStatePath)) return false;
-    const state = JSON.parse(readFileSync4(workStatePath, "utf-8"));
+    if (!existsSync5(workStatePath)) return false;
+    const state = JSON.parse(readFileSync5(workStatePath, "utf-8"));
     return !state.completedAt;
   } catch {
     return false;
@@ -1019,8 +1020,8 @@ function buildWorkflowContext(instance, cwd) {
 function loadBehavioralGuardConfig(cwd) {
   try {
     const configPath = join6(cwd, "carpdm-harness.config.json");
-    if (!existsSync4(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
-    const config = JSON.parse(readFileSync4(configPath, "utf-8"));
+    if (!existsSync5(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
+    const config = JSON.parse(readFileSync5(configPath, "utf-8"));
     const guard = config.behavioralGuard;
     if (!guard) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
     return {
@@ -1043,7 +1044,7 @@ function buildStandaloneRedFlagContext(prompt) {
 function main() {
   let input;
   try {
-    const raw = readFileSync4("/dev/stdin", "utf-8");
+    const raw = readFileSync5("/dev/stdin", "utf-8");
     input = parseHookInput(raw);
   } catch {
     outputResult("continue");

@@ -1,13 +1,14 @@
 // src/hooks/subagent-context.ts
-import { readFileSync as readFileSync2 } from "fs";
+import { readFileSync as readFileSync3 } from "fs";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
 }
@@ -59,12 +60,12 @@ function outputResult(result, additionalContext) {
 }
 function loadActiveWorkflowFromFiles(cwd) {
   const activePath = join2(cwd, ".harness", "workflows", "active.json");
-  if (!existsSync(activePath)) {
+  if (!existsSync2(activePath)) {
     return { active: null, instance: null };
   }
   let activeData;
   try {
-    activeData = JSON.parse(readFileSync(activePath, "utf-8"));
+    activeData = JSON.parse(readFileSync2(activePath, "utf-8"));
   } catch {
     return { active: null, instance: null };
   }
@@ -73,11 +74,11 @@ function loadActiveWorkflowFromFiles(cwd) {
     return { active: activeData, instance: null };
   }
   const statePath = join2(cwd, ".harness", "workflows", activeId, "state.json");
-  if (!existsSync(statePath)) {
+  if (!existsSync2(statePath)) {
     return { active: activeData, instance: null };
   }
   try {
-    const instance = JSON.parse(readFileSync(statePath, "utf-8"));
+    const instance = JSON.parse(readFileSync2(statePath, "utf-8"));
     return { active: activeData, instance };
   } catch {
     return { active: activeData, instance: null };
@@ -85,12 +86,12 @@ function loadActiveWorkflowFromFiles(cwd) {
 }
 function detectOmcMode(cwd) {
   const stateDir = omcStateDir(cwd);
-  if (!existsSync(stateDir)) return null;
+  if (!existsSync2(stateDir)) return null;
   try {
     const stateFiles = readdirSync(stateDir).filter((f) => f.endsWith("-state.json"));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join2(stateDir, file), "utf-8"));
+        const state = JSON.parse(readFileSync2(join2(stateDir, file), "utf-8"));
         if (state.active) {
           return file.replace("-state.json", "");
         }
@@ -120,7 +121,7 @@ function buildWorkflowSummary(instance) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     input = parseHookInput(raw);
   } catch {
     outputResult("continue");

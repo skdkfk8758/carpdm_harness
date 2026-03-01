@@ -1,13 +1,14 @@
 // src/hooks/pre-compact.ts
-import { readFileSync as readFileSync2 } from "fs";
+import { readFileSync as readFileSync3 } from "fs";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 var OMC_SKILLS = {
   analyze: "/oh-my-claudecode:analyze",
   plan: "/oh-my-claudecode:plan",
@@ -56,12 +57,12 @@ function outputResult(result, additionalContext) {
 }
 function loadActiveWorkflowFromFiles(cwd) {
   const activePath = join2(cwd, ".harness", "workflows", "active.json");
-  if (!existsSync(activePath)) {
+  if (!existsSync2(activePath)) {
     return { active: null, instance: null };
   }
   let activeData;
   try {
-    activeData = JSON.parse(readFileSync(activePath, "utf-8"));
+    activeData = JSON.parse(readFileSync2(activePath, "utf-8"));
   } catch {
     return { active: null, instance: null };
   }
@@ -70,11 +71,11 @@ function loadActiveWorkflowFromFiles(cwd) {
     return { active: activeData, instance: null };
   }
   const statePath = join2(cwd, ".harness", "workflows", activeId, "state.json");
-  if (!existsSync(statePath)) {
+  if (!existsSync2(statePath)) {
     return { active: activeData, instance: null };
   }
   try {
-    const instance = JSON.parse(readFileSync(statePath, "utf-8"));
+    const instance = JSON.parse(readFileSync2(statePath, "utf-8"));
     return { active: activeData, instance };
   } catch {
     return { active: activeData, instance: null };
@@ -82,9 +83,9 @@ function loadActiveWorkflowFromFiles(cwd) {
 }
 function readTeamMemoryConventions(cwd, limit = 5) {
   const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
-  if (!existsSync(teamMemoryPath)) return [];
+  if (!existsSync2(teamMemoryPath)) return [];
   try {
-    const teamMemory = JSON.parse(readFileSync(teamMemoryPath, "utf-8"));
+    const teamMemory = JSON.parse(readFileSync2(teamMemoryPath, "utf-8"));
     if (!teamMemory.conventions || !Array.isArray(teamMemory.conventions)) return [];
     return teamMemory.conventions.slice(0, limit).map((c) => String(c.title || c.content || "")).filter(Boolean);
   } catch {
@@ -93,9 +94,9 @@ function readTeamMemoryConventions(cwd, limit = 5) {
 }
 function readDetectedCapabilities(cwd) {
   const capabilitiesPath = join2(cwd, ".harness", "capabilities.json");
-  if (!existsSync(capabilitiesPath)) return [];
+  if (!existsSync2(capabilitiesPath)) return [];
   try {
-    const caps = JSON.parse(readFileSync(capabilitiesPath, "utf-8"));
+    const caps = JSON.parse(readFileSync2(capabilitiesPath, "utf-8"));
     const tools = caps.tools || {};
     return Object.entries(tools).filter(([, v]) => v.detected).map(([k]) => k);
   } catch {
@@ -107,7 +108,7 @@ function readDetectedCapabilities(cwd) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     input = parseHookInput(raw);
   } catch {
     outputResult("continue");

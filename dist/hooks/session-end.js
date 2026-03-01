@@ -1,11 +1,12 @@
 // src/hooks/session-end.ts
-import { readFileSync, existsSync, writeFileSync, readdirSync, mkdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, writeFileSync, readdirSync, mkdirSync } from "fs";
 import { join as join2, dirname, resolve, normalize } from "path";
 import { homedir as homedir2 } from "os";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
 }
@@ -99,8 +100,8 @@ var STALE_STATE_THRESHOLD_MS = 2 * 60 * 60 * 1e3;
 var SESSION_ID_ALLOWLIST = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,255}$/;
 function readJsonFile(filePath) {
   try {
-    if (!existsSync(filePath)) return null;
-    return JSON.parse(readFileSync(filePath, "utf-8"));
+    if (!existsSync2(filePath)) return null;
+    return JSON.parse(readFileSync2(filePath, "utf-8"));
   } catch {
     return null;
   }
@@ -108,7 +109,7 @@ function readJsonFile(filePath) {
 function writeJsonFile(filePath, data) {
   try {
     const dir = dirname(filePath);
-    if (dir && dir !== "." && !existsSync(dir)) {
+    if (dir && dir !== "." && !existsSync2(dir)) {
       mkdirSync(dir, { recursive: true });
     }
     writeFileSync(filePath, JSON.stringify(data, null, 2));
@@ -248,7 +249,7 @@ function countIncompleteTasks(sessionId) {
   if (!sessionId || typeof sessionId !== "string") return 0;
   if (!SESSION_ID_ALLOWLIST.test(sessionId)) return 0;
   const taskDir = join2(homedir2(), ".claude", "tasks", sessionId);
-  if (!existsSync(taskDir)) return 0;
+  if (!existsSync2(taskDir)) return 0;
   let count = 0;
   try {
     const files = readdirSync(taskDir).filter(
@@ -256,7 +257,7 @@ function countIncompleteTasks(sessionId) {
     );
     for (const file of files) {
       try {
-        const content = readFileSync(join2(taskDir, file), "utf-8");
+        const content = readFileSync2(join2(taskDir, file), "utf-8");
         const task = JSON.parse(content);
         if (task.status === "pending" || task.status === "in_progress") count++;
       } catch {
@@ -320,7 +321,7 @@ function checkPersistentMode(input) {
   const ecomode = readStateFileWithSession(stateDir, globalStateDir, "ecomode-state.json", sessionId);
   const ultraqa = readStateFileWithSession(stateDir, globalStateDir, "ultraqa-state.json", sessionId);
   const pipeline = readStateFileWithSession(stateDir, globalStateDir, "pipeline-state.json", sessionId);
-  const swarmMarker = existsSync(omcSwarmMarkerPath(directory));
+  const swarmMarker = existsSync2(omcSwarmMarkerPath(directory));
   const swarmSummary = readJsonFile(omcSwarmSummaryPath(directory));
   const taskCount = countIncompleteTasks(sessionId);
   const todoCount = countIncompleteTodos(sessionId, directory);
@@ -345,9 +346,9 @@ function checkPersistentMode(input) {
       ];
       let todoTasks = [];
       for (const tp of todoSearchPaths) {
-        if (!existsSync(tp)) continue;
+        if (!existsSync2(tp)) continue;
         try {
-          const content = readFileSync(tp, "utf-8");
+          const content = readFileSync2(tp, "utf-8");
           const lines = content.split("\n");
           for (const line of lines) {
             const match = line.trim().match(/^-\s+\[([ xX])\]\s+(.+)/);
@@ -674,18 +675,18 @@ Task: ${ultrawork.state.original_prompt}`;
 }
 function checkTeamMemorySync(cwd) {
   const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync(configPath)) return null;
+  if (!existsSync2(configPath)) return null;
   try {
-    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    const config = JSON.parse(readFileSync2(configPath, "utf-8"));
     const omcConfig = config.omcConfig || {};
     const hasTeamMemory = (config.modules || []).includes("team-memory");
     if (omcConfig.autoSync !== false && hasTeamMemory) {
       const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
       const omcProjMemPath = omcProjectMemoryPath(cwd);
-      if (existsSync(teamMemoryPath) && existsSync(omcProjMemPath)) {
+      if (existsSync2(teamMemoryPath) && existsSync2(omcProjMemPath)) {
         try {
-          const teamMemory = JSON.parse(readFileSync(teamMemoryPath, "utf-8"));
-          const omcMemory = JSON.parse(readFileSync(omcProjMemPath, "utf-8"));
+          const teamMemory = JSON.parse(readFileSync2(teamMemoryPath, "utf-8"));
+          const omcMemory = JSON.parse(readFileSync2(omcProjMemPath, "utf-8"));
           if (teamMemory.conventions && Array.isArray(teamMemory.conventions)) {
             const conventionTexts = teamMemory.conventions.map((c) => c.title || c.content || "").filter(Boolean);
             if (conventionTexts.length > 0) {
@@ -706,17 +707,17 @@ function checkTeamMemorySync(cwd) {
 }
 function readFileContent(filePath) {
   try {
-    if (!existsSync(filePath)) return null;
-    return readFileSync(filePath, "utf-8");
+    if (!existsSync2(filePath)) return null;
+    return readFileSync2(filePath, "utf-8");
   } catch {
     return null;
   }
 }
 function findAgentFile(cwd, name) {
   const agentPath = join2(cwd, ".agent", name);
-  if (existsSync(agentPath)) return agentPath;
+  if (existsSync2(agentPath)) return agentPath;
   const rootPath = join2(cwd, name);
-  if (existsSync(rootPath)) return rootPath;
+  if (existsSync2(rootPath)) return rootPath;
   return null;
 }
 function generateHandoff(cwd) {
@@ -790,7 +791,7 @@ ${filesSection}
 `;
   const handoffPath = join2(cwd, ".agent", "handoff.md");
   const handoffDir = dirname(handoffPath);
-  if (!existsSync(handoffDir)) {
+  if (!existsSync2(handoffDir)) {
     mkdirSync(handoffDir, { recursive: true });
   }
   writeFileSync(handoffPath, handoffContent, "utf-8");
@@ -819,11 +820,11 @@ function appendSessionLog(cwd) {
 `;
   const logPath = join2(cwd, ".agent", "session-log.md");
   const logDir = dirname(logPath);
-  if (!existsSync(logDir)) {
+  if (!existsSync2(logDir)) {
     mkdirSync(logDir, { recursive: true });
   }
-  if (existsSync(logPath)) {
-    const existing = readFileSync(logPath, "utf-8");
+  if (existsSync2(logPath)) {
+    const existing = readFileSync2(logPath, "utf-8");
     const separatorIdx = existing.indexOf("\n---\n");
     if (separatorIdx !== -1) {
       const header = existing.slice(0, separatorIdx + 5);
@@ -846,9 +847,9 @@ ${logEntry}`, "utf-8");
 function checkBugModeCompletion(cwd) {
   const stateDir = harnessStateDir(cwd);
   const taskModePath = join2(stateDir, "task-mode");
-  if (!existsSync(taskModePath)) return null;
+  if (!existsSync2(taskModePath)) return null;
   try {
-    const mode = readFileSync(taskModePath, "utf-8").trim();
+    const mode = readFileSync2(taskModePath, "utf-8").trim();
     if (!mode.startsWith("BugFix")) return null;
     return '[harness-session-end] Bug Mode \uC138\uC158\uC774 \uC885\uB8CC\uB429\uB2C8\uB2E4. \uC218\uC815\uD55C \uBC84\uADF8\uAC00 \uC788\uB2E4\uBA74 harness_bug_report \uB610\uB294 harness_memory_add(category:"bugs")\uB85C \uAE30\uB85D\uD558\uBA74 \uD300 \uCD94\uC801\uC774 \uAC00\uB2A5\uD569\uB2C8\uB2E4.';
   } catch {
@@ -857,17 +858,17 @@ function checkBugModeCompletion(cwd) {
 }
 function checkClaudeMdSync(cwd) {
   const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync(configPath)) return null;
+  if (!existsSync2(configPath)) return null;
   const claudeMdPath = join2(cwd, "CLAUDE.md");
-  if (!existsSync(claudeMdPath)) return null;
+  if (!existsSync2(claudeMdPath)) return null;
   try {
-    const content = readFileSync(claudeMdPath, "utf-8");
+    const content = readFileSync2(claudeMdPath, "utf-8");
     const MARKER_START = "<!-- harness:auto:start -->";
     const MARKER_END = "<!-- harness:auto:end -->";
     const startIdx = content.indexOf(MARKER_START);
     const endIdx = content.indexOf(MARKER_END);
     if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
-    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    const config = JSON.parse(readFileSync2(configPath, "utf-8"));
     const modules = (config.modules || []).join(", ") || "(\uC5C6\uC74C)";
     const preset = config.preset || "unknown";
     const currentAuto = content.slice(startIdx + MARKER_START.length, endIdx).trim();
@@ -880,12 +881,12 @@ function checkClaudeMdSync(cwd) {
 }
 function syncMemoryMd(cwd) {
   const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
-  if (!existsSync(teamMemoryPath)) return;
+  if (!existsSync2(teamMemoryPath)) return;
   const memoryMdPath = join2(cwd, ".agent", "memory.md");
-  if (!existsSync(memoryMdPath)) return;
+  if (!existsSync2(memoryMdPath)) return;
   const MARKER_START = "<!-- harness:team-memory:start -->";
   const MARKER_END = "<!-- harness:team-memory:end -->";
-  const raw = readFileSync(teamMemoryPath, "utf-8");
+  const raw = readFileSync2(teamMemoryPath, "utf-8");
   const data = JSON.parse(raw);
   const entries = data.entries || [];
   if (entries.length === 0) return;
@@ -896,7 +897,7 @@ function syncMemoryMd(cwd) {
     return `- **[${cat}]** ${e.title || "(\uBB34\uC81C)"}${date ? ` _(${date})_` : ""}`;
   });
   const newSection = lines.join("\n");
-  let content = readFileSync(memoryMdPath, "utf-8");
+  let content = readFileSync2(memoryMdPath, "utf-8");
   const startIdx = content.indexOf(MARKER_START);
   const endIdx = content.indexOf(MARKER_END);
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
@@ -908,8 +909,8 @@ function syncMemoryMd(cwd) {
 }
 function checkOntologyStale(cwd) {
   const cachePath = join2(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
-  if (!existsSync(cachePath)) return null;
-  const raw = readFileSync(cachePath, "utf-8");
+  if (!existsSync2(cachePath)) return null;
+  const raw = readFileSync2(cachePath, "utf-8");
   const cache = JSON.parse(raw);
   if (!cache.builtAt) return null;
   const builtAt = new Date(cache.builtAt).getTime();
@@ -924,7 +925,7 @@ function checkOntologyStale(cwd) {
 function main() {
   let input;
   try {
-    const raw = readFileSync("/dev/stdin", "utf-8");
+    const raw = readFileSync2("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     process.stdout.write(JSON.stringify({ result: "continue" }));

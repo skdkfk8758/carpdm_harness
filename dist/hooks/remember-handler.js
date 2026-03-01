@@ -1,13 +1,14 @@
 // src/hooks/remember-handler.ts
-import { readFileSync as readFileSync2, writeFileSync, existsSync as existsSync2, mkdirSync } from "fs";
+import { readFileSync as readFileSync3, writeFileSync, existsSync as existsSync3, mkdirSync } from "fs";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function omcDir(projectRoot) {
   return join(projectRoot, ".omc");
 }
@@ -99,9 +100,9 @@ function parseRememberTags(text) {
   return { priority, working };
 }
 function readNotepad(notepadPath) {
-  if (!existsSync2(notepadPath)) return NOTEPAD_TEMPLATE;
+  if (!existsSync3(notepadPath)) return NOTEPAD_TEMPLATE;
   try {
-    return readFileSync2(notepadPath, "utf-8");
+    return readFileSync3(notepadPath, "utf-8");
   } catch {
     return NOTEPAD_TEMPLATE;
   }
@@ -141,7 +142,7 @@ function updateWorkingSection(content, additions) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     const parsed = parseHookInput(raw);
     if (!parsed) {
       process.stdout.write(JSON.stringify({ result: "continue" }));
