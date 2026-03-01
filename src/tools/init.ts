@@ -7,6 +7,7 @@ import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
 import { ensureDir, safeWriteFile } from '../core/file-ops.js';
+import { detectLocalMcpConflict, formatMcpConflictWarning } from '../core/omc-compat.js';
 import { buildOntology, collectIndexData } from '../core/ontology/index.js';
 import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from '../core/team-memory.js';
@@ -400,6 +401,11 @@ export function registerInitTool(server: McpServer): void {
         if (coreLog) {
           res.blank();
           res.line(coreLog);
+        }
+
+        // Local MCP 충돌 감지
+        if (detectLocalMcpConflict(pRoot)) {
+          formatMcpConflictWarning(res);
         }
 
         res.blank();

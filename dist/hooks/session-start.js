@@ -1,10 +1,11 @@
 // src/hooks/session-start.ts
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join as join2, dirname } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function omcStatePath(projectRoot, mode) {
   return join(projectRoot, ".omc", "state", `${mode}-state.json`);
 }
@@ -60,8 +61,8 @@ var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/la
 // src/hooks/session-start.ts
 function readJsonFile(path) {
   try {
-    if (!existsSync(path)) return null;
-    return JSON.parse(readFileSync(path, "utf-8"));
+    if (!existsSync2(path)) return null;
+    return JSON.parse(readFileSync2(path, "utf-8"));
   } catch {
     return null;
   }
@@ -69,7 +70,7 @@ function readJsonFile(path) {
 function writeJsonFile(path, data) {
   try {
     const dir = join2(path, "..");
-    if (!existsSync(dir)) {
+    if (!existsSync2(dir)) {
       mkdirSync(dir, { recursive: true });
     }
     writeFileSync(path, JSON.stringify(data, null, 2), "utf-8");
@@ -114,7 +115,7 @@ async function checkNpmUpdates(registryUrl, currentVersion, cacheKey) {
 }
 function countFiles(dir, ext) {
   try {
-    if (!existsSync(dir)) return 0;
+    if (!existsSync2(dir)) return 0;
     return readdirSync(dir).filter((f) => f.endsWith(ext)).length;
   } catch {
     return 0;
@@ -122,9 +123,9 @@ function countFiles(dir, ext) {
 }
 function extractNotepadPriorityContext(directory) {
   const notepadPath = omcNotepadPath(directory);
-  if (!existsSync(notepadPath)) return null;
+  if (!existsSync2(notepadPath)) return null;
   try {
-    const content = readFileSync(notepadPath, "utf-8");
+    const content = readFileSync2(notepadPath, "utf-8");
     const PRIORITY_HEADER = "## Priority Context";
     const WORKING_HEADER = "## Working Memory";
     const regex = new RegExp(`${PRIORITY_HEADER}\\n([\\s\\S]*?)(?=\\n## [^#]|$)`);
@@ -142,7 +143,7 @@ function extractNotepadPriorityContext(directory) {
 async function main() {
   let input = {};
   try {
-    const raw = readFileSync("/dev/stdin", "utf-8");
+    const raw = readFileSync2("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     outputResult();
@@ -152,27 +153,27 @@ async function main() {
   const sessionId = input.sessionId || input.session_id || input.sessionid || "";
   const messages = [];
   const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (existsSync(configPath)) {
+  if (existsSync2(configPath)) {
     try {
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const config = JSON.parse(readFileSync2(configPath, "utf-8"));
       const infoLines = [
         `[carpdm-harness v4] preset: ${config.preset || "unknown"}`,
         `\uBAA8\uB4C8: ${(config.modules || []).join(", ")}`,
         config.updatedAt ? `\uB9C8\uC9C0\uB9C9 \uC5C5\uB370\uC774\uD2B8: ${config.updatedAt}` : ""
       ];
       const omcCfgPath = omcConfigPath();
-      if (existsSync(omcCfgPath)) {
+      if (existsSync2(omcCfgPath)) {
         try {
-          const omcConfig = JSON.parse(readFileSync(omcCfgPath, "utf-8"));
+          const omcConfig = JSON.parse(readFileSync2(omcCfgPath, "utf-8"));
           infoLines.push(`OMC: v${omcConfig.version || "unknown"}`);
         } catch {
           infoLines.push("OMC: \uAC10\uC9C0\uB428");
         }
       }
       const capabilitiesPath = harnessCapabilitiesPath(cwd);
-      if (existsSync(capabilitiesPath)) {
+      if (existsSync2(capabilitiesPath)) {
         try {
-          const caps = JSON.parse(readFileSync(capabilitiesPath, "utf-8"));
+          const caps = JSON.parse(readFileSync2(capabilitiesPath, "utf-8"));
           const tools = caps.tools || {};
           const detected = Object.entries(tools).filter(([, v]) => v.detected).map(([k]) => k);
           if (detected.length > 0) {
@@ -182,7 +183,7 @@ async function main() {
         }
       }
       const onboardedMarker = harnessOnboardedMarkerPath(cwd);
-      if (!existsSync(onboardedMarker)) {
+      if (!existsSync2(onboardedMarker)) {
         infoLines.push(
           "[AGENT SUGGEST] \uCCAB \uC138\uC158 \uAC10\uC9C0! agents/onboarding-guide.md\uB97C \uCC38\uC870\uD558\uC5EC \uC628\uBCF4\uB529 \uC808\uCC28\uB97C \uC9C4\uD589\uD558\uC138\uC694."
         );
@@ -226,9 +227,9 @@ ${infoText}
   } catch {
   }
   try {
-    const lessonsPath = existsSync(join2(cwd, ".agent", "lessons.md")) ? join2(cwd, ".agent", "lessons.md") : existsSync(join2(cwd, "lessons.md")) ? join2(cwd, "lessons.md") : null;
+    const lessonsPath = existsSync2(join2(cwd, ".agent", "lessons.md")) ? join2(cwd, ".agent", "lessons.md") : existsSync2(join2(cwd, "lessons.md")) ? join2(cwd, "lessons.md") : null;
     if (lessonsPath) {
-      const lessonsContent = readFileSync(lessonsPath, "utf-8");
+      const lessonsContent = readFileSync2(lessonsPath, "utf-8");
       const lessonEntries = [];
       const lines = lessonsContent.split("\n");
       for (let i = 0; i < lines.length; i++) {
@@ -263,8 +264,8 @@ ${recent.join("\n")}
   }
   try {
     const handoffPath = join2(cwd, ".agent", "handoff.md");
-    if (existsSync(handoffPath)) {
-      const handoffContent = readFileSync(handoffPath, "utf-8");
+    if (existsSync2(handoffPath)) {
+      const handoffContent = readFileSync2(handoffPath, "utf-8");
       const trimmed = handoffContent.replace(/^#.*\n/gm, "").replace(/^>.*\n/gm, "").trim();
       if (trimmed.length > 50) {
         messages.push(
@@ -286,10 +287,10 @@ ${handoffContent}
   try {
     const ontologyDir = join2(cwd, ".agent", "ontology");
     const structurePath = join2(ontologyDir, "ONTOLOGY-STRUCTURE.md");
-    if (existsSync(structurePath)) {
+    if (existsSync2(structurePath)) {
       const summaryParts = [];
       try {
-        const structContent = readFileSync(structurePath, "utf-8");
+        const structContent = readFileSync2(structurePath, "utf-8");
         const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
         const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
         if (filesMatch || dirsMatch) {
@@ -304,8 +305,8 @@ ${handoffContent}
       }
       try {
         const domainPath = join2(ontologyDir, "ONTOLOGY-DOMAIN.md");
-        if (existsSync(domainPath)) {
-          const domainContent = readFileSync(domainPath, "utf-8");
+        if (existsSync2(domainPath)) {
+          const domainContent = readFileSync2(domainPath, "utf-8");
           const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
           if (summaryMatch && !summaryMatch[1].includes("_(\uC694\uC57D \uC5C6\uC74C)_")) {
             summaryParts.push(`- \uC694\uC57D: ${summaryMatch[1].trim().slice(0, 200)}`);
@@ -315,8 +316,8 @@ ${handoffContent}
       }
       try {
         const semanticsPath = join2(ontologyDir, "ONTOLOGY-SEMANTICS.md");
-        if (existsSync(semanticsPath)) {
-          const semContent = readFileSync(semanticsPath, "utf-8");
+        if (existsSync2(semanticsPath)) {
+          const semContent = readFileSync2(semanticsPath, "utf-8");
           const anchorSection = semContent.indexOf("@MX:ANCHOR");
           if (anchorSection !== -1) {
             const sectionText = semContent.slice(anchorSection, semContent.indexOf("\n### ", anchorSection + 1));
@@ -347,10 +348,10 @@ ${summaryParts.join("\n")}
   }
   const updateLines = [];
   try {
-    const harnessConfig = existsSync(configPath) ? JSON.parse(readFileSync(configPath, "utf-8")) : null;
+    const harnessConfig = existsSync2(configPath) ? JSON.parse(readFileSync2(configPath, "utf-8")) : null;
     const harnessVersion = harnessConfig?.version || "0.0.0";
     const pkgPath = join2(cwd, "node_modules", "carpdm-harness", "package.json");
-    const installedVersion = existsSync(pkgPath) ? JSON.parse(readFileSync(pkgPath, "utf-8")).version : harnessVersion;
+    const installedVersion = existsSync2(pkgPath) ? JSON.parse(readFileSync2(pkgPath, "utf-8")).version : harnessVersion;
     const harnessUpdate = await checkNpmUpdates(HARNESS_REGISTRY_URL, installedVersion || "0.0.0", "harness");
     if (harnessUpdate) {
       updateLines.push(`  harness: v${harnessUpdate.currentVersion} \u2192 v${harnessUpdate.latestVersion}`);
@@ -392,9 +393,9 @@ ${updateLines.join("\n")}
     if (skillCount > 0) componentLines.push(`Skills: ${skillCount}\uAC1C`);
     if (hookCount > 0) componentLines.push(`Hooks: ${hookCount}\uAC1C`);
     const pluginJsonPath = join2(cwd, ".claude-plugin", "plugin.json");
-    if (existsSync(pluginJsonPath)) {
+    if (existsSync2(pluginJsonPath)) {
       try {
-        const plugin = JSON.parse(readFileSync(pluginJsonPath, "utf-8"));
+        const plugin = JSON.parse(readFileSync2(pluginJsonPath, "utf-8"));
         const servers = plugin.mcpServers;
         if (servers && typeof servers === "object") {
           componentLines.push(`MCP: ${Object.keys(servers).join(", ")}`);

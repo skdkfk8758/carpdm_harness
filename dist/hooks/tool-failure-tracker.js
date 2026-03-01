@@ -1,14 +1,15 @@
 // src/hooks/tool-failure-tracker.ts
-import { readFileSync as readFileSync2, writeFileSync, existsSync as existsSync2, mkdirSync } from "fs";
+import { readFileSync as readFileSync3, writeFileSync, existsSync as existsSync3, mkdirSync } from "fs";
 import { resolve, normalize } from "path";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function harnessStateDir(projectRoot) {
   return join(projectRoot, ".harness", "state");
 }
@@ -78,7 +79,7 @@ function truncate(str, maxLen = 500) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     const parsed = parseHookInput(raw);
     if (!parsed) {
       process.stdout.write(JSON.stringify({ result: "continue" }));
@@ -110,9 +111,9 @@ function main() {
   const now = /* @__PURE__ */ new Date();
   const timestamp = now.toISOString();
   let retryCount = 0;
-  if (existsSync2(errorFilePath)) {
+  if (existsSync3(errorFilePath)) {
     try {
-      const prev = JSON.parse(readFileSync2(errorFilePath, "utf-8"));
+      const prev = JSON.parse(readFileSync3(errorFilePath, "utf-8"));
       const prevTime = new Date(prev.timestamp).getTime();
       const elapsed = now.getTime() - prevTime;
       if (prev.tool_name === toolName && elapsed <= RETRY_WINDOW_MS) {

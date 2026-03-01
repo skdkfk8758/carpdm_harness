@@ -11,6 +11,9 @@
 
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
+
+import type { McpResponseBuilder } from '../types/mcp.js';
 
 // ============================================================
 // OMC 모드 상수
@@ -277,3 +280,47 @@ export const HARNESS_NPM_PACKAGE = 'carpdm-harness' as const;
 
 /** carpdm-harness npm 레지스트리 URL (버전 체크용) */
 export const HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest` as const;
+
+// ============================================================
+// Local MCP 충돌 감지
+// ============================================================
+
+/** 프로젝트 로컬 .mcp.json 파일 경로 */
+export function localMcpConfigPath(projectRoot: string): string {
+  return join(projectRoot, '.mcp.json');
+}
+
+/**
+ * 로컬 .mcp.json에 carpdm-harness가 등록되어 플러그인과 충돌하는지 감지한다.
+ * 소스 프로젝트(package.json name === "carpdm-harness")는 배포 매니페스트이므로 제외.
+ */
+export function detectLocalMcpConflict(projectRoot: string): boolean {
+  try {
+    // 소스 프로젝트이면 충돌 아님
+    const pkgPath = join(projectRoot, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { name?: string };
+      if (pkg.name === 'carpdm-harness') return false;
+    }
+
+    const mcpPath = localMcpConfigPath(projectRoot);
+    if (!existsSync(mcpPath)) return false;
+
+    const raw = JSON.parse(readFileSync(mcpPath, 'utf-8')) as Record<string, unknown>;
+    const servers = raw.mcpServers as Record<string, unknown> | undefined;
+    if (!servers || typeof servers !== 'object') return false;
+
+    return 'carpdm-harness' in servers;
+  } catch {
+    return false;
+  }
+}
+
+/** 충돌 감지 시 경고 메시지를 응답에 추가한다 */
+export function formatMcpConflictWarning(res: McpResponseBuilder): void {
+  res.blank();
+  res.warn('Local MCP 충돌 감지');
+  res.line('`.mcp.json`에 `carpdm-harness`가 Local MCP로 등록되어 있습니다.');
+  res.line('플러그인이 MCP 서버를 자동 제공하므로 수동 등록은 불필요합니다.');
+  res.info('해결: `.mcp.json`의 mcpServers에서 `carpdm-harness` 항목을 제거하세요.');
+}

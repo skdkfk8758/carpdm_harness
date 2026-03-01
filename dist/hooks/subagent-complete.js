@@ -1,14 +1,15 @@
 // src/hooks/subagent-complete.ts
-import { readFileSync as readFileSync2, appendFileSync, mkdirSync } from "fs";
+import { readFileSync as readFileSync3, appendFileSync, mkdirSync } from "fs";
 import { join as join3 } from "path";
 
 // src/hooks/hook-utils.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 var OMC_SKILLS = {
   analyze: "/oh-my-claudecode:analyze",
   plan: "/oh-my-claudecode:plan",
@@ -57,12 +58,12 @@ function outputResult(result, additionalContext) {
 }
 function loadActiveWorkflowFromFiles(cwd) {
   const activePath = join2(cwd, ".harness", "workflows", "active.json");
-  if (!existsSync(activePath)) {
+  if (!existsSync2(activePath)) {
     return { active: null, instance: null };
   }
   let activeData;
   try {
-    activeData = JSON.parse(readFileSync(activePath, "utf-8"));
+    activeData = JSON.parse(readFileSync2(activePath, "utf-8"));
   } catch {
     return { active: null, instance: null };
   }
@@ -71,11 +72,11 @@ function loadActiveWorkflowFromFiles(cwd) {
     return { active: activeData, instance: null };
   }
   const statePath = join2(cwd, ".harness", "workflows", activeId, "state.json");
-  if (!existsSync(statePath)) {
+  if (!existsSync2(statePath)) {
     return { active: activeData, instance: null };
   }
   try {
-    const instance = JSON.parse(readFileSync(statePath, "utf-8"));
+    const instance = JSON.parse(readFileSync2(statePath, "utf-8"));
     return { active: activeData, instance };
   } catch {
     return { active: activeData, instance: null };
@@ -86,7 +87,7 @@ function loadActiveWorkflowFromFiles(cwd) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     input = parseHookInput(raw);
   } catch {
     outputResult("continue");

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
 import { detectCapabilities } from '../core/capability-detector.js';
+import { detectLocalMcpConflict, formatMcpConflictWarning } from '../core/omc-compat.js';
 import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.js';
 import { applyOverlapChoices } from '../core/overlap-applier.js';
 import type { OverlapChoices } from '../types/overlap.js';
@@ -236,6 +237,11 @@ export function registerUpdateTool(server: McpServer): void {
 
         if (!pDryRun) {
           saveConfig(pRoot, config);
+        }
+
+        // Local MCP 충돌 감지
+        if (!pDryRun && detectLocalMcpConflict(pRoot)) {
+          formatMcpConflictWarning(res);
         }
 
         const coreLog = logger.flush();

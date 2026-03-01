@@ -1,10 +1,11 @@
 // src/hooks/workflow-guard.ts
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
 import { join as join2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
+import { existsSync, readFileSync } from "fs";
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
 }
@@ -43,7 +44,7 @@ var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/la
 function main() {
   let input;
   try {
-    const raw = readFileSync("/dev/stdin", "utf-8");
+    const raw = readFileSync2("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     outputResult("continue");
@@ -52,7 +53,7 @@ function main() {
   const toolName = input.tool_name || "";
   const cwd = input.cwd || process.cwd();
   const activePath = join2(cwd, ".harness", "workflows", "active.json");
-  if (!existsSync(activePath)) {
+  if (!existsSync2(activePath)) {
     if (toolName === "harness_workflow") {
       checkOmcActiveMode(cwd);
       return;
@@ -62,7 +63,7 @@ function main() {
   }
   let activeData;
   try {
-    activeData = JSON.parse(readFileSync(activePath, "utf-8"));
+    activeData = JSON.parse(readFileSync2(activePath, "utf-8"));
   } catch {
     outputResult("continue");
     return;
@@ -77,13 +78,13 @@ function main() {
     return;
   }
   const statePath = join2(cwd, ".harness", "workflows", activeId, "state.json");
-  if (!existsSync(statePath)) {
+  if (!existsSync2(statePath)) {
     outputResult("continue");
     return;
   }
   let state;
   try {
-    state = JSON.parse(readFileSync(statePath, "utf-8"));
+    state = JSON.parse(readFileSync2(statePath, "utf-8"));
   } catch {
     outputResult("continue");
     return;
@@ -149,7 +150,7 @@ function main() {
 }
 function checkOmcActiveMode(cwd) {
   const stateDirPath = omcStateDir(cwd);
-  if (!existsSync(stateDirPath)) {
+  if (!existsSync2(stateDirPath)) {
     outputResult("continue");
     return;
   }
@@ -157,7 +158,7 @@ function checkOmcActiveMode(cwd) {
     const stateFiles = readdirSync(stateDirPath).filter((f) => f.endsWith("-state.json"));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync(join2(stateDirPath, file), "utf-8"));
+        const state = JSON.parse(readFileSync2(join2(stateDirPath, file), "utf-8"));
         if (state.active) {
           const mode = file.replace("-state.json", "");
           outputResult(
