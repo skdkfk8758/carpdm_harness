@@ -110,12 +110,8 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
   'scaffold',         // tool 미구현 (Phase 2 예정)
   'branch-cleanup',   // 순수 instruction skill (git 명령 안내)
   'design-guide',     // 순수 instruction skill (디자인 시스템 가이드)
-  'plugin-update',    // 순수 instruction skill (GitHub 버전 확인 + claude plugin update)
   'work-start',        // 순수 instruction skill (브랜치 생성 + Knowledge Vault 초기화)
   'work-finish',       // 순수 instruction skill (PR 생성 + Knowledge Vault 아카이브)
-  'workflow-advance',  // harness_workflow action="advance"의 convenience wrapper
-  'workflow-start',    // harness_workflow action="start"의 convenience wrapper
-  'workflow-status',   // harness_workflow action="status"의 convenience wrapper
   'todo-loop',        // 순수 instruction skill (ralph-todo 루프 시작)
   'branch-info',      // 순수 instruction skill (브랜치 상태 조회)
   'bug',              // 순수 instruction skill (버그 기록)
@@ -138,9 +134,20 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
 
 /** tool은 있지만 skill wrapper가 없는 경우 */
 const KNOWN_TOOL_WITHOUT_SKILL = new Set([
-  'github-setup',   // 도구 직접 호출 전용 (Phase 2에서 skill 추가 예정)
-  'bug-report',     // 도구 직접 호출 전용
-  'plan-archive',   // plan-restore skill이 이 도구를 사용 (1:N 매핑)
+  'github-setup',          // 도구 직접 호출 전용
+  'bug-report',            // 도구 직접 호출 전용
+  'plan-archive',          // plan-restore skill이 이 도구를 사용 (1:N 매핑)
+  'init',                  // setup 스킬로 통합
+  'update',                // sync 스킬로 통합
+  'info',                  // doctor 스킬로 통합
+  'list',                  // doctor 스킬로 통합
+  'quality-check',         // verify-all 스킬로 통합
+  'manage-verify',         // 도구 직접 호출 전용
+  'ontology-status',       // ontology-generate 스킬로 통합
+  'ontology-annotations',  // 도구 직접 호출 전용
+  'ontology-domain-write', // 도구 직접 호출 전용
+  'memory-add',            // 도구 직접 호출 전용
+  'memory-list',           // 도구 직접 호출 전용
 ]);
 
 /** config에 선언되었지만 코드에서 읽지 않는 필드 */
