@@ -64,22 +64,21 @@ export function registerUpdateTool(server: McpServer): void {
           ? changes.filter(c => c.module === (targetModule as string))
           : changes;
 
-        if (filteredChanges.length === 0) {
-          res.ok('모든 파일이 최신 상태입니다.');
-          return res.toResult();
-        }
-
-        res.info(`${filteredChanges.length}개 파일에 변경사항 발견:`);
-        res.blank();
-
-        const templatesDir = getTemplatesDir();
-        const modules = getAllModules();
-        const version = getPackageVersion();
         let updated = 0;
         let skipped = 0;
         let conflicts = 0;
 
-        for (const change of filteredChanges) {
+        if (filteredChanges.length === 0) {
+          res.ok('모든 파일이 최신 상태입니다.');
+        } else {
+          res.info(`${filteredChanges.length}개 파일에 변경사항 발견:`);
+          res.blank();
+
+          const templatesDir = getTemplatesDir();
+          const modules = getAllModules();
+          const version = getPackageVersion();
+
+          for (const change of filteredChanges) {
           const mod = modules[change.module];
           if (!mod) continue;
 
@@ -123,6 +122,7 @@ export function registerUpdateTool(server: McpServer): void {
               skipped++;
             }
           }
+        }
         }
 
         if (doRefreshOntology) {
