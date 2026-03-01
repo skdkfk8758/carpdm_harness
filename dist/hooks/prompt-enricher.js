@@ -59,6 +59,12 @@ function omcStatePath(projectRoot, mode) {
 function omcGlobalStatePath(mode) {
   return join(homedir(), ".omc", "state", `${mode}-state.json`);
 }
+function sanitizeBranchName(branch) {
+  return branch.replace(/\//g, "-");
+}
+function knowledgeBranchDir(projectRoot, branch) {
+  return join(projectRoot, ".knowledge", "branches", sanitizeBranchName(branch));
+}
 var OMC_SKILLS = {
   analyze: "/oh-my-claudecode:analyze",
   plan: "/oh-my-claudecode:plan",
@@ -878,6 +884,35 @@ function detectKeywords(prompt, directory, sessionId) {
     return teamWarning + createMultiSkillInvocation(skillMatches, prompt);
   }
 }
+function readKnowledgeContext(cwd, branch) {
+  if (!branch) return null;
+  const branchDir = knowledgeBranchDir(cwd, branch);
+  if (!existsSync4(branchDir)) return null;
+  const lines = [`[Knowledge Context]`, `Branch: ${branch}`];
+  const MAX_LINES_PER_FILE = 15;
+  const targetFiles = ["design.md", "decisions.md", "spec.md"];
+  for (const filename of targetFiles) {
+    const filePath = join6(branchDir, filename);
+    if (!existsSync4(filePath)) continue;
+    let content;
+    try {
+      content = readFileSync4(filePath, "utf-8");
+    } catch {
+      continue;
+    }
+    let body = content;
+    if (body.startsWith("---")) {
+      const endIdx = body.indexOf("---", 3);
+      if (endIdx !== -1) body = body.substring(endIdx + 3);
+    }
+    body = body.trim();
+    if (!body || body.split("\n").length <= 2) continue;
+    const truncated = body.split("\n").slice(0, MAX_LINES_PER_FILE).join("\n");
+    lines.push("", `--- ${filename} ---`, truncated);
+  }
+  if (lines.length <= 2) return null;
+  return lines.join("\n");
+}
 function getCurrentBranch(cwd) {
   try {
     return execSync("git branch --show-current", { cwd, stdio: "pipe" }).toString().trim() || null;
@@ -1056,19 +1091,27 @@ function main() {
   } catch {
   }
   const guardConfig = loadBehavioralGuardConfig(cwd);
+  let knowledgeContext = null;
+  try {
+    const branch = getCurrentBranch(cwd);
+    knowledgeContext = readKnowledgeContext(cwd, branch);
+  } catch {
+  }
   const { instance } = loadActiveWorkflowFromFiles(cwd);
   if (!instance || !instance.status || instance.status === "completed" || instance.status === "aborted") {
+    const parts = [];
+    if (knowledgeContext) parts.push(knowledgeContext);
     if (prompt && guardConfig.redFlagDetection === "on") {
       const extraContext = buildStandaloneRedFlagContext(prompt);
-      if (extraContext) {
-        outputResult("continue", extraContext);
-        return;
-      }
+      if (extraContext) parts.push(extraContext);
     }
-    outputResult("continue");
+    outputResult("continue", parts.length > 0 ? parts.join("\n\n") : void 0);
     return;
   }
   const contextParts = [];
+  if (knowledgeContext) {
+    contextParts.push(knowledgeContext);
+  }
   contextParts.push(buildWorkflowContext(instance, cwd));
   if (guardConfig.rationalization === "on") {
     const phase = resolveWorkflowPhase(instance);
