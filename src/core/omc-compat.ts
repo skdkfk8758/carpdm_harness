@@ -18,14 +18,14 @@ import { homedir } from 'node:os';
 
 /** 모든 OMC 실행 모드 */
 export const OMC_MODES = [
-  'ralph', 'autopilot', 'ultrapilot', 'ultrawork',
+  'ralph', 'ralph-todo', 'autopilot', 'ultrapilot', 'ultrawork',
   'ecomode', 'pipeline', 'swarm', 'ultraqa', 'team',
 ] as const;
 export type OmcMode = (typeof OMC_MODES)[number];
 
 /** 영속 모드 (session-end에서 종료 차단) */
 export const OMC_PERSISTENT_MODES = [
-  'ralph', 'autopilot', 'ultrapilot', 'ultrawork',
+  'ralph', 'ralph-todo', 'autopilot', 'ultrapilot', 'ultrawork',
   'ecomode', 'pipeline', 'swarm', 'ultraqa',
 ] as const;
 
@@ -39,17 +39,17 @@ export const OMC_TEAM_MODES = ['team', 'swarm', 'ultrapilot'] as const;
 
 /** 키워드 감지 시 state 파일을 생성하는 모드 */
 export const OMC_STATEFUL_MODES = [
-  'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
+  'ralph', 'ralph-todo', 'autopilot', 'team', 'ultrawork', 'ecomode',
 ] as const;
 
 /** cancel 시 삭제하는 모드 state 파일 */
 export const OMC_CANCEL_MODES = [
-  'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode', 'pipeline',
+  'ralph', 'ralph-todo', 'autopilot', 'team', 'ultrawork', 'ecomode', 'pipeline',
 ] as const;
 
 /** 키워드 충돌 해소 우선순위 */
 export const OMC_KEYWORD_PRIORITY = [
-  'cancel', 'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
+  'cancel', 'ralph-todo', 'ralph', 'autopilot', 'team', 'ultrawork', 'ecomode',
   'pipeline', 'ralplan', 'plan', 'tdd', 'research', 'ultrathink',
   'deepsearch', 'analyze', 'codex', 'gemini',
 ] as const;

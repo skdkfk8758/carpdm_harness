@@ -353,6 +353,15 @@ function detectKeywords(
     matches.push({ name: 'cancel', args: '' });
   }
 
+  // Ralph-Todo (Ralph + Todo 통합 루프 — ralph 일반보다 우선)
+  if (
+    /\b(todo[\s-]?loop|ralph[\s-]?todo|todo[\s-]?ralph)\b/i.test(cleanPrompt) ||
+    /\btodo.*반복\b/i.test(cleanPrompt) ||
+    /\b반복.*todo\b/i.test(cleanPrompt)
+  ) {
+    matches.push({ name: 'ralph-todo', args: '' });
+  }
+
   // Ralph
   if (/\b(ralph|don't stop|must complete|until done)\b/i.test(cleanPrompt)) {
     matches.push({ name: 'ralph', args: '' });

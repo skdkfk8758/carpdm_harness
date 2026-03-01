@@ -431,6 +431,177 @@ function checkPersistentMode(input: HookInput): { blocked: boolean; output: stri
       : !state.session_id || state.session_id === sessionId;
   };
 
+  // Priority 0.5: Ralph-Todo Loop (todo.md 기반 자동 반복)
+  const ralphTodo = readStateFileWithSession(stateDir, globalStateDir, 'ralph-todo-state.json', sessionId);
+  if (
+    ralphTodo.state?.active &&
+    !isStaleState(ralphTodo.state) &&
+    isStateForCurrentProject(ralphTodo.state, directory, ralphTodo.isGlobal) &&
+    sessionMatches(ralphTodo.state)
+  ) {
+    // todo.md 재파싱하여 현재 태스크 상태 확인
+    const todoState = ralphTodo.state as ModeState & {
+      current_task_index?: number;
+      current_task_text?: string;
+      task_iteration?: number;
+      task_max_iterations?: number;
+      global_iteration?: number;
+      global_max_iterations?: number;
+      total_tasks?: number;
+      completed_task_indices?: number[];
+      skipped_task_indices?: number[];
+      todo_source?: string;
+      original_prompt?: string;
+    };
+
+    const globalIter = todoState.global_iteration ?? 0;
+    const globalMax = todoState.global_max_iterations ?? 100;
+
+    // 전체 iteration 상한 체크
+    if (globalIter >= globalMax) {
+      todoState.active = false;
+      todoState.last_checked_at = new Date().toISOString();
+      writeJsonFile(ralphTodo.path, todoState);
+      // fall through to next priority
+    } else {
+      // todo.md 파싱: 체크박스 라인 추출
+      const todoSearchPaths = [
+        join(directory, '.agent', 'todo.md'),
+        join(directory, 'todo.md'),
+      ];
+      let todoTasks: Array<{ index: number; text: string; done: boolean }> = [];
+      for (const tp of todoSearchPaths) {
+        if (!existsSync(tp)) continue;
+        try {
+          const content = readFileSync(tp, 'utf-8');
+          const lines = content.split('\n');
+          for (const line of lines) {
+            const match = line.trim().match(/^-\s+\[([ xX])\]\s+(.+)/);
+            if (!match) continue;
+            const done = match[1].toLowerCase() === 'x';
+            const text = match[2].replace(/\s*←\s*CURRENT\s*/gi, '').trim();
+            todoTasks.push({ index: todoTasks.length, text, done });
+          }
+          break;
+        } catch { continue; }
+      }
+
+      const currentIdx = todoState.current_task_index ?? 0;
+      const taskIter = todoState.task_iteration ?? 0;
+      const taskMax = todoState.task_max_iterations ?? 15;
+
+      if (todoTasks.length === 0) {
+        // todo.md 삭제됨 → 루프 종료
+        todoState.active = false;
+        todoState.last_checked_at = new Date().toISOString();
+        writeJsonFile(ralphTodo.path, todoState);
+      } else {
+        const currentTask = todoTasks[currentIdx];
+
+        if (currentTask && currentTask.done) {
+          // 현재 태스크 완료 → 다음 미완료 찾기
+          const completed = todoState.completed_task_indices ?? [];
+          if (!completed.includes(currentIdx)) completed.push(currentIdx);
+          todoState.completed_task_indices = completed;
+
+          let nextIdx = -1;
+          for (let i = currentIdx + 1; i < todoTasks.length; i++) {
+            if (!todoTasks[i].done) { nextIdx = i; break; }
+          }
+          if (nextIdx < 0) {
+            for (let i = 0; i < currentIdx; i++) {
+              if (!todoTasks[i].done) { nextIdx = i; break; }
+            }
+          }
+
+          if (nextIdx < 0) {
+            // 전체 완료
+            todoState.active = false;
+            todoState.last_checked_at = new Date().toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+          } else {
+            // 다음 태스크로 전환
+            todoState.current_task_index = nextIdx;
+            todoState.current_task_text = todoTasks[nextIdx].text;
+            todoState.task_iteration = 0;
+            todoState.global_iteration = globalIter + 1;
+            todoState.total_tasks = todoTasks.length;
+            todoState.last_checked_at = new Date().toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+
+            const toolError = readLastToolError(harnessDir);
+            const errorGuidance = getToolErrorRetryGuidance(toolError);
+
+            let reason = `[RALPH-TODO: Task ${nextIdx + 1}/${todoTasks.length} | Iteration 1/${taskMax}]\nCurrent task: ${todoTasks[nextIdx].text}\n\nPrevious task completed. Continue with the next task.\nWhen this task is done, update todo.md: change [ ] to [x].\nWhen ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+            if (todoState.original_prompt) {
+              reason += `\nOriginal request: ${todoState.original_prompt}`;
+            }
+            if (errorGuidance) reason = errorGuidance + reason;
+
+            return { blocked: true, output: JSON.stringify({ decision: 'block', reason }) };
+          }
+        } else if (taskIter >= taskMax) {
+          // 태스크별 iteration 초과 → skip 처리
+          const skipped = todoState.skipped_task_indices ?? [];
+          if (!skipped.includes(currentIdx)) skipped.push(currentIdx);
+          todoState.skipped_task_indices = skipped;
+
+          let nextIdx = -1;
+          for (let i = currentIdx + 1; i < todoTasks.length; i++) {
+            if (!todoTasks[i].done && !skipped.includes(i)) { nextIdx = i; break; }
+          }
+          if (nextIdx < 0) {
+            for (let i = 0; i < currentIdx; i++) {
+              if (!todoTasks[i].done && !skipped.includes(i)) { nextIdx = i; break; }
+            }
+          }
+
+          if (nextIdx < 0 || nextIdx === currentIdx) {
+            // 더 이상 진행할 태스크 없음
+            todoState.active = false;
+            todoState.last_checked_at = new Date().toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+          } else {
+            todoState.current_task_index = nextIdx;
+            todoState.current_task_text = todoTasks[nextIdx].text;
+            todoState.task_iteration = 0;
+            todoState.global_iteration = globalIter + 1;
+            todoState.total_tasks = todoTasks.length;
+            todoState.last_checked_at = new Date().toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+
+            const toolError = readLastToolError(harnessDir);
+            const errorGuidance = getToolErrorRetryGuidance(toolError);
+
+            let reason = `[SKIPPED] Previous task exceeded ${taskMax} iterations.\n\n[RALPH-TODO: Task ${nextIdx + 1}/${todoTasks.length} | Iteration 1/${taskMax}]\nCurrent task: ${todoTasks[nextIdx].text}\n\nContinue with this task. When done, update todo.md: change [ ] to [x].\nWhen ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+            if (errorGuidance) reason = errorGuidance + reason;
+
+            return { blocked: true, output: JSON.stringify({ decision: 'block', reason }) };
+          }
+        } else {
+          // 동일 태스크 계속 진행
+          todoState.task_iteration = taskIter + 1;
+          todoState.global_iteration = globalIter + 1;
+          todoState.total_tasks = todoTasks.length;
+          todoState.last_checked_at = new Date().toISOString();
+          writeJsonFile(ralphTodo.path, todoState);
+
+          const toolError = readLastToolError(harnessDir);
+          const errorGuidance = getToolErrorRetryGuidance(toolError);
+
+          const taskText = currentTask?.text ?? todoState.current_task_text ?? 'Unknown task';
+          let reason = `[RALPH-TODO: Task ${currentIdx + 1}/${todoTasks.length} | Iteration ${taskIter + 2}/${taskMax}]\nCurrent task: ${taskText}\n\nWork is NOT done. Continue working on this task.\nWhen complete, update todo.md: change [ ] to [x] for this item.\nWhen ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+          if (todoState.original_prompt) {
+            reason += `\nOriginal request: ${todoState.original_prompt}`;
+          }
+          if (errorGuidance) reason = errorGuidance + reason;
+
+          return { blocked: true, output: JSON.stringify({ decision: 'block', reason }) };
+        }
+      }
+    }
+  }
+
   // Priority 1: Ralph Loop (max 100)
   if (
     ralph.state?.active &&
@@ -992,6 +1163,84 @@ function checkClaudeMdSync(cwd: string): string | null {
 }
 
 // ============================================================
+// Memory.md 자동 동기화
+// ============================================================
+
+/**
+ * .harness/team-memory.json의 최근 항목을 .agent/memory.md 마커 영역에 동기화합니다.
+ * 훅 내부 인라인 구현 (core import 불가).
+ */
+function syncMemoryMd(cwd: string): void {
+  const teamMemoryPath = join(cwd, '.harness', 'team-memory.json');
+  if (!existsSync(teamMemoryPath)) return;
+
+  const memoryMdPath = join(cwd, '.agent', 'memory.md');
+  if (!existsSync(memoryMdPath)) return;
+
+  const MARKER_START = '<!-- harness:team-memory:start -->';
+  const MARKER_END = '<!-- harness:team-memory:end -->';
+
+  const raw = readFileSync(teamMemoryPath, 'utf-8');
+  const data = JSON.parse(raw) as { entries?: Array<{ category?: string; title?: string; content?: string; addedAt?: string }> };
+  const entries = data.entries || [];
+  if (entries.length === 0) return;
+
+  // 최근 20개 항목을 마크다운으로 변환
+  const recent = entries.slice(-20);
+  const lines = recent.map(e => {
+    const date = (e.addedAt || '').slice(0, 10);
+    const cat = e.category || 'general';
+    return `- **[${cat}]** ${e.title || '(무제)'}${date ? ` _(${date})_` : ''}`;
+  });
+  const newSection = lines.join('\n');
+
+  let content = readFileSync(memoryMdPath, 'utf-8');
+  const startIdx = content.indexOf(MARKER_START);
+  const endIdx = content.indexOf(MARKER_END);
+
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    // 마커 영역 갱신
+    content =
+      content.slice(0, startIdx + MARKER_START.length) +
+      '\n' + newSection + '\n' +
+      content.slice(endIdx);
+  } else {
+    // 마커 없으면 파일 끝에 추가
+    content += '\n\n' + MARKER_START + '\n' + newSection + '\n' + MARKER_END + '\n';
+  }
+
+  writeFileSync(memoryMdPath, content, 'utf-8');
+}
+
+// ============================================================
+// Ontology stale 감지
+// ============================================================
+
+/**
+ * .agent/ontology/.cache/domain-cache.json의 builtAt를 확인하여
+ * 24시간 경과 시 갱신 권고 메시지를 반환합니다.
+ */
+function checkOntologyStale(cwd: string): string | null {
+  const cachePath = join(cwd, '.agent', 'ontology', '.cache', 'domain-cache.json');
+  if (!existsSync(cachePath)) return null;
+
+  const raw = readFileSync(cachePath, 'utf-8');
+  const cache = JSON.parse(raw) as { builtAt?: string };
+  if (!cache.builtAt) return null;
+
+  const builtAt = new Date(cache.builtAt).getTime();
+  const now = Date.now();
+  const hoursSinceBuilt = (now - builtAt) / (1000 * 60 * 60);
+
+  if (hoursSinceBuilt > 24) {
+    const days = Math.floor(hoursSinceBuilt / 24);
+    return `[harness-session-end] 온톨로지 도메인 캐시가 ${days}일 경과했습니다. \`harness_ontology_refresh\` 또는 \`/generate-ontology\`로 갱신을 권장합니다.`;
+  }
+
+  return null;
+}
+
+// ============================================================
 // Main
 // ============================================================
 
@@ -1040,6 +1289,21 @@ function main(): void {
 
   const bugMessage = checkBugModeCompletion(cwd);
   if (bugMessage) messages.push(bugMessage);
+
+  // Step 2d: memory.md 자동 동기화 (team-memory.json → .agent/memory.md 마커 영역)
+  try {
+    syncMemoryMd(cwd);
+  } catch {
+    // memory 동기화 실패 — 무시
+  }
+
+  // Step 2e: ontology stale 감지
+  try {
+    const ontologyMessage = checkOntologyStale(cwd);
+    if (ontologyMessage) messages.push(ontologyMessage);
+  } catch {
+    // ontology 감지 실패 — 무시
+  }
 
   if (messages.length > 0) {
     process.stdout.write(JSON.stringify({
