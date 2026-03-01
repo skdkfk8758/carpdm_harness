@@ -99,10 +99,10 @@ function searchFieldInDirRecursive(dirPath: string, field: string): boolean {
 
 // === 알려진 갭 (의도적이거나 추후 수정 예정) ===
 
-/** trigger가 참조하지만 skills/ 디렉토리가 없는 skill — prompt-enricher 컨텍스트 주입용 */
-const KNOWN_TRIGGER_SKILL_GAPS = new Set([
-  'work-start',     // prompt-enricher에서 직접 컨텍스트 생성
-  'work-finish',    // prompt-enricher에서 직접 컨텍스트 생성
+/** trigger가 참조하지만 skills/ 디렉토리가 없는 skill — .claude/commands/ 커맨드로 제공 */
+const KNOWN_TRIGGER_SKILL_GAPS = new Set<string>([
+  'plan-gate',        // .claude/commands/plan-gate.md로 제공
+  'logical-commit',   // .claude/commands/logical-commit.md로 제공
 ]);
 
 /** skill은 있지만 대응 tool이 없는 경우 — 순수 instruction skill 또는 상위 tool의 하위 액션 */
@@ -111,6 +111,8 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
   'branch-cleanup',   // 순수 instruction skill (git 명령 안내)
   'design-guide',     // 순수 instruction skill (디자인 시스템 가이드)
   'plugin-update',    // 순수 instruction skill (GitHub 버전 확인 + claude plugin update)
+  'work-start',        // 순수 instruction skill (브랜치 생성 + Knowledge Vault 초기화)
+  'work-finish',       // 순수 instruction skill (PR 생성 + Knowledge Vault 아카이브)
   'workflow-advance',  // harness_workflow action="advance"의 convenience wrapper
   'workflow-start',    // harness_workflow action="start"의 convenience wrapper
   'workflow-status',   // harness_workflow action="status"의 convenience wrapper
