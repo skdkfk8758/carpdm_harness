@@ -73,7 +73,7 @@ npm install --production && npm run build
 
 ## MCP 도구
 
-22개 MCP 도구를 제공합니다.
+23개 MCP 도구를 제공합니다.
 
 ### 핵심 도구
 
@@ -114,6 +114,12 @@ npm install --production && npm run build
 | `harness_memory_list` | 팀 메모리 항목 조회 |
 | `harness_bug_report` | 버그 기록 + GitHub Issue 생성 |
 | `harness_github_setup` | GitHub 라벨 자동 생성 (20개 표준 라벨) |
+
+### 아카이브
+
+| 도구 | 설명 |
+|------|------|
+| `harness_plan_archive` | plan/todo 아카이브 관리 (저장/복원/목록) |
 
 ### 검증
 
