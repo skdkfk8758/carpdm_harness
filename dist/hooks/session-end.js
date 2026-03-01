@@ -329,6 +329,161 @@ function checkPersistentMode(input) {
     if (!state) return false;
     return hasValidSession ? state.session_id === sessionId : !state.session_id || state.session_id === sessionId;
   };
+  const ralphTodo = readStateFileWithSession(stateDir, globalStateDir, "ralph-todo-state.json", sessionId);
+  if (ralphTodo.state?.active && !isStaleState(ralphTodo.state) && isStateForCurrentProject(ralphTodo.state, directory, ralphTodo.isGlobal) && sessionMatches(ralphTodo.state)) {
+    const todoState = ralphTodo.state;
+    const globalIter = todoState.global_iteration ?? 0;
+    const globalMax = todoState.global_max_iterations ?? 100;
+    if (globalIter >= globalMax) {
+      todoState.active = false;
+      todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+      writeJsonFile(ralphTodo.path, todoState);
+    } else {
+      const todoSearchPaths = [
+        join2(directory, ".agent", "todo.md"),
+        join2(directory, "todo.md")
+      ];
+      let todoTasks = [];
+      for (const tp of todoSearchPaths) {
+        if (!existsSync(tp)) continue;
+        try {
+          const content = readFileSync(tp, "utf-8");
+          const lines = content.split("\n");
+          for (const line of lines) {
+            const match = line.trim().match(/^-\s+\[([ xX])\]\s+(.+)/);
+            if (!match) continue;
+            const done = match[1].toLowerCase() === "x";
+            const text = match[2].replace(/\s*←\s*CURRENT\s*/gi, "").trim();
+            todoTasks.push({ index: todoTasks.length, text, done });
+          }
+          break;
+        } catch {
+          continue;
+        }
+      }
+      const currentIdx = todoState.current_task_index ?? 0;
+      const taskIter = todoState.task_iteration ?? 0;
+      const taskMax = todoState.task_max_iterations ?? 15;
+      if (todoTasks.length === 0) {
+        todoState.active = false;
+        todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+        writeJsonFile(ralphTodo.path, todoState);
+      } else {
+        const currentTask = todoTasks[currentIdx];
+        if (currentTask && currentTask.done) {
+          const completed = todoState.completed_task_indices ?? [];
+          if (!completed.includes(currentIdx)) completed.push(currentIdx);
+          todoState.completed_task_indices = completed;
+          let nextIdx = -1;
+          for (let i = currentIdx + 1; i < todoTasks.length; i++) {
+            if (!todoTasks[i].done) {
+              nextIdx = i;
+              break;
+            }
+          }
+          if (nextIdx < 0) {
+            for (let i = 0; i < currentIdx; i++) {
+              if (!todoTasks[i].done) {
+                nextIdx = i;
+                break;
+              }
+            }
+          }
+          if (nextIdx < 0) {
+            todoState.active = false;
+            todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+          } else {
+            todoState.current_task_index = nextIdx;
+            todoState.current_task_text = todoTasks[nextIdx].text;
+            todoState.task_iteration = 0;
+            todoState.global_iteration = globalIter + 1;
+            todoState.total_tasks = todoTasks.length;
+            todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+            const toolError = readLastToolError(harnessDir);
+            const errorGuidance = getToolErrorRetryGuidance(toolError);
+            let reason = `[RALPH-TODO: Task ${nextIdx + 1}/${todoTasks.length} | Iteration 1/${taskMax}]
+Current task: ${todoTasks[nextIdx].text}
+
+Previous task completed. Continue with the next task.
+When this task is done, update todo.md: change [ ] to [x].
+When ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+            if (todoState.original_prompt) {
+              reason += `
+Original request: ${todoState.original_prompt}`;
+            }
+            if (errorGuidance) reason = errorGuidance + reason;
+            return { blocked: true, output: JSON.stringify({ decision: "block", reason }) };
+          }
+        } else if (taskIter >= taskMax) {
+          const skipped = todoState.skipped_task_indices ?? [];
+          if (!skipped.includes(currentIdx)) skipped.push(currentIdx);
+          todoState.skipped_task_indices = skipped;
+          let nextIdx = -1;
+          for (let i = currentIdx + 1; i < todoTasks.length; i++) {
+            if (!todoTasks[i].done && !skipped.includes(i)) {
+              nextIdx = i;
+              break;
+            }
+          }
+          if (nextIdx < 0) {
+            for (let i = 0; i < currentIdx; i++) {
+              if (!todoTasks[i].done && !skipped.includes(i)) {
+                nextIdx = i;
+                break;
+              }
+            }
+          }
+          if (nextIdx < 0 || nextIdx === currentIdx) {
+            todoState.active = false;
+            todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+          } else {
+            todoState.current_task_index = nextIdx;
+            todoState.current_task_text = todoTasks[nextIdx].text;
+            todoState.task_iteration = 0;
+            todoState.global_iteration = globalIter + 1;
+            todoState.total_tasks = todoTasks.length;
+            todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+            writeJsonFile(ralphTodo.path, todoState);
+            const toolError = readLastToolError(harnessDir);
+            const errorGuidance = getToolErrorRetryGuidance(toolError);
+            let reason = `[SKIPPED] Previous task exceeded ${taskMax} iterations.
+
+[RALPH-TODO: Task ${nextIdx + 1}/${todoTasks.length} | Iteration 1/${taskMax}]
+Current task: ${todoTasks[nextIdx].text}
+
+Continue with this task. When done, update todo.md: change [ ] to [x].
+When ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+            if (errorGuidance) reason = errorGuidance + reason;
+            return { blocked: true, output: JSON.stringify({ decision: "block", reason }) };
+          }
+        } else {
+          todoState.task_iteration = taskIter + 1;
+          todoState.global_iteration = globalIter + 1;
+          todoState.total_tasks = todoTasks.length;
+          todoState.last_checked_at = (/* @__PURE__ */ new Date()).toISOString();
+          writeJsonFile(ralphTodo.path, todoState);
+          const toolError = readLastToolError(harnessDir);
+          const errorGuidance = getToolErrorRetryGuidance(toolError);
+          const taskText = currentTask?.text ?? todoState.current_task_text ?? "Unknown task";
+          let reason = `[RALPH-TODO: Task ${currentIdx + 1}/${todoTasks.length} | Iteration ${taskIter + 2}/${taskMax}]
+Current task: ${taskText}
+
+Work is NOT done. Continue working on this task.
+When complete, update todo.md: change [ ] to [x] for this item.
+When ALL tasks are complete, run /oh-my-claudecode:cancel to exit.`;
+          if (todoState.original_prompt) {
+            reason += `
+Original request: ${todoState.original_prompt}`;
+          }
+          if (errorGuidance) reason = errorGuidance + reason;
+          return { blocked: true, output: JSON.stringify({ decision: "block", reason }) };
+        }
+      }
+    }
+  }
   if (ralph.state?.active && !isStaleState(ralph.state) && isStateForCurrentProject(ralph.state, directory, ralph.isGlobal) && sessionMatches(ralph.state)) {
     const iteration = ralph.state.iteration || 1;
     const maxIter = ralph.state.max_iterations || 100;
@@ -723,6 +878,49 @@ function checkClaudeMdSync(cwd) {
   }
   return null;
 }
+function syncMemoryMd(cwd) {
+  const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
+  if (!existsSync(teamMemoryPath)) return;
+  const memoryMdPath = join2(cwd, ".agent", "memory.md");
+  if (!existsSync(memoryMdPath)) return;
+  const MARKER_START = "<!-- harness:team-memory:start -->";
+  const MARKER_END = "<!-- harness:team-memory:end -->";
+  const raw = readFileSync(teamMemoryPath, "utf-8");
+  const data = JSON.parse(raw);
+  const entries = data.entries || [];
+  if (entries.length === 0) return;
+  const recent = entries.slice(-20);
+  const lines = recent.map((e) => {
+    const date = (e.addedAt || "").slice(0, 10);
+    const cat = e.category || "general";
+    return `- **[${cat}]** ${e.title || "(\uBB34\uC81C)"}${date ? ` _(${date})_` : ""}`;
+  });
+  const newSection = lines.join("\n");
+  let content = readFileSync(memoryMdPath, "utf-8");
+  const startIdx = content.indexOf(MARKER_START);
+  const endIdx = content.indexOf(MARKER_END);
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    content = content.slice(0, startIdx + MARKER_START.length) + "\n" + newSection + "\n" + content.slice(endIdx);
+  } else {
+    content += "\n\n" + MARKER_START + "\n" + newSection + "\n" + MARKER_END + "\n";
+  }
+  writeFileSync(memoryMdPath, content, "utf-8");
+}
+function checkOntologyStale(cwd) {
+  const cachePath = join2(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
+  if (!existsSync(cachePath)) return null;
+  const raw = readFileSync(cachePath, "utf-8");
+  const cache = JSON.parse(raw);
+  if (!cache.builtAt) return null;
+  const builtAt = new Date(cache.builtAt).getTime();
+  const now = Date.now();
+  const hoursSinceBuilt = (now - builtAt) / (1e3 * 60 * 60);
+  if (hoursSinceBuilt > 24) {
+    const days = Math.floor(hoursSinceBuilt / 24);
+    return `[harness-session-end] \uC628\uD1A8\uB85C\uC9C0 \uB3C4\uBA54\uC778 \uCE90\uC2DC\uAC00 ${days}\uC77C \uACBD\uACFC\uD588\uC2B5\uB2C8\uB2E4. \`harness_ontology_refresh\` \uB610\uB294 \`/generate-ontology\`\uB85C \uAC31\uC2E0\uC744 \uAD8C\uC7A5\uD569\uB2C8\uB2E4.`;
+  }
+  return null;
+}
 function main() {
   let input;
   try {
@@ -756,6 +954,15 @@ function main() {
   if (claudeMessage) messages.push(claudeMessage);
   const bugMessage = checkBugModeCompletion(cwd);
   if (bugMessage) messages.push(bugMessage);
+  try {
+    syncMemoryMd(cwd);
+  } catch {
+  }
+  try {
+    const ontologyMessage = checkOntologyStale(cwd);
+    if (ontologyMessage) messages.push(ontologyMessage);
+  } catch {
+  }
   if (messages.length > 0) {
     process.stdout.write(JSON.stringify({
       result: "continue",

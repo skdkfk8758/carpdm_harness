@@ -13,6 +13,7 @@ import { join } from "path";
 import { homedir } from "os";
 var OMC_STATEFUL_MODES = [
   "ralph",
+  "ralph-todo",
   "autopilot",
   "team",
   "ultrawork",
@@ -20,6 +21,7 @@ var OMC_STATEFUL_MODES = [
 ];
 var OMC_CANCEL_MODES = [
   "ralph",
+  "ralph-todo",
   "autopilot",
   "team",
   "ultrawork",
@@ -28,6 +30,7 @@ var OMC_CANCEL_MODES = [
 ];
 var OMC_KEYWORD_PRIORITY = [
   "cancel",
+  "ralph-todo",
   "ralph",
   "autopilot",
   "team",
@@ -784,6 +787,9 @@ function detectKeywords(prompt, directory, sessionId) {
   const matches = [];
   if (/\b(cancelomc|stopomc)\b/i.test(cleanPrompt)) {
     matches.push({ name: "cancel", args: "" });
+  }
+  if (/\b(todo[\s-]?loop|ralph[\s-]?todo|todo[\s-]?ralph)\b/i.test(cleanPrompt) || /\btodo.*반복\b/i.test(cleanPrompt) || /\b반복.*todo\b/i.test(cleanPrompt)) {
+    matches.push({ name: "ralph-todo", args: "" });
   }
   if (/\b(ralph|don't stop|must complete|until done)\b/i.test(cleanPrompt)) {
     matches.push({ name: "ralph", args: "" });
