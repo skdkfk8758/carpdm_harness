@@ -1,7 +1,6 @@
 // src/hooks/prompt-enricher.ts
-import { readFileSync as readFileSync5, writeFileSync, mkdirSync, existsSync as existsSync5, unlinkSync } from "fs";
-import { join as join6 } from "path";
-import { homedir as homedir2 } from "os";
+import { readFileSync as readFileSync4, existsSync as existsSync4, writeFileSync, mkdirSync } from "fs";
+import { join as join5 } from "path";
 import { execSync } from "child_process";
 
 // src/hooks/hook-utils.ts
@@ -12,53 +11,28 @@ import { join as join2 } from "path";
 import { join } from "path";
 import { homedir } from "os";
 import { existsSync, readFileSync } from "fs";
-var OMC_STATEFUL_MODES = [
-  "ralph",
-  "ralph-todo",
-  "autopilot",
-  "team",
-  "ultrawork",
-  "ecomode"
-];
-var OMC_CANCEL_MODES = [
-  "ralph",
-  "ralph-todo",
-  "autopilot",
-  "team",
-  "ultrawork",
-  "ecomode",
-  "pipeline"
-];
-var OMC_KEYWORD_PRIORITY = [
-  "cancel",
-  "ralph-todo",
-  "ralph",
-  "autopilot",
-  "team",
-  "ultrawork",
-  "ecomode",
-  "pipeline",
-  "ralplan",
-  "plan",
-  "tdd",
-  "research",
-  "ultrathink",
-  "deepsearch",
-  "analyze",
-  "codex",
-  "gemini"
-];
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
 }
-function omcGlobalStateDir() {
-  return join(homedir(), ".omc", "state");
+function rufloSwarmActivityPath(projectRoot) {
+  return join(projectRoot, ".claude-flow", "metrics", "swarm-activity.json");
 }
-function omcStatePath(projectRoot, mode) {
-  return join(projectRoot, ".omc", "state", `${mode}-state.json`);
-}
-function omcGlobalStatePath(mode) {
-  return join(homedir(), ".omc", "state", `${mode}-state.json`);
+function detectRufloSwarmStatus(projectRoot) {
+  const inactive = { active: false, agentCount: 0, timestamp: null };
+  const activityPath = rufloSwarmActivityPath(projectRoot);
+  if (!existsSync(activityPath)) return inactive;
+  try {
+    const raw = JSON.parse(readFileSync(activityPath, "utf-8"));
+    const swarm = raw?.swarm;
+    if (!swarm) return inactive;
+    return {
+      active: swarm.active ?? false,
+      agentCount: swarm.agent_count ?? 0,
+      timestamp: raw.timestamp ?? null
+    };
+  } catch {
+    return inactive;
+  }
 }
 function sanitizeBranchName(branch) {
   return branch.replace(/\//g, "-");
@@ -75,7 +49,8 @@ var OMC_SKILLS = {
   deepsearch: "/oh-my-claudecode:deepsearch",
   "code-review": "/oh-my-claudecode:code-review",
   "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel"
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
 };
 var AGENT_SKILL_MAP = {
   analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
@@ -92,7 +67,6 @@ var AGENT_SKILL_MAP = {
   "security-reviewer": { skill: OMC_SKILLS["security-review"], model: "sonnet" },
   "qa-tester": { skill: void 0, model: "sonnet" }
 };
-var MCP_DELEGATION_KEYWORDS = ["codex", "gemini"];
 var OMC_NPM_PACKAGE = "oh-my-claude-sisyphus";
 var OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
 var HARNESS_NPM_PACKAGE = "carpdm-harness";
@@ -157,8 +131,42 @@ function detectOmcMode(cwd) {
   }
   return null;
 }
+function detectRufloSwarm(cwd) {
+  try {
+    const status = detectRufloSwarmStatus(cwd);
+    if (status.active) return `ruflo-swarm (agents: ${status.agentCount})`;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
-// src/core/rationalization-guard.ts
+// src/core/behavioral-validator.ts
+import { existsSync as existsSync3, readFileSync as readFileSync3 } from "fs";
+import { join as join4 } from "path";
+
+// src/core/project-paths.ts
+import { join as join3 } from "path";
+function agentPlanPath(projectRoot) {
+  return join3(projectRoot, ".agent", "plan.md");
+}
+function rootPlanPath(projectRoot) {
+  return join3(projectRoot, "plan.md");
+}
+function planSearchPaths(projectRoot) {
+  return [agentPlanPath(projectRoot), rootPlanPath(projectRoot)];
+}
+function agentTodoPath(projectRoot) {
+  return join3(projectRoot, ".agent", "todo.md");
+}
+function rootTodoPath(projectRoot) {
+  return join3(projectRoot, "todo.md");
+}
+function todoSearchPaths(projectRoot) {
+  return [agentTodoPath(projectRoot), rootTodoPath(projectRoot)];
+}
+
+// src/core/behavioral-validator.ts
 var RATIONALIZATION_TABLE = {
   planning: [
     { rationalization: "\uC694\uAD6C\uC0AC\uD56D\uC774 \uBA85\uD655\uD558\uB2C8 \uACC4\uD68D \uAC74\uB108\uB6F0\uC790", rebuttal: "\uBA85\uD655\uD574 \uBCF4\uC5EC\uB3C4 \uC554\uBB35\uC801 \uAC00\uC815\uC774 \uC228\uC5B4 \uC788\uB2E4 \u2014 \uACC4\uD68D\uC740 \uAC00\uC815\uC744 \uB4DC\uB7EC\uB0B8\uB2E4" },
@@ -236,8 +244,6 @@ function buildRationalizationContext(phase, maxItems = 5) {
   }
   return lines.join("\n");
 }
-
-// src/core/red-flag-detector.ts
 var RED_FLAG_PATTERNS = [
   // hedging — 불확실한 표현
   { category: "hedging", pattern: /should\s+work/i, description: '"should work" \u2014 \uD14C\uC2A4\uD2B8\uB85C \uD655\uC778\uD558\uC138\uC694' },
@@ -262,13 +268,11 @@ var RED_FLAG_PATTERNS = [
   { category: "skipping", pattern: /(?:skip|don'?t\s+need)\s+(?:testing|tests|verification)/i, description: '"\uD14C\uC2A4\uD2B8 \uBD88\uD544\uC694" \u2014 \uBAA8\uB4E0 \uBCC0\uACBD\uC740 \uAC80\uC99D\uC774 \uD544\uC694\uD569\uB2C8\uB2E4' }
 ];
 var COMPLETION_INTENT_PATTERNS = [
-  // 영어
   /(?:let'?s?\s+)?(?:commit|push)\s/i,
   /create\s+(?:a\s+)?(?:PR|pull\s+request)/i,
   /(?:it(?:'s|\s+is)\s+)?done/i,
   /ready\s+(?:to\s+)?(?:merge|ship|deploy|commit)/i,
   /(?:mark|set)\s+(?:as\s+)?(?:complete|done|finished)/i,
-  // 한국어
   /커밋\s*(?:해|하자|할게|합시다)/i,
   /PR\s*(?:생성|만들|올려)/i,
   /완료(?:했|됐|입니다|하겠)/i,
@@ -335,167 +339,20 @@ function buildCompletionChecklist() {
     "- [ ] \uBCC0\uACBD \uBC94\uC704 \uBC16\uC758 \uD68C\uADC0\uAC00 \uC5C6\uB294\uC9C0 \uD655\uC778\uD588\uB294\uAC00?"
   ].join("\n");
 }
-
-// src/types/behavioral-guard.ts
-var DEFAULT_BEHAVIORAL_GUARD_CONFIG = {
-  rationalization: "on",
-  redFlagDetection: "on"
-};
-
-// src/core/skill-trigger-engine.ts
-import { readFileSync as readFileSync3, existsSync as existsSync3 } from "fs";
-import { join as join3 } from "path";
-function loadTriggers(projectRoot) {
-  const empty = { version: "1.0", keywordGroups: {}, triggers: [] };
-  const basePath = join3(projectRoot, ".harness", "triggers.json");
-  const base = loadManifestFile(basePath);
-  const customPath = join3(projectRoot, ".harness", "custom-triggers.json");
-  const custom = loadManifestFile(customPath);
-  if (!base && !custom) return empty;
-  if (!custom) return base ?? empty;
-  if (!base) return custom;
-  return {
-    version: base.version,
-    keywordGroups: { ...base.keywordGroups, ...custom.keywordGroups },
-    triggers: [...base.triggers, ...custom.triggers]
-  };
-}
-function loadManifestFile(filePath) {
-  try {
-    if (!existsSync3(filePath)) return null;
-    const raw = readFileSync3(filePath, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-function matchTriggers(manifest, ctx) {
-  const { prompt, branch, conditions } = ctx;
-  const cleanPrompt = prompt.toLowerCase();
-  for (const entry of manifest.triggers) {
-    for (const rule of entry.rules) {
-      if (matchRule(rule, cleanPrompt, branch, conditions, manifest.keywordGroups)) {
-        const extracts = extractPlaceholders(cleanPrompt, manifest.keywordGroups);
-        if (branch) extracts.branch = branch;
-        return { skill: entry.skill, rule, extracts };
-      }
-    }
-  }
-  return null;
-}
-function matchRule(rule, prompt, branch, conditions, groups) {
-  if (!matchBranch(rule.branch, branch)) return false;
-  if (rule.condition && !conditions[rule.condition]) return false;
-  if (rule.noneOf) {
-    for (const groupName of rule.noneOf) {
-      if (matchGroup(groupName, prompt, groups)) return false;
-    }
-  }
-  if (rule.patterns && rule.patterns.length > 0) {
-    return rule.patterns.some((p) => {
-      try {
-        return new RegExp(p, "i").test(prompt);
-      } catch {
-        return false;
-      }
-    });
-  }
-  if (rule.allOf && rule.allOf.length > 0) {
-    const allMatch = rule.allOf.every((groupName) => matchGroup(groupName, prompt, groups));
-    if (!allMatch) return false;
-    if (rule.anyOf && rule.anyOf.length > 0) {
-      return rule.anyOf.some((groupName) => matchGroup(groupName, prompt, groups));
-    }
-    return true;
-  }
-  if (rule.anyOf && rule.anyOf.length > 0) {
-    return rule.anyOf.some((groupName) => matchGroup(groupName, prompt, groups));
-  }
-  return false;
-}
-function matchBranch(ruleBranch, currentBranch) {
-  if (ruleBranch === "any") return true;
-  if (!currentBranch) return ruleBranch === "any";
-  const isMain = currentBranch === "main" || currentBranch === "master" || currentBranch === "develop" || currentBranch === "dev";
-  if (ruleBranch === "main") return isMain;
-  if (ruleBranch === "feature") return !isMain;
-  return false;
-}
-function matchGroup(groupName, prompt, groups) {
-  const patterns = groups[groupName];
-  if (!patterns || patterns.length === 0) return false;
-  return patterns.some((p) => {
-    try {
-      return new RegExp(p, "i").test(prompt);
-    } catch {
-      return false;
-    }
-  });
-}
-function extractPlaceholders(prompt, groups) {
-  const extracts = {};
-  for (const [name, patterns] of Object.entries(groups)) {
-    for (const p of patterns) {
-      try {
-        const match = new RegExp(p, "i").exec(prompt);
-        if (match) {
-          extracts[name] = match[0];
-          break;
-        }
-      } catch {
-      }
-    }
-  }
-  return extracts;
-}
-function resolveMessage(template, extracts) {
-  return template.replace(/\{(\w+)\}/g, (_, key) => extracts[key] ?? "");
-}
-
-// src/core/implementation-readiness.ts
-import { existsSync as existsSync4, readFileSync as readFileSync4 } from "fs";
-import { join as join5 } from "path";
-
-// src/core/project-paths.ts
-import { join as join4 } from "path";
-function agentPlanPath(projectRoot) {
-  return join4(projectRoot, ".agent", "plan.md");
-}
-function rootPlanPath(projectRoot) {
-  return join4(projectRoot, "plan.md");
-}
-function planSearchPaths(projectRoot) {
-  return [agentPlanPath(projectRoot), rootPlanPath(projectRoot)];
-}
-function agentTodoPath(projectRoot) {
-  return join4(projectRoot, ".agent", "todo.md");
-}
-function rootTodoPath(projectRoot) {
-  return join4(projectRoot, "todo.md");
-}
-function todoSearchPaths(projectRoot) {
-  return [agentTodoPath(projectRoot), rootTodoPath(projectRoot)];
-}
-
-// src/core/implementation-readiness.ts
 var IMPLEMENTATION_INTENT_PATTERNS = [
-  // EN: "implement the plan", "implement following plan"
   /\bimplement\s+(the\s+)?(following\s+)?plan\b/i,
-  // EN: "execute the plan", "execute this plan"
   /\bexecute\s+(the\s+)?(this\s+)?(following\s+)?plan\b/i,
-  // KR: "계획 구현/실행/진행"
   /(?:이|다음|위)\s*(?:계획|플랜).*(?:구현|실행|진행)/i,
   /(?:계획|플랜)\s*(?:을|를)?\s*(?:구현|실행|진행)/i,
-  // KR: "plan 실행해줘", "플랜대로 구현"
   /plan\s*(?:을|를)?\s*(?:실행|구현|진행)/i,
   /(?:플랜|계획)\s*대로/i
 ];
 function getPlanStatus(cwd) {
   const paths = planSearchPaths(cwd);
   for (const p of paths) {
-    if (!existsSync4(p)) continue;
+    if (!existsSync3(p)) continue;
     try {
-      const content = readFileSync4(p, "utf-8");
+      const content = readFileSync3(p, "utf-8");
       if (/\bAPPROVED\b/.test(content)) return "APPROVED";
       if (/\bDRAFT\b/.test(content)) return "DRAFT";
       return "EXISTS";
@@ -508,9 +365,9 @@ function getPlanStatus(cwd) {
 function getTodoStatus(cwd) {
   const paths = todoSearchPaths(cwd);
   for (const p of paths) {
-    if (!existsSync4(p)) continue;
+    if (!existsSync3(p)) continue;
     try {
-      const content = readFileSync4(p, "utf-8");
+      const content = readFileSync3(p, "utf-8");
       const done = (content.match(/\[x\]/gi) || []).length;
       const remaining = (content.match(/\[ \]/g) || []).length;
       const total = done + remaining;
@@ -525,7 +382,7 @@ function hasImplementationIntent(cleanPrompt) {
   return IMPLEMENTATION_INTENT_PATTERNS.some((p) => p.test(cleanPrompt));
 }
 function checkImplementationReadiness(cleanPrompt, cwd) {
-  if (!existsSync4(join5(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
+  if (!existsSync3(join4(cwd, "carpdm-harness.config.json"))) return { status: "pass" };
   if (!hasImplementationIntent(cleanPrompt)) return { status: "pass" };
   const planStatus = getPlanStatus(cwd);
   const todoStatus = getTodoStatus(cwd);
@@ -570,334 +427,48 @@ todo.md\uC758 \uBAA8\uB4E0 \uD56D\uBAA9\uC774 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2
   return { status: "pass" };
 }
 
+// src/types/behavioral-guard.ts
+var DEFAULT_BEHAVIORAL_GUARD_CONFIG = {
+  rationalization: "on",
+  redFlagDetection: "on"
+};
+
 // src/hooks/prompt-enricher.ts
-var ULTRATHINK_MESSAGE = `<think-mode>
-
-**ULTRATHINK MODE ENABLED** - Extended reasoning activated.
-
-You are now in deep thinking mode. Take your time to:
-1. Thoroughly analyze the problem from multiple angles
-2. Consider edge cases and potential issues
-3. Think through the implications of each approach
-4. Reason step-by-step before acting
-
-Use your extended thinking capabilities to provide the most thorough and well-reasoned response.
-
-</think-mode>
-
----
-`;
-function sanitizeForKeywordDetection(text) {
-  return text.replace(/<(\w[\w-]*)[\s>][\s\S]*?<\/\1>/g, "").replace(/<\w[\w-]*(?:\s[^>]*)?\s*\/>/g, "").replace(/https?:\/\/[^\s)>\]]+/g, "").replace(/(^|[\s"'`(])(\/)?(?:[\w.-]+\/)+[\w.-]+/gm, "$1").replace(/```[\s\S]*?```/g, "").replace(/`[^`]+`/g, "");
-}
-function activateState(directory, prompt, stateName, sessionId) {
-  const state = {
-    active: true,
-    started_at: (/* @__PURE__ */ new Date()).toISOString(),
-    original_prompt: prompt,
-    session_id: sessionId || void 0,
-    reinforcement_count: 0,
-    last_checked_at: (/* @__PURE__ */ new Date()).toISOString()
-  };
-  const localDir = omcStateDir(directory);
-  if (!existsSync5(localDir)) {
-    try {
-      mkdirSync(localDir, { recursive: true });
-    } catch {
-    }
-  }
+function readCache(cachePath, ttlMs) {
   try {
-    writeFileSync(omcStatePath(directory, stateName), JSON.stringify(state, null, 2));
+    if (!existsSync4(cachePath)) return null;
+    const raw = readFileSync4(cachePath, "utf-8");
+    const entry = JSON.parse(raw);
+    if (Date.now() - entry.timestamp > ttlMs) return null;
+    return entry.data;
   } catch {
+    return null;
   }
-  const globalDir = omcGlobalStateDir();
-  if (!existsSync5(globalDir)) {
-    try {
-      mkdirSync(globalDir, { recursive: true });
-    } catch {
-    }
-  }
+}
+function writeCache(cachePath, data) {
   try {
-    writeFileSync(omcGlobalStatePath(stateName), JSON.stringify(state, null, 2));
+    const dir = join5(cachePath, "..");
+    if (!existsSync4(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    const entry = { data, timestamp: Date.now() };
+    writeFileSync(cachePath, JSON.stringify(entry), "utf-8");
   } catch {
-  }
-}
-function clearStateFiles(directory, modeNames) {
-  for (const name of modeNames) {
-    const localPath = omcStatePath(directory, name);
-    const globalPath = omcGlobalStatePath(name);
-    try {
-      if (existsSync5(localPath)) unlinkSync(localPath);
-    } catch {
-    }
-    try {
-      if (existsSync5(globalPath)) unlinkSync(globalPath);
-    } catch {
-    }
-  }
-}
-function createSkillInvocation(skillName, originalPrompt, args = "") {
-  const argsSection = args ? `
-Arguments: ${args}` : "";
-  return `[MAGIC KEYWORD: ${skillName.toUpperCase()}]
-
-You MUST invoke the skill using the Skill tool:
-
-Skill: oh-my-claudecode:${skillName}${argsSection}
-
-User request:
-${originalPrompt}
-
-IMPORTANT: Invoke the skill IMMEDIATELY. Do not proceed without loading the skill instructions.`;
-}
-function createMultiSkillInvocation(skills, originalPrompt) {
-  if (skills.length === 0) return "";
-  if (skills.length === 1) {
-    return createSkillInvocation(skills[0].name, originalPrompt, skills[0].args);
-  }
-  const skillBlocks = skills.map((s, i) => {
-    const argsSection = s.args ? `
-Arguments: ${s.args}` : "";
-    return `### Skill ${i + 1}: ${s.name.toUpperCase()}
-Skill: oh-my-claudecode:${s.name}${argsSection}`;
-  }).join("\n\n");
-  return `[MAGIC KEYWORDS DETECTED: ${skills.map((s) => s.name.toUpperCase()).join(", ")}]
-
-You MUST invoke ALL of the following skills using the Skill tool, in order:
-
-${skillBlocks}
-
-User request:
-${originalPrompt}
-
-IMPORTANT: Invoke ALL skills listed above. Start with the first skill IMMEDIATELY. After it completes, invoke the next skill in order. Do not skip any skill.`;
-}
-function createMcpDelegation(provider, originalPrompt) {
-  const configs = {
-    codex: {
-      tool: "ask_codex",
-      roles: "architect, planner, critic, analyst, code-reviewer, security-reviewer, tdd-guide",
-      defaultRole: "architect"
-    },
-    gemini: {
-      tool: "ask_gemini",
-      roles: "designer, writer, vision",
-      defaultRole: "designer"
-    }
-  };
-  const config = configs[provider];
-  if (!config) return "";
-  return `[MAGIC KEYWORD: ${provider.toUpperCase()}]
-
-You MUST delegate this task to the ${provider === "codex" ? "Codex" : "Gemini"} MCP tool.
-
-Steps:
-1. Call ToolSearch("mcp") to discover available MCP tools (required -- they are deferred and not in your tool list by default)
-2. Write a prompt file to \`.harness/prompts/${provider}-{purpose}-{timestamp}.md\` containing clear task instructions derived from the user's request
-3. Determine the appropriate agent_role from: ${config.roles}
-4. Call the \`${config.tool}\` MCP tool with:
-   - agent_role: <detected or default "${config.defaultRole}">
-   - prompt_file: <path you wrote>
-   - output_file: <corresponding -summary.md path>
-   - context_files: <relevant files from user's request>
-
-If ToolSearch returns no MCP tools, the MCP server is not configured. Fall back to the equivalent Claude agent instead.
-
-User request:
-${originalPrompt}
-
-IMPORTANT: Do NOT invoke a skill. Discover MCP tools via ToolSearch first, then delegate IMMEDIATELY.`;
-}
-function createCombinedOutput(skillMatches, delegationMatches, originalPrompt) {
-  const parts = [];
-  if (skillMatches.length > 0) {
-    parts.push("## Section 1: Skill Invocations\n\n" + createMultiSkillInvocation(skillMatches, originalPrompt));
-  }
-  if (delegationMatches.length > 0) {
-    const delegationParts = delegationMatches.map((d) => createMcpDelegation(d.name, originalPrompt));
-    const sectionNum = skillMatches.length > 0 ? "2" : "1";
-    parts.push(`## Section ${sectionNum}: MCP Delegations
-
-` + delegationParts.join("\n\n---\n\n"));
-  }
-  const allNames = [...skillMatches, ...delegationMatches].map((m) => m.name.toUpperCase());
-  return `[MAGIC KEYWORDS DETECTED: ${allNames.join(", ")}]
-
-${parts.join("\n\n---\n\n")}
-
-IMPORTANT: Complete ALL sections above in order.`;
-}
-function resolveConflicts(matches) {
-  const names = matches.map((m) => m.name);
-  if (names.includes("cancel")) {
-    const found = matches.find((m) => m.name === "cancel");
-    return found ? [found] : [];
-  }
-  let resolved = [...matches];
-  if (names.includes("ecomode") && names.includes("ultrawork")) {
-    resolved = resolved.filter((m) => m.name !== "ultrawork");
-  }
-  if (names.includes("team") && names.includes("autopilot")) {
-    resolved = resolved.filter((m) => m.name !== "autopilot");
-  }
-  const priorityOrder = [...OMC_KEYWORD_PRIORITY];
-  resolved.sort((a, b) => priorityOrder.indexOf(a.name) - priorityOrder.indexOf(b.name));
-  return resolved;
-}
-function isTeamEnabled(cwd) {
-  const checkEnvValue = (envValue) => {
-    if (typeof envValue === "string") {
-      const normalized = envValue.toLowerCase().trim();
-      return normalized === "1" || normalized === "true" || normalized === "yes";
-    }
-    return false;
-  };
-  try {
-    const globalPath = join6(homedir2(), ".claude", "settings.json");
-    if (existsSync5(globalPath)) {
-      const settings = JSON.parse(readFileSync5(globalPath, "utf-8"));
-      if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
-    }
-  } catch {
-  }
-  if (cwd) {
-    try {
-      const localPath = join6(cwd, ".claude", "settings.local.json");
-      if (existsSync5(localPath)) {
-        const settings = JSON.parse(readFileSync5(localPath, "utf-8"));
-        if (checkEnvValue(settings?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)) return true;
-      }
-    } catch {
-    }
-  }
-  return checkEnvValue(process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS);
-}
-function createTeamWarning() {
-  return `WARNING: **TEAM FEATURE NOT ENABLED**
-
-The team skill requires the experimental agent teams feature to be enabled in Claude Code.
-
-To enable teams, add the following to your ~/.claude/settings.json:
-
-\`\`\`json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
-\`\`\`
-
-Then restart Claude Code. The team skill will proceed, but may not function correctly without this setting.`;
-}
-function detectKeywords(prompt, directory, sessionId) {
-  const cleanPrompt = sanitizeForKeywordDetection(prompt).toLowerCase();
-  const matches = [];
-  if (/\b(cancelomc|stopomc)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "cancel", args: "" });
-  }
-  if (/\b(todo[\s-]?loop|ralph[\s-]?todo|todo[\s-]?ralph)\b/i.test(cleanPrompt) || /\btodo.*반복\b/i.test(cleanPrompt) || /\b반복.*todo\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ralph-todo", args: "" });
-  }
-  if (/\b(ralph|don't stop|must complete|until done)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ralph", args: "" });
-  }
-  if (/\b(autopilot|auto pilot|auto-pilot|autonomous|full auto|fullsend)\b/i.test(cleanPrompt) || /\bbuild\s+me\s+/i.test(cleanPrompt) || /\bcreate\s+me\s+/i.test(cleanPrompt) || /\bmake\s+me\s+/i.test(cleanPrompt) || /\bi\s+want\s+a\s+/i.test(cleanPrompt) || /\bi\s+want\s+an\s+/i.test(cleanPrompt) || /\bhandle\s+it\s+all\b/i.test(cleanPrompt) || /\bend\s+to\s+end\b/i.test(cleanPrompt) || /\be2e\s+this\b/i.test(cleanPrompt)) {
-    matches.push({ name: "autopilot", args: "" });
-  }
-  const swarmMatch = cleanPrompt.match(/\bswarm\s+(\d+)\s+agents?\b/i);
-  const hasTeamKeyword = /\b(team)\b/i.test(cleanPrompt) || /\bcoordinated\s+team\b/i.test(cleanPrompt);
-  const hasLegacyTeamKeyword = /\b(ultrapilot|ultra-pilot)\b/i.test(cleanPrompt) || /\bparallel\s+build\b/i.test(cleanPrompt) || /\bswarm\s+build\b/i.test(cleanPrompt) || !!swarmMatch || /\bcoordinated\s+agents\b/i.test(cleanPrompt);
-  if (hasTeamKeyword || hasLegacyTeamKeyword) {
-    matches.push({ name: "team", args: swarmMatch ? swarmMatch[1] : "" });
-  }
-  if (/\b(ultrawork|ulw|uw)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ultrawork", args: "" });
-  }
-  if (/\b(eco|ecomode|eco-mode|efficient|save-tokens|budget)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ecomode", args: "" });
-  }
-  if (/\b(pipeline)\b/i.test(cleanPrompt) || /\bchain\s+agents\b/i.test(cleanPrompt)) {
-    matches.push({ name: "pipeline", args: "" });
-  }
-  if (/\b(ralplan)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ralplan", args: "" });
-  }
-  if (/\b(plan this|plan the)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "plan", args: "" });
-  }
-  if (/\b(tdd)\b/i.test(cleanPrompt) || /\btest\s+first\b/i.test(cleanPrompt) || /\bred\s+green\b/i.test(cleanPrompt)) {
-    matches.push({ name: "tdd", args: "" });
-  }
-  if (/\bresearch\s+(this|the|about|on|into)\b/i.test(cleanPrompt) || /\banalyze\s+data\b/i.test(cleanPrompt) || /\bstatistics\b/i.test(cleanPrompt)) {
-    matches.push({ name: "research", args: "" });
-  }
-  if (/\b(ultrathink|think hard|think deeply)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "ultrathink", args: "" });
-  }
-  if (/\b(deepsearch)\b/i.test(cleanPrompt) || /\bsearch\s+(the\s+)?(codebase|code|files?|project)\b/i.test(cleanPrompt) || /\bfind\s+(in\s+)?(codebase|code|all\s+files?)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "deepsearch", args: "" });
-  }
-  if (/\b(deep\s*analyze)\b/i.test(cleanPrompt) || /\binvestigate\s+(the|this|why)\b/i.test(cleanPrompt) || /\bdebug\s+(the|this|why)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "analyze", args: "" });
-  }
-  if (/\b(ask|use|delegate\s+to)\s+(codex|gpt)\b/i.test(cleanPrompt)) {
-    matches.push({ name: "codex", args: "" });
-  }
-  if (/\b(ask|use|delegate\s+to)\s+gemini\b/i.test(cleanPrompt)) {
-    matches.push({ name: "gemini", args: "" });
-  }
-  if (matches.length === 0) return null;
-  const resolved = resolveConflicts(matches);
-  if (resolved.length > 0 && resolved[0].name === "cancel") {
-    clearStateFiles(directory, [...OMC_CANCEL_MODES]);
-    return createSkillInvocation("cancel", prompt);
-  }
-  const stateModes = resolved.filter(
-    (m) => OMC_STATEFUL_MODES.includes(m.name)
-  );
-  for (const mode of stateModes) {
-    activateState(directory, prompt, mode.name, sessionId);
-  }
-  const hasRalph = resolved.some((m) => m.name === "ralph");
-  const hasEcomode = resolved.some((m) => m.name === "ecomode");
-  const hasUltrawork = resolved.some((m) => m.name === "ultrawork");
-  if (hasRalph && !hasEcomode && !hasUltrawork) {
-    activateState(directory, prompt, "ultrawork", sessionId);
-  }
-  const ultrathinkIndex = resolved.findIndex((m) => m.name === "ultrathink");
-  if (ultrathinkIndex !== -1) {
-    resolved.splice(ultrathinkIndex, 1);
-    if (resolved.length === 0) {
-      return ULTRATHINK_MESSAGE;
-    }
-    return ULTRATHINK_MESSAGE + createMultiSkillInvocation(resolved, prompt);
-  }
-  const skillMatches = resolved.filter((m) => !MCP_DELEGATION_KEYWORDS.includes(m.name));
-  const delegationMatches = resolved.filter((m) => MCP_DELEGATION_KEYWORDS.includes(m.name));
-  const hasTeamSkill = skillMatches.some((m) => m.name === "team");
-  const teamWarning = hasTeamSkill && !isTeamEnabled(directory) ? createTeamWarning() + "\n\n---\n\n" : "";
-  if (skillMatches.length > 0 && delegationMatches.length > 0) {
-    return teamWarning + createCombinedOutput(skillMatches, delegationMatches, prompt);
-  } else if (delegationMatches.length > 0) {
-    const delegationParts = delegationMatches.map((d) => createMcpDelegation(d.name, prompt));
-    return delegationParts.join("\n\n---\n\n");
-  } else {
-    return teamWarning + createMultiSkillInvocation(skillMatches, prompt);
   }
 }
 function readKnowledgeContext(cwd, branch) {
   if (!branch) return null;
   const branchDir = knowledgeBranchDir(cwd, branch);
-  if (!existsSync5(branchDir)) return null;
+  if (!existsSync4(branchDir)) return null;
   const lines = [`[Knowledge Context]`, `Branch: ${branch}`];
   const MAX_LINES_PER_FILE = 15;
   const targetFiles = ["design.md", "decisions.md", "spec.md"];
   for (const filename of targetFiles) {
-    const filePath = join6(branchDir, filename);
-    if (!existsSync5(filePath)) continue;
+    const filePath = join5(branchDir, filename);
+    if (!existsSync4(filePath)) continue;
     let content;
     try {
-      content = readFileSync5(filePath, "utf-8");
+      content = readFileSync4(filePath, "utf-8");
     } catch {
       continue;
     }
@@ -915,62 +486,16 @@ function readKnowledgeContext(cwd, branch) {
   return lines.join("\n");
 }
 function getCurrentBranch(cwd) {
+  const cachePath = join5(cwd, ".harness", "cache", "branch-cache.json");
+  const cached = readCache(cachePath, 3e4);
+  if (cached !== null) return cached;
   try {
-    return execSync("git branch --show-current", { cwd, stdio: "pipe" }).toString().trim() || null;
+    const branch = execSync("git branch --show-current", { cwd, stdio: "pipe" }).toString().trim() || null;
+    if (branch) writeCache(cachePath, branch);
+    return branch;
   } catch {
     return null;
   }
-}
-function hasActiveWork(cwd) {
-  try {
-    const workStatePath = join6(cwd, ".harness", "state", "current-work.json");
-    if (!existsSync5(workStatePath)) return false;
-    const state = JSON.parse(readFileSync5(workStatePath, "utf-8"));
-    return !state.completedAt;
-  } catch {
-    return false;
-  }
-}
-function createHarnessSkillInvocation(skillName, originalPrompt) {
-  return `[HARNESS WORKFLOW: ${skillName.toUpperCase()}]
-
-You MUST invoke the harness workflow skill using the Skill tool:
-
-Skill: ${skillName}
-Arguments: ${originalPrompt}
-
-User request:
-${originalPrompt}
-
-IMPORTANT: Invoke the /${skillName} skill IMMEDIATELY using the Skill tool. Do not proceed without loading the skill instructions first.`;
-}
-function createWorkSuggestion(skillName, message, originalPrompt) {
-  return `[HARNESS WORKFLOW SUGGESTION]
-
-${message}
-
-\uAD8C\uC7A5: /${skillName} "${originalPrompt.slice(0, 60)}"
-\uC9C1\uC811 \uC9C4\uD589\uD558\uB824\uBA74 \uC774 \uC81C\uC548\uC744 \uBB34\uC2DC\uD558\uACE0 \uC0AC\uC6A9\uC790\uC758 \uC694\uCCAD\uC744 \uCC98\uB9AC\uD558\uC138\uC694.
-
-User request:
-${originalPrompt}`;
-}
-function detectWorkKeywords(prompt, cwd) {
-  const cleanPrompt = sanitizeForKeywordDetection(prompt);
-  const branch = getCurrentBranch(cwd);
-  const conditions = {
-    "no-active-work": !hasActiveWork(cwd)
-  };
-  const manifest = loadTriggers(cwd);
-  if (manifest.triggers.length === 0) return null;
-  const ctx = { prompt: cleanPrompt, branch, conditions };
-  const match = matchTriggers(manifest, ctx);
-  if (!match) return null;
-  if (match.rule.mode === "force") {
-    return createHarnessSkillInvocation(match.skill, prompt);
-  }
-  const message = match.rule.message ? resolveMessage(match.rule.message, match.extracts) : `/${match.skill}\uC744 \uC2E4\uD589\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?`;
-  return createWorkSuggestion(match.skill, message, prompt);
 }
 function buildStepWarnings(instance) {
   const warnings = [];
@@ -1015,13 +540,17 @@ function buildWorkflowContext(instance, cwd) {
   if (omcMode) {
     contextLines.push(`OMC \uBAA8\uB4DC: ${omcMode}`);
   }
+  const rufloSwarm = detectRufloSwarm(cwd);
+  if (rufloSwarm) {
+    contextLines.push(`ruflo: ${rufloSwarm}`);
+  }
   return contextLines.join("\n");
 }
 function loadBehavioralGuardConfig(cwd) {
   try {
-    const configPath = join6(cwd, "carpdm-harness.config.json");
-    if (!existsSync5(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
-    const config = JSON.parse(readFileSync5(configPath, "utf-8"));
+    const configPath = join5(cwd, "carpdm-harness.config.json");
+    if (!existsSync4(configPath)) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
+    const config = JSON.parse(readFileSync4(configPath, "utf-8"));
     const guard = config.behavioralGuard;
     if (!guard) return { ...DEFAULT_BEHAVIORAL_GUARD_CONFIG };
     return {
@@ -1044,7 +573,7 @@ function buildStandaloneRedFlagContext(prompt) {
 function main() {
   let input;
   try {
-    const raw = readFileSync5("/dev/stdin", "utf-8");
+    const raw = readFileSync4("/dev/stdin", "utf-8");
     input = parseHookInput(raw);
   } catch {
     outputResult("continue");
@@ -1056,41 +585,6 @@ function main() {
   }
   const cwd = input.cwd || process.cwd();
   const prompt = typeof input.prompt === "string" ? input.prompt : "";
-  const sessionId = String(input.sessionId || input.session_id || input.sessionid || "");
-  try {
-    if (prompt) {
-      const keywordContext = detectKeywords(prompt, cwd, sessionId);
-      if (keywordContext !== null) {
-        outputResult("continue", keywordContext);
-        return;
-      }
-    }
-  } catch {
-  }
-  try {
-    if (prompt) {
-      const workContext = detectWorkKeywords(prompt, cwd);
-      if (workContext !== null) {
-        outputResult("continue", workContext);
-        return;
-      }
-    }
-  } catch {
-  }
-  try {
-    if (prompt) {
-      const cleanForReadiness = sanitizeForKeywordDetection(prompt);
-      const readiness = checkImplementationReadiness(cleanForReadiness, cwd);
-      if (readiness.status === "force-plan-gate") {
-        outputResult("continue", createHarnessSkillInvocation("plan-gate", prompt));
-        return;
-      } else if (readiness.status !== "pass") {
-        outputResult("continue", readiness.message);
-        return;
-      }
-    }
-  } catch {
-  }
   const guardConfig = loadBehavioralGuardConfig(cwd);
   let knowledgeContext = null;
   try {
@@ -1102,6 +596,14 @@ function main() {
   if (!instance || !instance.status || instance.status === "completed" || instance.status === "aborted") {
     const parts = [];
     if (knowledgeContext) parts.push(knowledgeContext);
+    if (prompt) {
+      const readiness = checkImplementationReadiness(prompt, cwd);
+      if (readiness.status === "force-plan-gate") {
+        parts.push("[WORKFLOW GUARD: PLAN REQUIRED]\n\nplan.md\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. /plan-gate \uC2A4\uD0AC\uC744 \uBA3C\uC800 \uC2E4\uD589\uD558\uC138\uC694.");
+      } else if (readiness.status !== "pass" && readiness.message) {
+        parts.push(readiness.message);
+      }
+    }
     if (prompt && guardConfig.redFlagDetection === "on") {
       const extraContext = buildStandaloneRedFlagContext(prompt);
       if (extraContext) parts.push(extraContext);

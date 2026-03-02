@@ -1,6 +1,6 @@
 // src/hooks/quality-gate.ts
-import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
-import { join as join2 } from "path";
+import { readFileSync as readFileSync3, existsSync as existsSync3, readdirSync } from "fs";
+import { join as join4 } from "path";
 import { execSync } from "child_process";
 
 // src/core/omc-compat.ts
@@ -20,7 +20,8 @@ var OMC_SKILLS = {
   deepsearch: "/oh-my-claudecode:deepsearch",
   "code-review": "/oh-my-claudecode:code-review",
   "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel"
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
 };
 var AGENT_SKILL_MAP = {
   analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
@@ -42,7 +43,14 @@ var OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
 var HARNESS_NPM_PACKAGE = "carpdm-harness";
 var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest`;
 
-// src/core/red-flag-detector.ts
+// src/core/behavioral-validator.ts
+import { existsSync as existsSync2, readFileSync as readFileSync2 } from "fs";
+import { join as join3 } from "path";
+
+// src/core/project-paths.ts
+import { join as join2 } from "path";
+
+// src/core/behavioral-validator.ts
 var RED_FLAG_PATTERNS = [
   // hedging — 불확실한 표현
   { category: "hedging", pattern: /should\s+work/i, description: '"should work" \u2014 \uD14C\uC2A4\uD2B8\uB85C \uD655\uC778\uD558\uC138\uC694' },
@@ -122,7 +130,7 @@ var DEFAULT_BEHAVIORAL_GUARD_CONFIG = {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     outputResult("continue");
@@ -136,14 +144,14 @@ function main() {
     return;
   }
   const cwd = input.cwd || process.cwd();
-  const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync2(configPath)) {
+  const configPath = join4(cwd, "carpdm-harness.config.json");
+  if (!existsSync3(configPath)) {
     outputResult("continue");
     return;
   }
   let config;
   try {
-    config = JSON.parse(readFileSync2(configPath, "utf-8"));
+    config = JSON.parse(readFileSync3(configPath, "utf-8"));
   } catch {
     outputResult("continue");
     return;
@@ -187,10 +195,10 @@ function main() {
   let secretFound = false;
   const secretFiles = [];
   for (const file of stagedFiles) {
-    const filePath = join2(cwd, file);
-    if (!existsSync2(filePath)) continue;
+    const filePath = join4(cwd, file);
+    if (!existsSync3(filePath)) continue;
     try {
-      const content = readFileSync2(filePath, "utf-8");
+      const content = readFileSync3(filePath, "utf-8");
       for (const pattern of secretPatterns) {
         if (pattern.test(content)) {
           secretFound = true;
@@ -252,12 +260,12 @@ ${redFlagReport}`);
 }
 function isOmcTeamMode(cwd) {
   const stateDir = omcStateDir(cwd);
-  if (!existsSync2(stateDir)) return false;
+  if (!existsSync3(stateDir)) return false;
   try {
     const stateFiles = readdirSync(stateDir).filter((f) => f.endsWith("-state.json"));
     for (const file of stateFiles) {
       try {
-        const state = JSON.parse(readFileSync2(join2(stateDir, file), "utf-8"));
+        const state = JSON.parse(readFileSync3(join4(stateDir, file), "utf-8"));
         if (state.active) {
           const mode = file.replace("-state.json", "");
           if (OMC_TEAM_MODES.includes(mode)) {
