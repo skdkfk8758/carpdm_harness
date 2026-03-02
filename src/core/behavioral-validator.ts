@@ -238,7 +238,7 @@ export const IMPLEMENTATION_INTENT_PATTERNS: RegExp[] = [
   /(?:플랜|계획)\s*대로/i,
 ];
 
-export type PlanStatus = 'NONE' | 'DRAFT' | 'APPROVED' | 'EXISTS';
+export type PlanStatus = 'NONE' | 'DRAFT' | 'APPROVED' | 'COMPLETED' | 'EXISTS';
 
 export interface TodoStatus {
   exists: boolean;
@@ -260,6 +260,7 @@ export function getPlanStatus(cwd: string): PlanStatus {
       const content = readFileSync(p, 'utf-8');
       if (/\bAPPROVED\b/.test(content)) return 'APPROVED';
       if (/\bDRAFT\b/.test(content)) return 'DRAFT';
+      if (/\bCOMPLETED\b/.test(content)) return 'COMPLETED';
       return 'EXISTS';
     } catch { continue; }
   }
@@ -293,7 +294,7 @@ export function checkImplementationReadiness(cleanPrompt: string, cwd: string): 
   const planStatus = getPlanStatus(cwd);
   const todoStatus = getTodoStatus(cwd);
 
-  if (planStatus === 'NONE') {
+  if (planStatus === 'NONE' || planStatus === 'COMPLETED') {
     return { status: 'force-plan-gate' };
   }
 

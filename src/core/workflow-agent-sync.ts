@@ -10,6 +10,7 @@ import { dirname } from 'node:path';
 import { agentPlanPath, agentTodoPath } from './project-paths.js';
 import { knowledgeDir } from './omc-compat.js';
 import { createBranchKnowledge } from './knowledge-vault.js';
+import { archivePlan } from './plan-archive.js';
 import type { WorkflowInstance, WorkflowContext } from '../types/workflow-engine.js';
 
 // ===== plan.md 자동 생성 =====
@@ -22,7 +23,18 @@ export function generatePlanFromWorkflow(
   const planPath = agentPlanPath(projectRoot);
 
   if (existsSync(planPath)) {
-    return { created: false, path: planPath };
+    try {
+      const existing = readFileSync(planPath, 'utf-8');
+      if (/\bCOMPLETED\b/.test(existing)) {
+        // COMPLETED plan은 아카이브 후 새 plan 생성 진행
+        try { archivePlan(projectRoot); } catch { /* 아카이브 실패해도 덮어쓰기 진행 */ }
+      } else {
+        // DRAFT/APPROVED/IN_PROGRESS → 보호
+        return { created: false, path: planPath };
+      }
+    } catch {
+      return { created: false, path: planPath };
+    }
   }
 
   mkdirSync(dirname(planPath), { recursive: true });
