@@ -4,6 +4,16 @@ import { omcStateDir, detectRufloSwarmStatus } from '../core/omc-compat.js';
 
 // === 공통 인터페이스 ===
 
+export interface HookInput {
+  cwd?: string;
+  directory?: string;
+  sessionId?: string;
+  session_id?: string;
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface HookOutput {
   result: 'continue' | 'block';
   additionalContext?: string;
@@ -177,6 +187,18 @@ export function readDetectedCapabilities(cwd: string): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * 서브에이전트 이름과 현재 단계 에이전트를 매칭합니다.
+ */
+export function matchSubagent(subagentName: string, step: StepData): boolean {
+  if (!subagentName || !step.agent) return false;
+
+  const normalizedSubagent = subagentName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizedAgent = step.agent.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  return normalizedSubagent.includes(normalizedAgent) || normalizedAgent.includes(normalizedSubagent);
 }
 
 /**

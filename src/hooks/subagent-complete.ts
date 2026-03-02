@@ -4,8 +4,8 @@ import {
   parseHookInput,
   outputResult,
   loadActiveWorkflowFromFiles,
+  matchSubagent,
 } from './hook-utils.js';
-import type { StepData } from './hook-utils.js';
 
 interface SubagentStopInput {
   cwd?: string;
@@ -92,18 +92,6 @@ function main(): void {
     // 비매칭: 기록 없이 진행
     outputResult('continue');
   }
-}
-
-/**
- * 서브에이전트 이름과 현재 단계 에이전트를 매칭합니다.
- */
-function matchSubagent(subagentName: string, step: StepData): boolean {
-  if (!subagentName || !step.agent) return false;
-
-  const normalizedSubagent = subagentName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const normalizedAgent = step.agent.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  return normalizedSubagent.includes(normalizedAgent) || normalizedAgent.includes(normalizedSubagent);
 }
 
 /**

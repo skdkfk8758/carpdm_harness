@@ -1,5 +1,4 @@
 import { resolve, join } from 'node:path';
-import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
@@ -26,8 +25,4 @@ export function getProjectRoot(cwd?: string): string {
 
 export function getConfigPath(projectRoot: string): string {
   return join(projectRoot, 'carpdm-harness.config.json');
-}
-
-export function configExists(projectRoot: string): boolean {
-  return existsSync(getConfigPath(projectRoot));
 }

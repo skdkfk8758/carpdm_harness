@@ -5,7 +5,7 @@ import { fullSync, syncHarnessToOmc, syncOmcToHarness, syncOntologyToOmc } from 
 import type { SyncResult } from '../types/sync.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 import { syncClaudeMd } from '../core/claudemd-sync.js';
-import { detectLocalMcpConflict, formatMcpConflictWarning } from '../core/omc-compat.js';
+import { detectLocalMcpConflict, getMcpConflictWarning } from '../core/omc-compat.js';
 
 function formatSyncResult(res: McpResponseBuilder, result: SyncResult, label: string): void {
   res.info(`${label}:`);
@@ -98,7 +98,11 @@ export function registerSyncTool(server: McpServer): void {
 
         // Local MCP 충돌 감지
         if (!pDryRun && detectLocalMcpConflict(pRoot)) {
-          formatMcpConflictWarning(res);
+          const conflict = getMcpConflictWarning();
+          res.blank();
+          res.warn(conflict.title);
+          for (const line of conflict.lines) res.line(line);
+          res.info(conflict.resolution);
         }
 
         res.blank();

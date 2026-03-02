@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { join, basename } from 'node:path';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { loadConfig } from '../core/config.js';
 import { getAllModules } from '../core/module-registry.js';
 import { computeFileHash } from '../core/file-ops.js';
@@ -198,7 +198,7 @@ export function registerDashboardTool(server: McpServer): void {
         // 8. 브라우저 열기
         if (open) {
           try {
-            execSync(`open "${outputPath}"`, { stdio: 'ignore' });
+            execFileSync('open', [outputPath], { stdio: 'ignore' });
             res.info('브라우저에서 대시보드를 열었습니다.');
           } catch {
             res.warn('브라우저 열기 실패. 수동으로 열어주세요.');

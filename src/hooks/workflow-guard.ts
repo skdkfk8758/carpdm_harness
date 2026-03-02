@@ -1,17 +1,8 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { omcStateDir, detectRufloSwarmStatus } from '../core/omc-compat.js';
-
-interface HookInput {
-  tool_name?: string;
-  cwd?: string;
-  [key: string]: unknown;
-}
-
-interface HookOutput {
-  result: 'continue' | 'block';
-  additionalContext?: string;
-}
+import { outputResult } from './hook-utils.js';
+import type { HookInput } from './hook-utils.js';
 
 interface ActiveJson {
   activeWorkflowId?: string | null;
@@ -218,14 +209,6 @@ function checkOmcActiveMode(cwd: string): void {
   }
 
   outputResult('continue');
-}
-
-function outputResult(result: 'continue' | 'block', additionalContext?: string): void {
-  const output: HookOutput = { result };
-  if (additionalContext) {
-    output.additionalContext = additionalContext;
-  }
-  process.stdout.write(JSON.stringify(output));
 }
 
 main();

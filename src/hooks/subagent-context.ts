@@ -5,6 +5,7 @@ import {
   loadActiveWorkflowFromFiles,
   detectOmcMode,
   buildWorkflowSummary,
+  matchSubagent,
 } from './hook-utils.js';
 import type { WorkflowStateData, StepData } from './hook-utils.js';
 
@@ -71,19 +72,6 @@ function main(): void {
     const omcHint = omcMode ? ` | OMC 모드: ${omcMode}` : '';
     outputResult('continue', summary + omcHint);
   }
-}
-
-/**
- * 서브에이전트 이름과 현재 단계 에이전트를 매칭합니다.
- */
-function matchSubagent(subagentName: string, step: StepData): boolean {
-  if (!subagentName || !step.agent) return false;
-
-  const normalizedSubagent = subagentName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const normalizedAgent = step.agent.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  // 정확히 일치하거나 포함 관계
-  return normalizedSubagent.includes(normalizedAgent) || normalizedAgent.includes(normalizedSubagent);
 }
 
 /**

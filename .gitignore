@@ -11,3 +11,9 @@ dist/**/*.map
 .serena/
 .obsidian/
 .claude-flow/
+
+# 민감 파일
+*.pem
+*.key
+*.p12
+credentials.json

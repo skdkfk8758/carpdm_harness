@@ -1,4 +1,33 @@
-import { OMC_SKILLS } from '../core/omc-compat.js';
+/** 에이전트 역할별 OMC 스킬 이름 (types 레이어에서 관리하여 역방향 import 방지) */
+export const OMC_SKILLS = {
+  analyze: '/oh-my-claudecode:analyze',
+  plan: '/oh-my-claudecode:plan',
+  autopilot: '/oh-my-claudecode:autopilot',
+  tdd: '/oh-my-claudecode:tdd',
+  'git-master': '/oh-my-claudecode:git-master',
+  deepsearch: '/oh-my-claudecode:deepsearch',
+  'code-review': '/oh-my-claudecode:code-review',
+  'security-review': '/oh-my-claudecode:security-review',
+  cancel: '/oh-my-claudecode:cancel',
+  ralph: '/oh-my-claudecode:ralph',
+} as const;
+
+/** 에이전트 → 스킬 + 모델 매핑 */
+export const AGENT_SKILL_MAP: Record<string, { skill?: string; model: string }> = {
+  analyst:             { skill: OMC_SKILLS.analyze,              model: 'opus' },
+  planner:             { skill: OMC_SKILLS.plan,                 model: 'opus' },
+  architect:           { skill: undefined,                       model: 'opus' },
+  executor:            { skill: OMC_SKILLS.autopilot,            model: 'sonnet' },
+  'deep-executor':     { skill: OMC_SKILLS.autopilot,            model: 'opus' },
+  'test-engineer':     { skill: OMC_SKILLS.tdd,                  model: 'sonnet' },
+  verifier:            { skill: undefined,                       model: 'sonnet' },
+  'git-master':        { skill: OMC_SKILLS['git-master'],        model: 'sonnet' },
+  explore:             { skill: OMC_SKILLS.deepsearch,            model: 'haiku' },
+  debugger:            { skill: OMC_SKILLS.analyze,              model: 'sonnet' },
+  'quality-reviewer':  { skill: OMC_SKILLS['code-review'],       model: 'sonnet' },
+  'security-reviewer': { skill: OMC_SKILLS['security-review'],   model: 'sonnet' },
+  'qa-tester':         { skill: undefined,                       model: 'sonnet' },
+};
 
 export interface PipelineStep {
   order: number;
