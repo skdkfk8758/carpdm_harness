@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { omcStateDir, OMC_TEAM_MODES } from '../core/omc-compat.js';
-import { detectRedFlags, buildRedFlagContext } from '../core/red-flag-detector.js';
+import { detectRedFlags, buildRedFlagContext } from '../core/behavioral-validator.js';
 import { DEFAULT_BEHAVIORAL_GUARD_CONFIG } from '../types/behavioral-guard.js';
 
 interface HookInput {

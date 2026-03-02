@@ -1,9 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { loadConfig } from '../core/config.js';
 import { buildOntology } from '../core/ontology/index.js';
-import { mergeExcludePatterns } from '../core/ontology/structure-builder.js';
-import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
+import { loadMergedOntologyConfig } from '../core/ontology/config-loader.js';
 import type { OntologyConfig } from '../types/ontology.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 import { syncOntologyToOmc } from '../core/state-sync.js';
@@ -20,26 +18,7 @@ export function registerOntologyGenerateTool(server: McpServer): void {
     async ({ projectRoot, layer, dryRun }) => {
       try {
         const res = new McpResponseBuilder();
-        const config = loadConfig(projectRoot as string);
-        const userOntology = config?.ontology;
-        let ontologyConfig: OntologyConfig = userOntology
-          ? {
-              ...DEFAULT_ONTOLOGY_CONFIG,
-              ...userOntology,
-              layers: {
-                ...DEFAULT_ONTOLOGY_CONFIG.layers,
-                ...userOntology.layers,
-                structure: {
-                  ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
-                  ...userOntology.layers?.structure,
-                  excludePatterns: mergeExcludePatterns(
-                    DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
-                    userOntology.layers?.structure?.excludePatterns ?? [],
-                  ),
-                },
-              },
-            }
-          : DEFAULT_ONTOLOGY_CONFIG;
+        let ontologyConfig: OntologyConfig = loadMergedOntologyConfig(projectRoot as string);
 
         if (layer) {
           const validLayers = ['structure', 'semantics', 'domain'];

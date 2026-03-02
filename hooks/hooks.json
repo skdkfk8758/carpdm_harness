@@ -25,14 +25,21 @@
       }]
     }],
     "PreToolUse": [{
-      "matcher": "harness_workflow",
+      "matcher": "harness_*",
       "hooks": [{
         "type": "command",
         "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" workflow-guard",
         "timeout": 3000
       }]
     }, {
-      "matcher": "harness_*",
+      "matcher": "Edit",
+      "hooks": [{
+        "type": "command",
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" workflow-guard",
+        "timeout": 3000
+      }]
+    }, {
+      "matcher": "Write",
       "hooks": [{
         "type": "command",
         "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.sh\" workflow-guard",

@@ -182,7 +182,7 @@ describe('overlap-detector', () => {
       const emptyItem = result.items.find(i => i.category === 'empty-rules');
       expect(emptyItem).toBeDefined();
       expect(emptyItem!.affectedItems).toEqual(['.claude/rules/bugs.md']);
-      expect(emptyItem!.recommended).toBe('delete');
+      expect(emptyItem!.recommended).toBe('keep');
     });
 
     it('모든 규칙 파일에 항목이 있으면 미감지', () => {

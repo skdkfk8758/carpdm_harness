@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import {
   omcConfigPath,
@@ -10,6 +10,8 @@ import {
   harnessCapabilitiesPath,
   OMC_REGISTRY_URL,
   HARNESS_REGISTRY_URL,
+  isRufloInstalled,
+  detectRufloSwarmStatus,
 } from '../core/omc-compat.js';
 
 interface HookInput {
@@ -63,42 +65,132 @@ interface UpdateCheckResult {
   currentVersion: string;
 }
 
-async function checkNpmUpdates(
+/** 캐시에서 업데이트 결과를 동기적으로 읽습니다 (TTL 무관, 즉시 반환). */
+function readCachedUpdate(cacheKey: string): UpdateCheckResult | null {
+  const cacheFile = harnessUpdateCheckPath();
+  const cached = readJsonFile(cacheFile) as Record<string, unknown> | null;
+  const entry = cached?.[cacheKey] as Record<string, unknown> | undefined;
+  if (!entry) return null;
+  return entry.updateAvailable
+    ? { latestVersion: entry.latestVersion as string, currentVersion: entry.currentVersion as string }
+    : null;
+}
+
+/** 캐시가 만료(24h)되었는지 확인합니다. */
+function isCacheStale(cacheKey: string): boolean {
+  const cacheFile = harnessUpdateCheckPath();
+  const cached = readJsonFile(cacheFile) as Record<string, unknown> | null;
+  const entry = cached?.[cacheKey] as Record<string, unknown> | undefined;
+  if (!entry || typeof entry.timestamp !== 'number') return true;
+  return (Date.now() - entry.timestamp) >= 24 * 60 * 60 * 1000;
+}
+
+/** 백그라운드로 npm 레지스트리를 조회하여 캐시를 갱신합니다 (fire-and-forget). */
+function refreshNpmCacheInBackground(
   registryUrl: string,
   currentVersion: string,
   cacheKey: string,
-): Promise<UpdateCheckResult | null> {
-  const cacheFile = harnessUpdateCheckPath();
-  const now = Date.now();
-  const CACHE_DURATION = 24 * 60 * 60 * 1000;
+): void {
+  (async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const response = await fetch(registryUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-  const cached = readJsonFile(cacheFile) as Record<string, unknown> | null;
-  const cacheEntry = cached?.[cacheKey] as Record<string, unknown> | undefined;
-  if (cacheEntry && typeof cacheEntry.timestamp === 'number' && (now - cacheEntry.timestamp) < CACHE_DURATION) {
-    return cacheEntry.updateAvailable
-      ? { latestVersion: cacheEntry.latestVersion as string, currentVersion: cacheEntry.currentVersion as string }
-      : null;
+      if (!response.ok) return;
+
+      const data = await response.json() as { version: string };
+      const latestVersion = data.version;
+      const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
+
+      const cacheFile = harnessUpdateCheckPath();
+      const cached = readJsonFile(cacheFile) as Record<string, unknown> | null;
+      const updatedCache = { ...(cached || {}), [cacheKey]: { timestamp: Date.now(), latestVersion, currentVersion, updateAvailable } };
+      writeJsonFile(cacheFile, updatedCache);
+    } catch {
+      // 백그라운드 갱신 실패 — 무시
+    }
+  })();
+}
+
+/** 온톨로지 요약 캐시: mtime 기반으로 재파싱 여부 결정 */
+function getOntologySummaryCached(cwd: string): string[] | null {
+  const ontologyDir = join(cwd, '.agent', 'ontology');
+  const files = ['ONTOLOGY-STRUCTURE.md', 'ONTOLOGY-SEMANTICS.md', 'ONTOLOGY-DOMAIN.md'];
+  const paths = files.map(f => join(ontologyDir, f));
+
+  // mtime 수집 (파일 존재 확인 겸)
+  const mtimes: number[] = [];
+  for (const p of paths) {
+    try {
+      if (!existsSync(p)) return null;
+      mtimes.push(statSync(p).mtimeMs);
+    } catch {
+      return null;
+    }
   }
+
+  const cachePath = join(cwd, '.harness', 'cache', 'ontology-summary.json');
+  const mtimeKey = mtimes.join(',');
+
+  // 캐시 히트 체크
+  try {
+    if (existsSync(cachePath)) {
+      const cached = JSON.parse(readFileSync(cachePath, 'utf-8')) as { mtimeKey: string; parts: string[] };
+      if (cached.mtimeKey === mtimeKey && Array.isArray(cached.parts)) {
+        return cached.parts;
+      }
+    }
+  } catch { /* 캐시 읽기 실패 — 재파싱 */ }
+
+  // 캐시 미스 — 파싱
+  const summaryParts: string[] = [];
+  try {
+    const structContent = readFileSync(paths[0], 'utf-8');
+    const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
+    const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
+    if (filesMatch || dirsMatch) {
+      summaryParts.push(`- 구조: 파일 ${filesMatch?.[1]?.trim() ?? '?'}개, 디렉토리 ${dirsMatch?.[1]?.trim() ?? '?'}개`);
+    }
+    const langLines = [...structContent.matchAll(/\| (\w+) \| ([\d,]+) \|/g)];
+    if (langLines.length > 0) {
+      const top3 = langLines.slice(0, 3).map(m => `${m[1]}(${m[2]})`);
+      summaryParts.push(`- 언어: ${top3.join(', ')}`);
+    }
+  } catch { /* 무시 */ }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch(registryUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const domainContent = readFileSync(paths[2], 'utf-8');
+    const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
+    if (summaryMatch && !summaryMatch[1].includes('_(요약 없음)_')) {
+      summaryParts.push(`- 요약: ${summaryMatch[1].trim().slice(0, 200)}`);
+    }
+  } catch { /* 무시 */ }
 
-    if (!response.ok) return null;
+  try {
+    const semContent = readFileSync(paths[1], 'utf-8');
+    const anchorSection = semContent.indexOf('@MX:ANCHOR');
+    if (anchorSection !== -1) {
+      const sectionText = semContent.slice(anchorSection, semContent.indexOf('\n### ', anchorSection + 1));
+      const anchors = [...sectionText.matchAll(/\| `([^`]+)` \| `[^`]*` \| (\d+) \|/g)];
+      if (anchors.length > 0) {
+        const top5 = anchors.slice(0, 5).map(m => `${m[1]}(fan_in=${m[2]})`);
+        summaryParts.push(`- @MX:ANCHOR (수정 주의): ${top5.join(', ')}`);
+      }
+    }
+  } catch { /* 무시 */ }
 
-    const data = await response.json() as { version: string };
-    const latestVersion = data.version;
-    const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
-
-    const updatedCache = { ...(cached || {}), [cacheKey]: { timestamp: now, latestVersion, currentVersion, updateAvailable } };
-    writeJsonFile(cacheFile, updatedCache);
-
-    return updateAvailable ? { latestVersion, currentVersion } : null;
-  } catch {
-    return null;
+  // 캐시 저장
+  if (summaryParts.length > 0) {
+    try {
+      const cacheDir = join(cwd, '.harness', 'cache');
+      if (!existsSync(cacheDir)) mkdirSync(cacheDir, { recursive: true });
+      writeFileSync(cachePath, JSON.stringify({ mtimeKey, parts: summaryParts }), 'utf-8');
+    } catch { /* 캐시 저장 실패 — 무시 */ }
   }
+
+  return summaryParts.length > 0 ? summaryParts : null;
 }
 
 function countFiles(dir: string, ext: string): number {
@@ -133,6 +225,44 @@ function extractNotepadPriorityContext(directory: string): string | null {
   } catch {
     return null;
   }
+}
+
+async function shouldRefreshOntology(cwd: string): Promise<{ shouldRefresh: boolean; reason?: string }> {
+  // 조건 1: domain-cache.json builtAt 24시간+ 경과
+  const cachePath = join(cwd, '.agent', 'ontology', '.cache', 'domain-cache.json');
+  if (!existsSync(cachePath)) return { shouldRefresh: false };
+
+  let builtAtMs: number;
+  try {
+    const raw = readFileSync(cachePath, 'utf-8');
+    const cache = JSON.parse(raw) as { builtAt?: string };
+    if (!cache.builtAt) return { shouldRefresh: false };
+    builtAtMs = new Date(cache.builtAt).getTime();
+  } catch {
+    return { shouldRefresh: false };
+  }
+
+  if ((Date.now() - builtAtMs) / 3_600_000 > 24) {
+    return { shouldRefresh: true, reason: 'stale' };
+  }
+
+  // 조건 2: git 기반 변경 파일 10개+ (빠른 체크)
+  try {
+    const { execSync } = await import('node:child_process');
+    const since = new Date(builtAtMs).toISOString();
+    const result = execSync(
+      `git log --since="${since}" --name-only --pretty=format:""`,
+      { cwd, stdio: 'pipe', timeout: 2000 },
+    ).toString().trim();
+    if (result) {
+      const uniqueFiles = new Set(result.split('\n').filter(Boolean));
+      if (uniqueFiles.size >= 10) return { shouldRefresh: true, reason: 'files-changed' };
+    }
+  } catch {
+    // git 미사용/에러 시 건너뜀
+  }
+
+  return { shouldRefresh: false };
 }
 
 async function main(): Promise<void> {
@@ -295,88 +425,59 @@ async function main(): Promise<void> {
     // handoff.md 읽기 실패 — 무시
   }
 
-  // ── 1.8. 온톨로지 요약 자동 주입 ──────────────────────────────────────────
+  // ── 1.8. 온톨로지 조건부 자동 갱신 ──────────────────────────────────────────
   try {
-    const ontologyDir = join(cwd, '.agent', 'ontology');
-    const structurePath = join(ontologyDir, 'ONTOLOGY-STRUCTURE.md');
+    const refreshCheck = await shouldRefreshOntology(cwd);
+    if (refreshCheck.shouldRefresh) {
+      const harnessConfig = existsSync(configPath)
+        ? JSON.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>
+        : null;
+      const ontologyRaw = harnessConfig?.ontology as Record<string, unknown> | undefined;
+      if (ontologyRaw?.enabled) {
+        const { refreshOntology } = await import('../core/ontology/index.js');
+        const { DEFAULT_ONTOLOGY_CONFIG } = await import('../types/ontology.js');
+        const ontologyConfig = { ...DEFAULT_ONTOLOGY_CONFIG, ...ontologyRaw };
+        await Promise.race([
+          refreshOntology(cwd, ontologyConfig as import('../types/ontology.js').OntologyConfig),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000)),
+        ]);
+      }
+    }
+  } catch {
+    // 갱신 실패/타임아웃 — 기존 온톨로지 읽기로 진행
+  }
 
-    if (existsSync(structurePath)) {
-      const summaryParts: string[] = [];
-
-      // Structure: 파일/디렉토리 수 + 언어 상위 3개
-      try {
-        const structContent = readFileSync(structurePath, 'utf-8');
-        const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
-        const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
-        if (filesMatch || dirsMatch) {
-          summaryParts.push(`- 구조: 파일 ${filesMatch?.[1]?.trim() ?? '?'}개, 디렉토리 ${dirsMatch?.[1]?.trim() ?? '?'}개`);
-        }
-        const langLines = [...structContent.matchAll(/\| (\w+) \| ([\d,]+) \|/g)];
-        if (langLines.length > 0) {
-          const top3 = langLines.slice(0, 3).map(m => `${m[1]}(${m[2]})`);
-          summaryParts.push(`- 언어: ${top3.join(', ')}`);
-        }
-      } catch { /* 무시 */ }
-
-      // Domain: 프로젝트 요약 (1줄)
-      try {
-        const domainPath = join(ontologyDir, 'ONTOLOGY-DOMAIN.md');
-        if (existsSync(domainPath)) {
-          const domainContent = readFileSync(domainPath, 'utf-8');
-          const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
-          if (summaryMatch && !summaryMatch[1].includes('_(요약 없음)_')) {
-            summaryParts.push(`- 요약: ${summaryMatch[1].trim().slice(0, 200)}`);
-          }
-        }
-      } catch { /* 무시 */ }
-
-      // Semantics: @MX:ANCHOR 상위 5개 (수정 시 영향 큰 심볼)
-      try {
-        const semanticsPath = join(ontologyDir, 'ONTOLOGY-SEMANTICS.md');
-        if (existsSync(semanticsPath)) {
-          const semContent = readFileSync(semanticsPath, 'utf-8');
-          // ANCHOR 섹션 내 항목만 (fan_in 컬럼이 있는 테이블)
-          const anchorSection = semContent.indexOf('@MX:ANCHOR');
-          if (anchorSection !== -1) {
-            const sectionText = semContent.slice(anchorSection, semContent.indexOf('\n### ', anchorSection + 1));
-            const anchors = [...sectionText.matchAll(/\| `([^`]+)` \| `[^`]*` \| (\d+) \|/g)];
-            if (anchors.length > 0) {
-              const top5 = anchors.slice(0, 5).map(m => `${m[1]}(fan_in=${m[2]})`);
-              summaryParts.push(`- @MX:ANCHOR (수정 주의): ${top5.join(', ')}`);
-            }
-          }
-        }
-      } catch { /* 무시 */ }
-
-      if (summaryParts.length > 0) {
-        const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
-        if (infoIdx >= 0) {
-          messages[infoIdx] = messages[infoIdx].replace(
-            '</session-restore>',
-            `\n[ONTOLOGY] 프로젝트 지식 맵:\n${summaryParts.join('\n')}\n\n</session-restore>`,
-          );
-        }
+  // ── 1.9. 온톨로지 요약 자동 주입 (mtime 캐시 기반) ─────────────────────────
+  try {
+    const summaryParts = getOntologySummaryCached(cwd);
+    if (summaryParts && summaryParts.length > 0) {
+      const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+      if (infoIdx >= 0) {
+        messages[infoIdx] = messages[infoIdx].replace(
+          '</session-restore>',
+          `\n[ONTOLOGY] 프로젝트 지식 맵:\n${summaryParts.join('\n')}\n\n</session-restore>`,
+        );
       }
     }
   } catch {
     // 온톨로지 읽기 실패 — 무시
   }
 
-  // ── 2. 업데이트 체크 (harness + OMC) ────────────────────────────────────────
+  // ── 2. 업데이트 체크 (harness + OMC) — 캐시 읽기(동기) + 백그라운드 갱신 ──
   const updateLines: string[] = [];
 
-  // 2-1. carpdm-harness 자체 업데이트
+  // 2-1. carpdm-harness 자체 업데이트 (캐시에서 즉시 읽기)
+  let harnessInstalledVersion = '0.0.0';
   try {
     const harnessConfig = existsSync(configPath)
       ? JSON.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>
       : null;
     const harnessVersion = (harnessConfig?.version as string) || '0.0.0';
-    // package.json에서 실제 설치 버전 확인
     const pkgPath = join(cwd, 'node_modules', 'carpdm-harness', 'package.json');
-    const installedVersion = existsSync(pkgPath)
-      ? (JSON.parse(readFileSync(pkgPath, 'utf-8')) as Record<string, unknown>).version as string
+    harnessInstalledVersion = existsSync(pkgPath)
+      ? (JSON.parse(readFileSync(pkgPath, 'utf-8')) as Record<string, unknown>).version as string || '0.0.0'
       : harnessVersion;
-    const harnessUpdate = await checkNpmUpdates(HARNESS_REGISTRY_URL, installedVersion || '0.0.0', 'harness');
+    const harnessUpdate = readCachedUpdate('harness');
     if (harnessUpdate) {
       updateLines.push(`  harness: v${harnessUpdate.currentVersion} → v${harnessUpdate.latestVersion}`);
     }
@@ -384,16 +485,25 @@ async function main(): Promise<void> {
     // 무시
   }
 
-  // 2-2. OMC 업데이트
+  // 2-2. OMC 업데이트 (캐시에서 즉시 읽기)
+  let omcCurrentVersion = '0.0.0';
   try {
     const omcConfig = readJsonFile(omcConfigPath());
-    const currentVersion = (omcConfig?.version as string) || '0.0.0';
-    const omcUpdate = await checkNpmUpdates(OMC_REGISTRY_URL, currentVersion, 'omc');
+    omcCurrentVersion = (omcConfig?.version as string) || '0.0.0';
+    const omcUpdate = readCachedUpdate('omc');
     if (omcUpdate) {
       updateLines.push(`  OMC: v${omcUpdate.currentVersion} → v${omcUpdate.latestVersion}`);
     }
   } catch {
     // 무시
+  }
+
+  // 2-3. 캐시가 만료되었으면 백그라운드로 갱신 (fire-and-forget, 다음 세션에 반영)
+  if (isCacheStale('harness')) {
+    refreshNpmCacheInBackground(HARNESS_REGISTRY_URL, harnessInstalledVersion, 'harness');
+  }
+  if (isCacheStale('omc')) {
+    refreshNpmCacheInBackground(OMC_REGISTRY_URL, omcCurrentVersion, 'omc');
   }
 
   if (updateLines.length > 0) {
@@ -457,6 +567,24 @@ async function main(): Promise<void> {
     }
   } catch {
     // 무시
+  }
+
+  // ── 3.5. ruflo (claude-flow) 활성 상태 감지 ──────────────────────────────
+  try {
+    if (isRufloInstalled(cwd)) {
+      const rufloStatus = detectRufloSwarmStatus(cwd);
+      if (rufloStatus.active) {
+        const infoIdx = messages.findIndex(m => m.includes('[CARPDM-HARNESS]'));
+        if (infoIdx >= 0) {
+          messages[infoIdx] = messages[infoIdx].replace(
+            '</session-restore>',
+            `[RUFLO] swarm 활성 (agents: ${rufloStatus.agentCount})\n\n</session-restore>`,
+          );
+        }
+      }
+    }
+  } catch {
+    // ruflo 감지 실패 무시
   }
 
   // ── 4. notepad Priority Context 주입 ─────────────────────────────────────

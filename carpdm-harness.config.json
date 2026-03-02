@@ -1,9 +1,17 @@
 {
-  "version": "1.0.0",
+  "version": "4.0.0",
   "installedAt": "2026-02-24T00:00:00Z",
-  "updatedAt": "2026-02-25T00:00:00Z",
+  "updatedAt": "2026-03-01T15:05:31.509Z",
   "preset": "full",
-  "modules": ["core", "tdd", "quality", "ship", "maintenance", "patterns", "ontology", "security", "team-memory"],
+  "modules": [
+    "core",
+    "tdd",
+    "quality",
+    "ship",
+    "ontology",
+    "security",
+    "team-memory"
+  ],
   "globalCommandsInstalled": false,
   "options": {
     "agentDir": ".agent",
@@ -15,9 +23,34 @@
     "enabled": true,
     "outputDir": ".agent/ontology",
     "layers": {
-      "structure": { "enabled": true, "maxDepth": 10, "excludePatterns": ["node_modules", ".git", "dist", "build", "coverage", ".next", ".cache", ".omc", ".serena", ".agent"] },
-      "semantics": { "enabled": true, "languages": ["typescript"] },
-      "domain": { "enabled": true, "provider": "claude-code", "model": "", "maxTokens": 4096 }
+      "structure": {
+        "enabled": true,
+        "maxDepth": 10,
+        "excludePatterns": [
+          "node_modules",
+          ".git",
+          "dist",
+          "build",
+          "coverage",
+          ".next",
+          ".cache",
+          ".omc",
+          ".serena",
+          ".agent"
+        ]
+      },
+      "semantics": {
+        "enabled": true,
+        "languages": [
+          "typescript"
+        ]
+      },
+      "domain": {
+        "enabled": true,
+        "provider": "claude-code",
+        "model": "",
+        "maxTokens": 4096
+      }
     },
     "autoUpdate": {
       "enabled": true,
@@ -25,13 +58,52 @@
       "debounceMs": 5000,
       "incrementalOnly": true
     },
-    "plugins": ["typescript"],
+    "plugins": [
+      "typescript"
+    ],
     "ai": {
-    "provider": "claude-code",
-    "apiKeyEnv": "",
-    "model": "",
-    "maxTokensPerRequest": 0,
-    "rateLimitMs": 0
-  }
+      "provider": "claude-code",
+      "apiKeyEnv": "",
+      "model": "",
+      "maxTokensPerRequest": 0,
+      "rateLimitMs": 0
+    }
+  },
+  "capabilities": {
+    "omc": {
+      "installed": true,
+      "configPath": "/Users/carpdm/.claude/.omc-config.json"
+    },
+    "tools": {
+      "serena": {
+        "name": "serena",
+        "detected": false
+      },
+      "context7": {
+        "name": "context7",
+        "detected": false
+      },
+      "codex": {
+        "name": "codex",
+        "detected": false
+      },
+      "gemini": {
+        "name": "gemini",
+        "detected": false
+      }
+    },
+    "detectedAt": "2026-03-01T15:02:00.593Z"
+  },
+  "omcConfig": {
+    "autoSync": true,
+    "workflowIntegration": true,
+    "ontologySync": true
+  },
+  "overlapPreferences": {
+    "lastOptimizedAt": "2026-03-01T15:05:31.509Z",
+    "decisions": {
+      "empty-rules": "delete",
+      "bloated-permissions": "delete"
+    }
   }
 }

@@ -149,9 +149,9 @@ export function scanOverlaps(
         title: `빈 규칙 파일 ${emptyFiles.length}개`,
         description:
           '항목이 없는 규칙 파일이 에이전트 컨텍스트를 차지하고 있습니다. ' +
-          '삭제하면 컨텍스트를 절약할 수 있습니다.',
+          'team-memory 모듈이 활성화되어 있으므로 파일 자체는 유지하는 것을 권장합니다.',
         affectedItems: emptyFiles,
-        recommended: 'delete',
+        recommended: 'keep',
       });
     }
   }

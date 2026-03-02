@@ -3,23 +3,25 @@ import { z } from 'zod';
 import { join } from 'node:path';
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, saveConfig, updateFileRecord } from '../core/config.js';
-import { detectCapabilities } from '../core/capability-detector.js';
-import { detectLocalMcpConflict, formatMcpConflictWarning } from '../core/omc-compat.js';
-import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.js';
+import { renderOverlapInterview } from '../core/overlap-detector.js';
 import { applyOverlapChoices } from '../core/overlap-applier.js';
 import type { OverlapChoices } from '../types/overlap.js';
 import { analyzeChanges, generateDiff } from '../core/diff-engine.js';
 import { getAllModules } from '../core/module-registry.js';
-import { safeCopyFile, computeFileHash, backupFile, safeWriteFile, ensureDir } from '../core/file-ops.js';
+import { safeCopyFile, computeFileHash, backupFile } from '../core/file-ops.js';
 import { getAllModuleFiles } from '../core/template-engine.js';
 import { getTemplatesDir } from '../utils/paths.js';
 import { getPackageVersion } from '../utils/version.js';
-import { refreshOntology, collectIndexData } from '../core/ontology/index.js';
-import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
-import { loadStore, syncMemoryMd } from '../core/team-memory.js';
-import { initKnowledgeVault, updateKnowledgeIndex, syncOntologyToVault } from '../core/knowledge-vault.js';
-import { DEFAULT_KNOWLEDGE_CONFIG } from '../types/config.js';
+import { refreshOntology } from '../core/ontology/index.js';
 import { DEFAULT_ONTOLOGY_CONFIG } from '../types/ontology.js';
+import {
+  regenerateOntologyIndex,
+  syncTeamMemoryMd,
+  ensureKnowledgeVault,
+  checkMcpConflict,
+  scanOverlapsWithCaps,
+  detectAndCacheCapabilities,
+} from '../core/post-install-tasks.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -53,7 +55,7 @@ export function registerUpdateTool(server: McpServer): void {
 
         // 레거시 상태 마이그레이션
         if (!pDryRun) {
-          const migration = migrateLegacyState(pRoot);
+          const migration = migrateLegacyState(pRoot, config);
           if (migration.migrated > 0) {
             res.info(`레거시 상태 마이그레이션: ${migration.migrated}/${migration.total}개 파일`);
           }
@@ -140,59 +142,20 @@ export function registerUpdateTool(server: McpServer): void {
           }
         }
 
-        // INDEX 재생성 + memory.md 동기화
+        // 후처리: INDEX + memory + Knowledge Vault
         if (!pDryRun) {
-          try {
-            const version = getPackageVersion();
-            const indexData = collectIndexData(pRoot, version);
-            const indexContent = renderIndexMarkdown(indexData);
-            const indexPath = join(pRoot, '.agent', 'ontology', 'ONTOLOGY-INDEX.md');
-            ensureDir(join(pRoot, '.agent', 'ontology'));
-            safeWriteFile(indexPath, indexContent);
-            res.ok('ONTOLOGY-INDEX.md 재생성 완료');
-          } catch (err) {
-            res.warn(`INDEX 재생성 실패: ${String(err)}`);
-          }
-
-          try {
-            const store = loadStore(pRoot);
-            syncMemoryMd(pRoot, store);
-            res.ok('.agent/memory.md 동기화 완료');
-          } catch (err) {
-            res.warn(`memory.md 동기화 실패: ${String(err)}`);
-          }
-
-          // Knowledge Vault 동기화
-          try {
-            const knowledgeConfig = config.knowledge ?? DEFAULT_KNOWLEDGE_CONFIG;
-            if (knowledgeConfig.enabled) {
-              const { knowledgeDir: kDir } = await import('../core/omc-compat.js');
-              const kDirPath = kDir(pRoot);
-              if (!existsSync(kDirPath)) {
-                initKnowledgeVault(pRoot, knowledgeConfig);
-                config.knowledge = knowledgeConfig;
-                res.ok('Knowledge Vault 초기 생성 (.knowledge/)');
-              } else {
-                updateKnowledgeIndex(pRoot);
-                if (knowledgeConfig.syncOntology) {
-                  syncOntologyToVault(pRoot);
-                }
-                res.ok('Knowledge Vault 동기화 완료');
-              }
-            }
-          } catch (err) {
-            res.warn(`Knowledge Vault 동기화 실패 (무시하고 계속): ${String(err)}`);
-          }
+          regenerateOntologyIndex(pRoot, res);
+          syncTeamMemoryMd(pRoot, res);
+          ensureKnowledgeVault(pRoot, config, { updateMode: true }, res);
         }
 
-        // 중복 처리
+        // 중복 처리 (capabilities 1회 감지)
         if (!pDryRun) {
           try {
-            const caps = detectCapabilities(pRoot);
-            const scan = scanOverlaps(pRoot, config, caps);
+            const caps = detectAndCacheCapabilities(pRoot, config);
+            const scan = scanOverlapsWithCaps(pRoot, config, caps);
 
-            if (overlapChoicesStr) {
-              // 명시적 선택이 있으면 적용
+            if (scan && overlapChoicesStr) {
               const choices = JSON.parse(overlapChoicesStr as string) as OverlapChoices;
               if (scan.totalOverlaps > 0) {
                 const overlapResult = applyOverlapChoices(pRoot, scan, choices);
@@ -207,15 +170,13 @@ export function registerUpdateTool(server: McpServer): void {
                   res.warn(e);
                 }
               }
-            } else if (config.overlapPreferences) {
-              // 이전 선호도 자동 재적용
+            } else if (scan && config.overlapPreferences) {
               const existingDecisions = config.overlapPreferences.decisions;
               if (Object.keys(existingDecisions).length > 0 && scan.totalOverlaps > 0) {
                 applyOverlapChoices(pRoot, scan, { decisions: existingDecisions });
                 res.ok('이전 중복 처리 선호도 자동 적용됨');
               }
 
-              // 새로 발견된 중복 안내
               const newItems = scan.items.filter(i => !existingDecisions[i.id]);
               if (newItems.length > 0) {
                 res.blank();
@@ -223,8 +184,7 @@ export function registerUpdateTool(server: McpServer): void {
                 res.line(renderOverlapInterview({ totalOverlaps: newItems.length, items: newItems }));
                 res.info('harness_update({ overlapChoices: \'{"applyDefaults":true}\' })로 권장 설정 일괄 적용');
               }
-            } else if (scan.totalOverlaps > 0) {
-              // 최초 중복 감지 안내
+            } else if (scan && scan.totalOverlaps > 0) {
               res.blank();
               res.header(`중복 감지: ${scan.totalOverlaps}개 항목`);
               res.line(renderOverlapInterview(scan));
@@ -239,9 +199,8 @@ export function registerUpdateTool(server: McpServer): void {
           saveConfig(pRoot, config);
         }
 
-        // Local MCP 충돌 감지
-        if (!pDryRun && detectLocalMcpConflict(pRoot)) {
-          formatMcpConflictWarning(res);
+        if (!pDryRun) {
+          checkMcpConflict(pRoot, res);
         }
 
         const coreLog = logger.flush();
@@ -266,7 +225,18 @@ export function registerUpdateTool(server: McpServer): void {
   );
 }
 
-function migrateLegacyState(projectRoot: string): { migrated: number; total: number } {
+/** 현재 마이그레이션 버전 — 새 마이그레이션 추가 시 증가 */
+const CURRENT_MIGRATION_VERSION = 1;
+
+function migrateLegacyState(
+  projectRoot: string,
+  config: import('../types/config.js').HarnessConfig,
+): { migrated: number; total: number } {
+  // 이미 최신 마이그레이션이 적용된 경우 스킵
+  if ((config.migrationVersion ?? 0) >= CURRENT_MIGRATION_VERSION) {
+    return { migrated: 0, total: 0 };
+  }
+
   const legacyDir = join(projectRoot, '.omc', 'state');
   const newDir = join(projectRoot, '.harness', 'state');
 
@@ -298,6 +268,9 @@ function migrateLegacyState(projectRoot: string): { migrated: number; total: num
     copyFileSync(legacyLog, newLog);
     migrated++;
   }
+
+  // 마이그레이션 버전 기록
+  config.migrationVersion = CURRENT_MIGRATION_VERSION;
 
   return { migrated, total: total + 1 };
 }

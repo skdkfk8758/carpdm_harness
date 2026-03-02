@@ -166,6 +166,50 @@ export function harnessTeamMemoryPath(projectRoot: string): string {
 }
 
 // ============================================================
+// Ruflo (claude-flow) 경로 빌더 — .claude-flow/
+// ============================================================
+
+export function rufloConfigPath(projectRoot: string): string {
+  return join(projectRoot, '.claude-flow', 'config.yaml');
+}
+
+export function rufloSwarmActivityPath(projectRoot: string): string {
+  return join(projectRoot, '.claude-flow', 'metrics', 'swarm-activity.json');
+}
+
+// ============================================================
+// Ruflo 상태 감지
+// ============================================================
+
+export interface RufloSwarmStatus {
+  active: boolean;
+  agentCount: number;
+  timestamp: string | null;
+}
+
+export function detectRufloSwarmStatus(projectRoot: string): RufloSwarmStatus {
+  const inactive: RufloSwarmStatus = { active: false, agentCount: 0, timestamp: null };
+  const activityPath = rufloSwarmActivityPath(projectRoot);
+  if (!existsSync(activityPath)) return inactive;
+  try {
+    const raw = JSON.parse(readFileSync(activityPath, 'utf-8'));
+    const swarm = raw?.swarm;
+    if (!swarm) return inactive;
+    return {
+      active: swarm.active ?? false,
+      agentCount: swarm.agent_count ?? 0,
+      timestamp: raw.timestamp ?? null,
+    };
+  } catch {
+    return inactive;
+  }
+}
+
+export function isRufloInstalled(projectRoot: string): boolean {
+  return existsSync(rufloConfigPath(projectRoot));
+}
+
+// ============================================================
 // Knowledge Vault 경로 빌더 — 로컬 지식 베이스 (.knowledge/)
 // ============================================================
 
@@ -214,11 +258,6 @@ export function knowledgeIndexPath(projectRoot: string): string {
   return join(projectRoot, '.knowledge', '_index.md');
 }
 
-/** 팀 공유용 온톨로지 스냅샷 디렉토리 (git-tracked) */
-export function docsOntologyDir(projectRoot: string): string {
-  return join(projectRoot, 'docs', 'ontology');
-}
-
 // ============================================================
 // OMC 에이전트 & 스킬 매핑
 // ============================================================
@@ -243,6 +282,7 @@ export const OMC_SKILLS = {
   'code-review': '/oh-my-claudecode:code-review',
   'security-review': '/oh-my-claudecode:security-review',
   cancel: '/oh-my-claudecode:cancel',
+  ralph: '/oh-my-claudecode:ralph',
 } as const;
 
 /** 에이전트 → 스킬 + 모델 매핑 */

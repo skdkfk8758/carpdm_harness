@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { omcStateDir } from '../core/omc-compat.js';
+import { omcStateDir, detectRufloSwarmStatus } from '../core/omc-compat.js';
 
 // === 공통 인터페이스 ===
 
@@ -126,6 +126,19 @@ export function detectOmcMode(cwd: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * ruflo swarm 활성 상태를 감지합니다.
+ */
+export function detectRufloSwarm(cwd: string): string | null {
+  try {
+    const status = detectRufloSwarmStatus(cwd);
+    if (status.active) return `ruflo-swarm (agents: ${status.agentCount})`;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**

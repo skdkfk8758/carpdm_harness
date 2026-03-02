@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { omcStateDir } from '../core/omc-compat.js';
+import { omcStateDir, detectRufloSwarmStatus } from '../core/omc-compat.js';
 
 interface HookInput {
   tool_name?: string;
@@ -146,6 +146,17 @@ function main(): void {
     contextLines.push(`단계 완료 시: harness_workflow({ action: "advance" })`);
   }
 
+  // 체크포인트 승인 대기 중 코드 수정 도구 사용 시 경고/차단
+  const CODE_MODIFY_TOOLS = new Set(['Edit', 'Write', 'MultiEdit']);
+
+  if (state.status === 'waiting_checkpoint' && CODE_MODIFY_TOOLS.has(toolName)) {
+    contextLines.push(`[BLOCK] 체크포인트 승인 전 코드 수정 시도 감지. 먼저 harness_workflow({ action: "approve" })를 실행하세요.`);
+    if (guardLevel === 'block') {
+      outputResult('block', contextLines.join('\n'));
+      return;
+    }
+  }
+
   // guardLevel: block일 때 harness_ 및 Claude Code 기본 도구 외의 도구 호출 시 차단
   const CLAUDE_BUILTIN_TOOLS = new Set([
     'Bash', 'Read', 'Edit', 'Write', 'MultiEdit',
@@ -190,6 +201,20 @@ function checkOmcActiveMode(cwd: string): void {
     }
   } catch {
     // 디렉토리 읽기 실패 무시
+  }
+
+  // ruflo swarm 활성 상태 감지
+  try {
+    const rufloStatus = detectRufloSwarmStatus(cwd);
+    if (rufloStatus.active) {
+      outputResult(
+        'continue',
+        `[harness-workflow-guard] ruflo swarm 활성 (agents: ${rufloStatus.agentCount}). 워크플로우 실행 시 충돌 주의.`
+      );
+      return;
+    }
+  } catch {
+    // ruflo 감지 실패 무시
   }
 
   outputResult('continue');

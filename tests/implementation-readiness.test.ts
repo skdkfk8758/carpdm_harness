@@ -7,7 +7,7 @@ import {
   getPlanStatus,
   getTodoStatus,
   hasImplementationIntent,
-} from '../src/core/implementation-readiness.js';
+} from '../src/core/behavioral-validator.js';
 
 describe('hasImplementationIntent', () => {
   it('should detect "implement the plan"', () => {
