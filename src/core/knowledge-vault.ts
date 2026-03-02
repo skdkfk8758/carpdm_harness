@@ -7,7 +7,6 @@
 
 import { existsSync, readdirSync, renameSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { ensureDir, safeWriteFile, readFileContent } from './file-ops.js';
 import {
   knowledgeDir,
@@ -21,7 +20,6 @@ import {
   sanitizeBranchName,
 } from './omc-compat.js';
 import type { KnowledgeConfig } from '../types/config.js';
-import type { TeamMemoryStore, MemoryEntry } from './team-memory.js';
 
 // ============================================================
 // Vault 초기화
@@ -298,57 +296,6 @@ export function syncOntologyToVault(projectRoot: string): void {
   }
 }
 
-/** .agent/ontology/ → docs/ontology/ 팀 공유 스냅샷 (git-tracked) */
-export function publishOntologyDocs(projectRoot: string): void {
-  const sourceDir = join(projectRoot, '.agent', 'ontology');
-  const destDir = join(projectRoot, 'docs', 'ontology');
-  if (!existsSync(sourceDir)) return;
-
-  ensureDir(destDir);
-
-  const files = ['ONTOLOGY-STRUCTURE.md', 'ONTOLOGY-SEMANTICS.md', 'ONTOLOGY-DOMAIN.md', 'ONTOLOGY-INDEX.md'];
-  for (const file of files) {
-    const srcPath = join(sourceDir, file);
-    const content = readFileContent(srcPath);
-    if (!content) continue;
-    safeWriteFile(join(destDir, file), content);
-  }
-}
-
-// ============================================================
-// Auto-Memory 동기화
-// ============================================================
-
-/** team-memory → auto-memory MEMORY.md 컴팩트 동기화 */
-export function syncAutoMemory(projectRoot: string, store: TeamMemoryStore): void {
-  const memoryDir = resolveAutoMemoryDir(projectRoot);
-  if (!memoryDir) return;
-
-  const memoryPath = join(memoryDir, 'MEMORY.md');
-  const existing = readFileContent(memoryPath);
-  if (!existing) return; // auto-memory가 없으면 생성하지 않음 (Claude Code 관리)
-
-  const startMarker = '<!-- harness:team-knowledge:start -->';
-  const endMarker = '<!-- harness:team-knowledge:end -->';
-
-  const summary = renderAutoMemorySummary(store);
-  const section = `${startMarker}\n${summary}\n${endMarker}`;
-
-  let updated: string;
-  const startIdx = existing.indexOf(startMarker);
-  const endIdx = existing.indexOf(endMarker);
-
-  if (startIdx !== -1 && endIdx !== -1) {
-    // 기존 섹션 교체
-    updated = existing.substring(0, startIdx) + section + existing.substring(endIdx + endMarker.length);
-  } else {
-    // 끝에 섹션 추가
-    updated = existing.trimEnd() + '\n\n' + section + '\n';
-  }
-
-  safeWriteFile(memoryPath, updated);
-}
-
 // ============================================================
 // 내부 유틸리티
 // ============================================================
@@ -390,49 +337,3 @@ function stripFrontmatter(content: string): string {
   return content.substring(endIdx + 3);
 }
 
-function resolveAutoMemoryDir(projectRoot: string): string | null {
-  // ~/.claude/projects/{encoded-path}/memory/
-  const encoded = projectRoot.replace(/\//g, '-');
-  const dir = join(homedir(), '.claude', 'projects', encoded, 'memory');
-  if (existsSync(dir)) return dir;
-  return null;
-}
-
-function renderAutoMemorySummary(store: TeamMemoryStore): string {
-  const lines: string[] = ['## 팀 지식 요약 (자동 동기화)', ''];
-  const MAX_ENTRIES = 15;
-
-  const categories: Array<{ key: string; label: string }> = [
-    { key: 'conventions', label: '컨벤션' },
-    { key: 'patterns', label: '패턴' },
-    { key: 'decisions', label: '결정' },
-    { key: 'mistakes', label: '교훈' },
-  ];
-
-  for (const { key, label } of categories) {
-    const entries = store.entries
-      .filter((e: MemoryEntry) => e.category === key)
-      .slice(-MAX_ENTRIES);
-    if (entries.length === 0) continue;
-
-    lines.push(`### ${label}`);
-    for (const entry of entries) {
-      lines.push(`- **${entry.title}**: ${entry.content.split('\n')[0]}`);
-    }
-    lines.push('');
-  }
-
-  // 열린 버그
-  const openBugs = store.entries.filter(
-    (e: MemoryEntry) => e.category === 'bugs' && e.status === 'open',
-  );
-  if (openBugs.length > 0) {
-    lines.push('### 열린 버그');
-    for (const bug of openBugs.slice(-5)) {
-      lines.push(`- [${bug.severity ?? 'medium'}] ${bug.title}`);
-    }
-    lines.push('');
-  }
-
-  return lines.join('\n');
-}

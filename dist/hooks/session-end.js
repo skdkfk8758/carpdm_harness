@@ -1,7 +1,7 @@
 // src/hooks/session-end.ts
-import { readFileSync as readFileSync2, existsSync as existsSync2, writeFileSync, readdirSync, mkdirSync } from "fs";
-import { join as join2, dirname, resolve, normalize } from "path";
-import { homedir as homedir2 } from "os";
+import { readFileSync as readFileSync3, existsSync as existsSync3, writeFileSync as writeFileSync2, readdirSync as readdirSync2, mkdirSync as mkdirSync2 } from "fs";
+import { join as join4, dirname as dirname2, resolve, normalize } from "path";
+import { homedir as homedir3 } from "os";
 
 // src/core/omc-compat.ts
 import { join } from "path";
@@ -28,6 +28,26 @@ function omcTodosPath(projectRoot) {
 function harnessStateDir(projectRoot) {
   return join(projectRoot, ".harness", "state");
 }
+function rufloSwarmActivityPath(projectRoot) {
+  return join(projectRoot, ".claude-flow", "metrics", "swarm-activity.json");
+}
+function detectRufloSwarmStatus(projectRoot) {
+  const inactive = { active: false, agentCount: 0, timestamp: null };
+  const activityPath = rufloSwarmActivityPath(projectRoot);
+  if (!existsSync(activityPath)) return inactive;
+  try {
+    const raw = JSON.parse(readFileSync(activityPath, "utf-8"));
+    const swarm = raw?.swarm;
+    if (!swarm) return inactive;
+    return {
+      active: swarm.active ?? false,
+      agentCount: swarm.agent_count ?? 0,
+      timestamp: raw.timestamp ?? null
+    };
+  } catch {
+    return inactive;
+  }
+}
 var OMC_SKILLS = {
   analyze: "/oh-my-claudecode:analyze",
   plan: "/oh-my-claudecode:plan",
@@ -37,7 +57,8 @@ var OMC_SKILLS = {
   deepsearch: "/oh-my-claudecode:deepsearch",
   "code-review": "/oh-my-claudecode:code-review",
   "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel"
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
 };
 var AGENT_SKILL_MAP = {
   analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
@@ -58,6 +79,64 @@ var OMC_NPM_PACKAGE = "oh-my-claude-sisyphus";
 var OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
 var HARNESS_NPM_PACKAGE = "carpdm-harness";
 var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest`;
+
+// src/core/plan-sync.ts
+import { existsSync as existsSync2, readFileSync as readFileSync2, readdirSync, statSync, unlinkSync, mkdirSync, writeFileSync } from "fs";
+import { join as join3, dirname } from "path";
+import { homedir as homedir2 } from "os";
+
+// src/core/project-paths.ts
+import { join as join2 } from "path";
+function agentPlanPath(projectRoot) {
+  return join2(projectRoot, ".agent", "plan.md");
+}
+
+// src/core/plan-sync.ts
+var CLAUDE_PLANS_DIR = join3(homedir2(), ".claude", "plans");
+function syncPlanFromClaudeCode(projectRoot) {
+  if (!existsSync2(CLAUDE_PLANS_DIR)) return { synced: false };
+  const cutoff = Date.now() - 36e5;
+  const planFiles = readdirSync(CLAUDE_PLANS_DIR).filter((f) => f.endsWith(".md")).map((f) => ({ name: f, mtime: statSync(join3(CLAUDE_PLANS_DIR, f)).mtimeMs })).filter((f) => f.mtime > cutoff).sort((a, b) => b.mtime - a.mtime);
+  if (planFiles.length === 0) return { synced: false };
+  const planPath = agentPlanPath(projectRoot);
+  if (existsSync2(planPath)) {
+    const existing = readFileSync2(planPath, "utf-8");
+    if (/APPROVED|IN_PROGRESS/.test(existing)) {
+      return { synced: false };
+    }
+  }
+  const latestFile = planFiles[0].name;
+  const content = readFileSync2(join3(CLAUDE_PLANS_DIR, latestFile), "utf-8");
+  const now = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const wrapped = `# Plan: (Claude Code plan mode\uC5D0\uC11C \uB3D9\uAE30\uD654\uB428)
+
+> \uC0C1\uD0DC: DRAFT
+> \uB3D9\uAE30\uD654: ${now}
+> \uC6D0\uBCF8: ~/.claude/plans/${latestFile}
+
+${content}
+`;
+  mkdirSync(dirname(planPath), { recursive: true });
+  writeFileSync(planPath, wrapped, "utf-8");
+  return { synced: true, source: latestFile };
+}
+function cleanupStalePlans(maxAgeDays = 7) {
+  if (!existsSync2(CLAUDE_PLANS_DIR)) return 0;
+  const cutoff = Date.now() - maxAgeDays * 864e5;
+  const files = readdirSync(CLAUDE_PLANS_DIR).filter((f) => f.endsWith(".md"));
+  let removed = 0;
+  for (const f of files) {
+    const fpath = join3(CLAUDE_PLANS_DIR, f);
+    try {
+      if (statSync(fpath).mtimeMs < cutoff) {
+        unlinkSync(fpath);
+        removed++;
+      }
+    } catch {
+    }
+  }
+  return removed;
+}
 
 // src/hooks/session-end.ts
 process.on("uncaughtException", (error) => {
@@ -100,19 +179,19 @@ var STALE_STATE_THRESHOLD_MS = 2 * 60 * 60 * 1e3;
 var SESSION_ID_ALLOWLIST = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,255}$/;
 function readJsonFile(filePath) {
   try {
-    if (!existsSync2(filePath)) return null;
-    return JSON.parse(readFileSync2(filePath, "utf-8"));
+    if (!existsSync3(filePath)) return null;
+    return JSON.parse(readFileSync3(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 function writeJsonFile(filePath, data) {
   try {
-    const dir = dirname(filePath);
-    if (dir && dir !== "." && !existsSync2(dir)) {
-      mkdirSync(dir, { recursive: true });
+    const dir = dirname2(filePath);
+    if (dir && dir !== "." && !existsSync3(dir)) {
+      mkdirSync2(dir, { recursive: true });
     }
-    writeFileSync(filePath, JSON.stringify(data, null, 2));
+    writeFileSync2(filePath, JSON.stringify(data, null, 2));
     return true;
   } catch {
     return false;
@@ -185,8 +264,8 @@ function isValidSessionId(sessionId) {
   return typeof sessionId === "string" && SESSION_ID_ALLOWLIST.test(sessionId);
 }
 function readStateFile(stateDir, globalStateDir, filename) {
-  const localPath = join2(stateDir, filename);
-  const globalPath = join2(globalStateDir, filename);
+  const localPath = join4(stateDir, filename);
+  const globalPath = join4(globalStateDir, filename);
   let state = readJsonFile(localPath);
   if (state) return { state, path: localPath, isGlobal: false };
   state = readJsonFile(globalPath);
@@ -196,15 +275,15 @@ function readStateFile(stateDir, globalStateDir, filename) {
 function readStateFileWithSession(stateDir, globalStateDir, filename, sessionId) {
   const safeSessionId = sanitizeSessionId(sessionId);
   if (safeSessionId) {
-    const sessionsDir = join2(stateDir, "sessions", safeSessionId);
-    const sessionPath = join2(sessionsDir, filename);
+    const sessionsDir = join4(stateDir, "sessions", safeSessionId);
+    const sessionPath = join4(sessionsDir, filename);
     const state = readJsonFile(sessionPath);
     return { state, path: sessionPath, isGlobal: false };
   }
   return readStateFile(stateDir, globalStateDir, filename);
 }
 function readLastToolError(harnessDir) {
-  const errorPath = join2(harnessDir, "last-tool-error.json");
+  const errorPath = join4(harnessDir, "last-tool-error.json");
   const toolError = readJsonFile(errorPath);
   if (!toolError || !toolError.timestamp) return null;
   const parsedTime = new Date(toolError.timestamp).getTime();
@@ -248,16 +327,16 @@ Do NOT skip this step. Do NOT move on without fixing the error.
 function countIncompleteTasks(sessionId) {
   if (!sessionId || typeof sessionId !== "string") return 0;
   if (!SESSION_ID_ALLOWLIST.test(sessionId)) return 0;
-  const taskDir = join2(homedir2(), ".claude", "tasks", sessionId);
-  if (!existsSync2(taskDir)) return 0;
+  const taskDir = join4(homedir3(), ".claude", "tasks", sessionId);
+  if (!existsSync3(taskDir)) return 0;
   let count = 0;
   try {
-    const files = readdirSync(taskDir).filter(
+    const files = readdirSync2(taskDir).filter(
       (f) => f.endsWith(".json") && f !== ".lock"
     );
     for (const file of files) {
       try {
-        const content = readFileSync2(join2(taskDir, file), "utf-8");
+        const content = readFileSync3(join4(taskDir, file), "utf-8");
         const task = JSON.parse(content);
         if (task.status === "pending" || task.status === "in_progress") count++;
       } catch {
@@ -270,8 +349,8 @@ function countIncompleteTasks(sessionId) {
 function countIncompleteTodos(sessionId, projectDir) {
   let count = 0;
   if (sessionId && typeof sessionId === "string" && SESSION_ID_ALLOWLIST.test(sessionId)) {
-    const sessionTodoPath = join2(
-      homedir2(),
+    const sessionTodoPath = join4(
+      homedir3(),
       ".claude",
       "todos",
       `${sessionId}.json`
@@ -287,7 +366,7 @@ function countIncompleteTodos(sessionId, projectDir) {
   }
   for (const path of [
     omcTodosPath(projectDir),
-    join2(projectDir, ".claude", "todos.json")
+    join4(projectDir, ".claude", "todos.json")
   ]) {
     try {
       const data = readJsonFile(path);
@@ -321,7 +400,7 @@ function checkPersistentMode(input) {
   const ecomode = readStateFileWithSession(stateDir, globalStateDir, "ecomode-state.json", sessionId);
   const ultraqa = readStateFileWithSession(stateDir, globalStateDir, "ultraqa-state.json", sessionId);
   const pipeline = readStateFileWithSession(stateDir, globalStateDir, "pipeline-state.json", sessionId);
-  const swarmMarker = existsSync2(omcSwarmMarkerPath(directory));
+  const swarmMarker = existsSync3(omcSwarmMarkerPath(directory));
   const swarmSummary = readJsonFile(omcSwarmSummaryPath(directory));
   const taskCount = countIncompleteTasks(sessionId);
   const todoCount = countIncompleteTodos(sessionId, directory);
@@ -341,14 +420,14 @@ function checkPersistentMode(input) {
       writeJsonFile(ralphTodo.path, todoState);
     } else {
       const todoSearchPaths = [
-        join2(directory, ".agent", "todo.md"),
-        join2(directory, "todo.md")
+        join4(directory, ".agent", "todo.md"),
+        join4(directory, "todo.md")
       ];
       let todoTasks = [];
       for (const tp of todoSearchPaths) {
-        if (!existsSync2(tp)) continue;
+        if (!existsSync3(tp)) continue;
         try {
-          const content = readFileSync2(tp, "utf-8");
+          const content = readFileSync3(tp, "utf-8");
           const lines = content.split("\n");
           for (const line of lines) {
             const match = line.trim().match(/^-\s+\[([ xX])\]\s+(.+)/);
@@ -572,6 +651,31 @@ ${ralph.state.prompt ? `Task: ${ralph.state.prompt}` : ""}`;
       }
     }
   }
+  try {
+    const rufloStatus = detectRufloSwarmStatus(directory);
+    if (rufloStatus.active && rufloStatus.agentCount > 0) {
+      const isRufloStale = !rufloStatus.timestamp || Date.now() - new Date(rufloStatus.timestamp).getTime() > STALE_STATE_THRESHOLD_MS;
+      if (!isRufloStale) {
+        const countPath = join4(harnessDir, "ruflo-reinforcement.json");
+        const countData = readJsonFile(countPath);
+        const newCount = (countData?.count || 0) + 1;
+        if (newCount <= 10) {
+          writeJsonFile(countPath, { count: newCount, lastCheckedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          const toolError = readLastToolError(harnessDir);
+          const errorGuidance = getToolErrorRetryGuidance(toolError);
+          let reason = `[RUFLO SWARM ACTIVE] claude-flow swarm running with ${rufloStatus.agentCount} agents. Do not end session. To stop: use ruflo swarm_shutdown tool.`;
+          if (errorGuidance) {
+            reason = errorGuidance + reason;
+          }
+          return {
+            blocked: true,
+            output: JSON.stringify({ decision: "block", reason })
+          };
+        }
+      }
+    }
+  } catch {
+  }
   if (pipeline.state?.active && !isStaleState(pipeline.state) && isStateForCurrentProject(pipeline.state, directory, pipeline.isGlobal) && sessionMatches(pipeline.state)) {
     const currentStage = pipeline.state.current_stage || 0;
     const totalStages = pipeline.state.stages?.length || 0;
@@ -674,19 +778,19 @@ Task: ${ultrawork.state.original_prompt}`;
   return { blocked: false, output: "" };
 }
 function checkTeamMemorySync(cwd) {
-  const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync2(configPath)) return null;
+  const configPath = join4(cwd, "carpdm-harness.config.json");
+  if (!existsSync3(configPath)) return null;
   try {
-    const config = JSON.parse(readFileSync2(configPath, "utf-8"));
+    const config = JSON.parse(readFileSync3(configPath, "utf-8"));
     const omcConfig = config.omcConfig || {};
     const hasTeamMemory = (config.modules || []).includes("team-memory");
     if (omcConfig.autoSync !== false && hasTeamMemory) {
-      const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
+      const teamMemoryPath = join4(cwd, ".harness", "team-memory.json");
       const omcProjMemPath = omcProjectMemoryPath(cwd);
-      if (existsSync2(teamMemoryPath) && existsSync2(omcProjMemPath)) {
+      if (existsSync3(teamMemoryPath) && existsSync3(omcProjMemPath)) {
         try {
-          const teamMemory = JSON.parse(readFileSync2(teamMemoryPath, "utf-8"));
-          const omcMemory = JSON.parse(readFileSync2(omcProjMemPath, "utf-8"));
+          const teamMemory = JSON.parse(readFileSync3(teamMemoryPath, "utf-8"));
+          const omcMemory = JSON.parse(readFileSync3(omcProjMemPath, "utf-8"));
           if (teamMemory.conventions && Array.isArray(teamMemory.conventions)) {
             const conventionTexts = teamMemory.conventions.map((c) => c.title || c.content || "").filter(Boolean);
             if (conventionTexts.length > 0) {
@@ -707,17 +811,17 @@ function checkTeamMemorySync(cwd) {
 }
 function readFileContent(filePath) {
   try {
-    if (!existsSync2(filePath)) return null;
-    return readFileSync2(filePath, "utf-8");
+    if (!existsSync3(filePath)) return null;
+    return readFileSync3(filePath, "utf-8");
   } catch {
     return null;
   }
 }
 function findAgentFile(cwd, name) {
-  const agentPath = join2(cwd, ".agent", name);
-  if (existsSync2(agentPath)) return agentPath;
-  const rootPath = join2(cwd, name);
-  if (existsSync2(rootPath)) return rootPath;
+  const agentPath = join4(cwd, ".agent", name);
+  if (existsSync3(agentPath)) return agentPath;
+  const rootPath = join4(cwd, name);
+  if (existsSync3(rootPath)) return rootPath;
   return null;
 }
 function generateHandoff(cwd) {
@@ -751,7 +855,7 @@ function generateHandoff(cwd) {
   }
   if (doneItems.length === 0 && remainItems.length === 0 && planStatus === "UNKNOWN") return;
   let changedFiles = [];
-  const changeLogPath = join2(cwd, ".harness", "change-log.md");
+  const changeLogPath = join4(cwd, ".harness", "change-log.md");
   const changeLogContent = readFileContent(changeLogPath);
   if (changeLogContent) {
     const lines = changeLogContent.split("\n");
@@ -789,12 +893,12 @@ ${remainSection}
 
 ${filesSection}
 `;
-  const handoffPath = join2(cwd, ".agent", "handoff.md");
-  const handoffDir = dirname(handoffPath);
-  if (!existsSync2(handoffDir)) {
-    mkdirSync(handoffDir, { recursive: true });
+  const handoffPath = join4(cwd, ".agent", "handoff.md");
+  const handoffDir = dirname2(handoffPath);
+  if (!existsSync3(handoffDir)) {
+    mkdirSync2(handoffDir, { recursive: true });
   }
-  writeFileSync(handoffPath, handoffContent, "utf-8");
+  writeFileSync2(handoffPath, handoffContent, "utf-8");
 }
 function appendSessionLog(cwd) {
   const todoPath = findAgentFile(cwd, "todo.md");
@@ -818,23 +922,23 @@ function appendSessionLog(cwd) {
 - **\uC9C4\uD589**: ${doneCount}/${doneCount + remainCount} completed${remainCount > 0 ? ` (${remainCount} remaining)` : " \u2014 \uC644\uB8CC"}
 
 `;
-  const logPath = join2(cwd, ".agent", "session-log.md");
-  const logDir = dirname(logPath);
-  if (!existsSync2(logDir)) {
-    mkdirSync(logDir, { recursive: true });
+  const logPath = join4(cwd, ".agent", "session-log.md");
+  const logDir = dirname2(logPath);
+  if (!existsSync3(logDir)) {
+    mkdirSync2(logDir, { recursive: true });
   }
-  if (existsSync2(logPath)) {
-    const existing = readFileSync2(logPath, "utf-8");
+  if (existsSync3(logPath)) {
+    const existing = readFileSync3(logPath, "utf-8");
     const separatorIdx = existing.indexOf("\n---\n");
     if (separatorIdx !== -1) {
       const header = existing.slice(0, separatorIdx + 5);
       const body = existing.slice(separatorIdx + 5);
-      writeFileSync(logPath, header + "\n" + logEntry + body, "utf-8");
+      writeFileSync2(logPath, header + "\n" + logEntry + body, "utf-8");
     } else {
-      writeFileSync(logPath, existing + "\n" + logEntry, "utf-8");
+      writeFileSync2(logPath, existing + "\n" + logEntry, "utf-8");
     }
   } else {
-    writeFileSync(logPath, `# Session Log
+    writeFileSync2(logPath, `# Session Log
 
 > \uC138\uC158 \uC885\uB8CC \uC2DC \uC790\uB3D9\uC73C\uB85C \uD56D\uBAA9\uC774 \uCD94\uAC00\uB429\uB2C8\uB2E4.
 > \uCD5C\uC2E0 \uC138\uC158\uC774 \uB9E8 \uC704\uC5D0 \uC704\uCE58\uD569\uB2C8\uB2E4.
@@ -846,10 +950,10 @@ ${logEntry}`, "utf-8");
 }
 function checkBugModeCompletion(cwd) {
   const stateDir = harnessStateDir(cwd);
-  const taskModePath = join2(stateDir, "task-mode");
-  if (!existsSync2(taskModePath)) return null;
+  const taskModePath = join4(stateDir, "task-mode");
+  if (!existsSync3(taskModePath)) return null;
   try {
-    const mode = readFileSync2(taskModePath, "utf-8").trim();
+    const mode = readFileSync3(taskModePath, "utf-8").trim();
     if (!mode.startsWith("BugFix")) return null;
     return '[harness-session-end] Bug Mode \uC138\uC158\uC774 \uC885\uB8CC\uB429\uB2C8\uB2E4. \uC218\uC815\uD55C \uBC84\uADF8\uAC00 \uC788\uB2E4\uBA74 harness_bug_report \uB610\uB294 harness_memory_add(category:"bugs")\uB85C \uAE30\uB85D\uD558\uBA74 \uD300 \uCD94\uC801\uC774 \uAC00\uB2A5\uD569\uB2C8\uB2E4.';
   } catch {
@@ -857,18 +961,18 @@ function checkBugModeCompletion(cwd) {
   }
 }
 function checkClaudeMdSync(cwd) {
-  const configPath = join2(cwd, "carpdm-harness.config.json");
-  if (!existsSync2(configPath)) return null;
-  const claudeMdPath = join2(cwd, "CLAUDE.md");
-  if (!existsSync2(claudeMdPath)) return null;
+  const configPath = join4(cwd, "carpdm-harness.config.json");
+  if (!existsSync3(configPath)) return null;
+  const claudeMdPath = join4(cwd, "CLAUDE.md");
+  if (!existsSync3(claudeMdPath)) return null;
   try {
-    const content = readFileSync2(claudeMdPath, "utf-8");
+    const content = readFileSync3(claudeMdPath, "utf-8");
     const MARKER_START = "<!-- harness:auto:start -->";
     const MARKER_END = "<!-- harness:auto:end -->";
     const startIdx = content.indexOf(MARKER_START);
     const endIdx = content.indexOf(MARKER_END);
     if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
-    const config = JSON.parse(readFileSync2(configPath, "utf-8"));
+    const config = JSON.parse(readFileSync3(configPath, "utf-8"));
     const modules = (config.modules || []).join(", ") || "(\uC5C6\uC74C)";
     const preset = config.preset || "unknown";
     const currentAuto = content.slice(startIdx + MARKER_START.length, endIdx).trim();
@@ -880,13 +984,13 @@ function checkClaudeMdSync(cwd) {
   return null;
 }
 function syncMemoryMd(cwd) {
-  const teamMemoryPath = join2(cwd, ".harness", "team-memory.json");
-  if (!existsSync2(teamMemoryPath)) return;
-  const memoryMdPath = join2(cwd, ".agent", "memory.md");
-  if (!existsSync2(memoryMdPath)) return;
+  const teamMemoryPath = join4(cwd, ".harness", "team-memory.json");
+  if (!existsSync3(teamMemoryPath)) return;
+  const memoryMdPath = join4(cwd, ".agent", "memory.md");
+  if (!existsSync3(memoryMdPath)) return;
   const MARKER_START = "<!-- harness:team-memory:start -->";
   const MARKER_END = "<!-- harness:team-memory:end -->";
-  const raw = readFileSync2(teamMemoryPath, "utf-8");
+  const raw = readFileSync3(teamMemoryPath, "utf-8");
   const data = JSON.parse(raw);
   const entries = data.entries || [];
   if (entries.length === 0) return;
@@ -897,7 +1001,7 @@ function syncMemoryMd(cwd) {
     return `- **[${cat}]** ${e.title || "(\uBB34\uC81C)"}${date ? ` _(${date})_` : ""}`;
   });
   const newSection = lines.join("\n");
-  let content = readFileSync2(memoryMdPath, "utf-8");
+  let content = readFileSync3(memoryMdPath, "utf-8");
   const startIdx = content.indexOf(MARKER_START);
   const endIdx = content.indexOf(MARKER_END);
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
@@ -905,12 +1009,12 @@ function syncMemoryMd(cwd) {
   } else {
     content += "\n\n" + MARKER_START + "\n" + newSection + "\n" + MARKER_END + "\n";
   }
-  writeFileSync(memoryMdPath, content, "utf-8");
+  writeFileSync2(memoryMdPath, content, "utf-8");
 }
 function checkOntologyStale(cwd) {
-  const cachePath = join2(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
-  if (!existsSync2(cachePath)) return null;
-  const raw = readFileSync2(cachePath, "utf-8");
+  const cachePath = join4(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
+  if (!existsSync3(cachePath)) return null;
+  const raw = readFileSync3(cachePath, "utf-8");
   const cache = JSON.parse(raw);
   if (!cache.builtAt) return null;
   const builtAt = new Date(cache.builtAt).getTime();
@@ -925,7 +1029,7 @@ function checkOntologyStale(cwd) {
 function main() {
   let input;
   try {
-    const raw = readFileSync2("/dev/stdin", "utf-8");
+    const raw = readFileSync3("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
     process.stdout.write(JSON.stringify({ result: "continue" }));
@@ -949,19 +1053,39 @@ function main() {
     appendSessionLog(cwd);
   } catch {
   }
-  const syncMessage = checkTeamMemorySync(cwd);
-  if (syncMessage) messages.push(syncMessage);
-  const claudeMessage = checkClaudeMdSync(cwd);
-  if (claudeMessage) messages.push(claudeMessage);
-  const bugMessage = checkBugModeCompletion(cwd);
-  if (bugMessage) messages.push(bugMessage);
   try {
     syncMemoryMd(cwd);
   } catch {
   }
   try {
-    const ontologyMessage = checkOntologyStale(cwd);
-    if (ontologyMessage) messages.push(ontologyMessage);
+    const planSync = syncPlanFromClaudeCode(cwd);
+    if (planSync.synced) {
+      messages.push(`[harness-session-end] plan mode \uC124\uACC4\uB97C .agent/plan.md\uB85C \uB3D9\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4 (DRAFT). \uAD6C\uD604 \uC804 \uC2B9\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.`);
+    }
+    const cleaned = cleanupStalePlans(7);
+    if (cleaned > 0) {
+      messages.push(`[harness-session-end] ~/.claude/plans/ \uC815\uB9AC: ${cleaned}\uAC1C \uC624\uB798\uB41C plan \uD30C\uC77C \uC0AD\uC81C`);
+    }
+  } catch {
+  }
+  try {
+    const m = checkTeamMemorySync(cwd);
+    if (m) messages.push(m);
+  } catch {
+  }
+  try {
+    const m = checkClaudeMdSync(cwd);
+    if (m) messages.push(m);
+  } catch {
+  }
+  try {
+    const m = checkBugModeCompletion(cwd);
+    if (m) messages.push(m);
+  } catch {
+  }
+  try {
+    const m = checkOntologyStale(cwd);
+    if (m) messages.push(m);
   } catch {
   }
   if (messages.length > 0) {

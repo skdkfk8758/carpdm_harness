@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, saveConfig } from '../core/config.js';
 import { detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
@@ -188,8 +188,6 @@ function migrateV3ToV4(
   }
 
   // 백업
-  const { readFileSync, writeFileSync, mkdirSync } = require('node:fs');
-  const { join } = require('node:path');
   const backupDir = join(projectRoot, '.harness', 'backup');
   try {
     mkdirSync(backupDir, { recursive: true });

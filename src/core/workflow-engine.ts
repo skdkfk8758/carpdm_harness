@@ -79,7 +79,7 @@ export function resolveNextAction(instance: WorkflowInstance): NextAction {
   }
 
   const hint = instance.config.autoDispatch
-    ? generateDispatchHint(currentStep, instance.context)
+    ? generateDispatchHint(currentStep, instance.context, instance.config.teamMode)
     : undefined;
 
   if (currentStep.omcSkill) {
@@ -107,10 +107,15 @@ export function resolveNextAction(instance: WorkflowInstance): NextAction {
 export function generateDispatchHint(
   step: StepState,
   context?: WorkflowContext,
+  teamMode?: string,
 ): DispatchHint {
   const mapping = AGENT_SKILL_MAP[step.agent];
   const model = mapping?.model ?? 'sonnet';
-  const skill = step.omcSkill ?? mapping?.skill;
+  // executor 에이전트 + teamMode 지정 시 teamMode 스킬 우선
+  const teamModeSkill = (step.agent === 'executor' || step.agent === 'deep-executor') && teamMode
+    ? `/oh-my-claudecode:${teamMode}`
+    : undefined;
+  const skill = teamModeSkill ?? step.omcSkill ?? mapping?.skill;
   const agentType = `${OMC_AGENT_PREFIX}${step.agent}`;
 
   // 프롬프트 구성: 액션 + 컨텍스트

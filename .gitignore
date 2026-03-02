@@ -6,5 +6,8 @@ dist/**/*.map
 *.log
 .agent/
 .harness/
+.knowledge/
 .omc/
 .serena/
+.obsidian/
+.claude-flow/

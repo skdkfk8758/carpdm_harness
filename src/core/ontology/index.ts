@@ -14,7 +14,7 @@ import type {
   AgentFileInfo,
   AgentFileStatus,
 } from '../../types/ontology.js';
-import { PluginRegistry } from './plugin-registry.js';
+import { TypeScriptPlugin } from './plugins/typescript-plugin.js';
 import { buildStructureLayer, loadGitignorePatterns, mergeExcludePatterns } from './structure-builder.js';
 import { buildSemanticsLayer } from './semantics-builder.js';
 import { buildDomainLayer, collectDomainContext } from './domain-builder.js';
@@ -107,7 +107,7 @@ export async function buildOntology(
   const startTime = Date.now();
   logger.header('온톨로지 빌드 시작');
 
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const version = readHarnessVersion(projectRoot);
   const now = new Date().toISOString();
 
@@ -150,7 +150,7 @@ export async function buildOntology(
   if (config.layers.semantics.enabled && structureData) {
     logger.info('Layer 2: Semantics 빌드 중...');
     const result = await safeLayerBuild('semantics', () =>
-      buildSemanticsLayer(projectRoot, structureData!, config.layers.semantics, pluginRegistry),
+      buildSemanticsLayer(projectRoot, structureData!, config.layers.semantics, plugin),
     );
     results.push(result);
     metadata.layerStatus.semantics = updateLayerStatus(metadata.layerStatus.semantics, result);
@@ -286,13 +286,13 @@ export async function refreshOntology(
     effectiveExcludes,
   );
 
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const report = await applyIncrementalUpdate(
     projectRoot,
     existingData,
     changes,
     config,
-    pluginRegistry,
+    plugin,
   );
 
   // 갱신된 데이터로 Markdown 재출력

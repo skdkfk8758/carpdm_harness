@@ -21,6 +21,12 @@ import {
 } from '../core/workflow-engine.js';
 import { loadWorkflowHistory, loadActiveWorkflowId } from '../core/workflow-persistence.js';
 import { syncWorkflowToOmc } from '../core/state-sync.js';
+import {
+  generatePlanFromWorkflow,
+  generateTodoFromWorkflow,
+  syncTodoProgress,
+  initKnowledgeBranch,
+} from '../core/workflow-agent-sync.js';
 
 type WorkflowAction = 'guide' | 'start' | 'advance' | 'status' | 'approve' | 'reject' | 'retry' | 'skip' | 'abort' | 'list' | 'history';
 
@@ -187,7 +193,11 @@ function handleGuide(
     }
   }
   res.blank();
-  res.line('  추천 자동 모드: /oh-my-claudecode:autopilot (전체 파이프라인 자동 실행)');
+  const recommendedMode = def.teamMode
+    ? `/oh-my-claudecode:${def.teamMode}`
+    : '/oh-my-claudecode:autopilot';
+  const modeLabel = def.teamMode ?? 'autopilot';
+  res.line(`  추천 자동 모드: ${recommendedMode} (${modeLabel} 모드로 실행)`);
   res.line('  또는 위 순서대로 하나씩 수동 실행');
   res.blank();
   res.info('실행 엔진으로 시작하려면:');
@@ -250,7 +260,8 @@ function handleStart(
     res.info('autoDispatch: 활성화 (각 단계에 위임 힌트 포함)');
   }
   if (instance.config.teamMode) {
-    res.info(`teamMode: ${instance.config.teamMode}`);
+    const modeSkill = `/oh-my-claudecode:${instance.config.teamMode}`;
+    res.info(`teamMode: ${instance.config.teamMode} → 구현 단계에서 ${modeSkill} 사용 권장`);
   }
   res.blank();
 
@@ -261,6 +272,22 @@ function handleStart(
     res.line(`  작업: ${currentStep.action}`);
     if (currentStep.omcSkill) {
       res.line(`  OMC 스킬: ${currentStep.omcSkill}`);
+    }
+  }
+
+  // .agent/ 자동 생성 (plan.md + todo.md + knowledge)
+  const planResult = generatePlanFromWorkflow(pRoot, instance, context);
+  if (planResult.created) {
+    res.ok('.agent/plan.md 자동 생성 (DRAFT)');
+  }
+  const todoResult = generateTodoFromWorkflow(pRoot, instance);
+  if (todoResult.created) {
+    res.ok('.agent/todo.md 자동 생성 (워크플로우 기반)');
+  }
+  if (context?.branch) {
+    const knResult = initKnowledgeBranch(pRoot, context.branch);
+    if (knResult.created) {
+      res.ok(`.knowledge/branches/ 초기화`);
     }
   }
 
@@ -300,6 +327,18 @@ function handleAdvance(pRoot: string, result: string | undefined, autoDispatch?:
 
   res.header(`워크플로우 진행: ${instance.workflowType} (${instance.id})`);
   res.blank();
+
+  // .agent/todo.md 진행 갱신
+  {
+    const completedStepNum = instance.status === 'completed'
+      ? instance.totalSteps
+      : instance.currentStep - 1;
+    const nextStepNum = instance.status === 'completed' ? undefined : instance.currentStep;
+    const syncResult = syncTodoProgress(pRoot, completedStepNum, nextStepNum);
+    if (syncResult.synced) {
+      res.ok(`todo.md 갱신: Step ${completedStepNum} 완료`);
+    }
+  }
 
   if (instance.status === 'completed') {
     res.ok('워크플로우 완료!');

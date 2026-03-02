@@ -9,7 +9,6 @@ import {
   readBranchContext,
   updateKnowledgeIndex,
   syncOntologyToVault,
-  publishOntologyDocs,
 } from '../../src/core/knowledge-vault.js';
 import type { KnowledgeConfig } from '../../src/types/config.js';
 import { DEFAULT_KNOWLEDGE_CONFIG } from '../../src/types/config.js';
@@ -219,22 +218,3 @@ describe('syncOntologyToVault', () => {
   });
 });
 
-describe('publishOntologyDocs', () => {
-  it('.agent/ontology/ → docs/ontology/ 복사 (git-tracked)', () => {
-    const agentOntDir = join(tmpDir, '.agent', 'ontology');
-    mkdirSync(agentOntDir, { recursive: true });
-    writeFileSync(join(agentOntDir, 'ONTOLOGY-STRUCTURE.md'), '# Structure');
-    writeFileSync(join(agentOntDir, 'ONTOLOGY-INDEX.md'), '# Index');
-
-    publishOntologyDocs(tmpDir);
-
-    expect(existsSync(join(tmpDir, 'docs', 'ontology', 'ONTOLOGY-STRUCTURE.md'))).toBe(true);
-    expect(existsSync(join(tmpDir, 'docs', 'ontology', 'ONTOLOGY-INDEX.md'))).toBe(true);
-  });
-
-  it('.agent/ontology/가 없으면 무시한다', () => {
-    // 에러 없이 무시
-    publishOntologyDocs(tmpDir);
-    expect(existsSync(join(tmpDir, 'docs', 'ontology'))).toBe(false);
-  });
-});

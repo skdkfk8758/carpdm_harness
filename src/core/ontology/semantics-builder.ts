@@ -14,7 +14,7 @@ import type {
   ModuleRelation,
 } from '../../types/ontology.js';
 import type { CapabilityResult } from '../../types/capabilities.js';
-import { PluginRegistry } from './plugin-registry.js';
+import type { LanguagePlugin } from '../../types/ontology.js';
 import { generateAnnotations } from './annotation-analyzer.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -137,10 +137,9 @@ function buildDependencyGraph(
 /** 단일 파일 분석 (플러그인 없으면 null 반환) */
 async function analyzeFile(
   filePath: string,
-  pluginRegistry: PluginRegistry,
+  plugin: LanguagePlugin,
 ): Promise<SemanticFile | null> {
-  const plugin = pluginRegistry.getPluginForFile(filePath);
-  if (!plugin) return null;
+  if (!plugin.canHandle(filePath)) return null;
 
   const content = readFileSync(filePath, 'utf-8');
   return plugin.analyzeFile(filePath, content);
@@ -158,7 +157,7 @@ export async function buildSemanticsLayer(
   projectRoot: string,
   structureLayer: StructureLayer,
   config: OntologyLayerConfig['semantics'],
-  pluginRegistry: PluginRegistry,
+  plugin: LanguagePlugin,
   capabilities?: CapabilityResult,
 ): Promise<BuildResult & { data: SemanticsLayer }> {
   const startTime = Date.now();
@@ -172,7 +171,7 @@ export async function buildSemanticsLayer(
 
   // 병렬 분석 (개별 실패는 warning으로 처리)
   const settled = await Promise.allSettled(
-    sourceFiles.map((fp) => analyzeFile(fp, pluginRegistry)),
+    sourceFiles.map((fp) => analyzeFile(fp, plugin)),
   );
 
   const files: SemanticFile[] = [];
@@ -230,7 +229,7 @@ export async function updateSemanticsIncremental(
   projectRoot: string,
   existing: SemanticsLayer,
   changes: IncrementalChange,
-  pluginRegistry: PluginRegistry,
+  plugin: LanguagePlugin,
 ): Promise<BuildResult & { data: SemanticsLayer }> {
   const startTime = Date.now();
   logger.info(
@@ -253,7 +252,7 @@ export async function updateSemanticsIncremental(
   const settled = await Promise.allSettled(
     addedOrModified.map((relPath) => {
       const fullPath = join(projectRoot, relPath);
-      return analyzeFile(fullPath, pluginRegistry);
+      return analyzeFile(fullPath, plugin);
     }),
   );
 

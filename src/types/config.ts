@@ -27,6 +27,9 @@ export interface HarnessConfig {
   behavioralGuard?: BehavioralGuardConfig;
   overlapPreferences?: OverlapPreferences;
   knowledge?: KnowledgeConfig;
+  rufloConfig?: RufloConfig;
+  /** 마지막으로 실행된 마이그레이션 버전 (이미 완료된 마이그레이션 스킵용) */
+  migrationVersion?: number;
 }
 
 export interface ConfigOptions {
@@ -63,6 +66,16 @@ export const DEFAULT_OMC_CONFIG: OmcConfig = {
   autoSync: true,
   workflowIntegration: true,
   ontologySync: true,
+};
+
+export interface RufloConfig {
+  detection: boolean;
+  blockOnActiveSwarm: boolean;
+}
+
+export const DEFAULT_RUFLO_CONFIG: RufloConfig = {
+  detection: true,
+  blockOnActiveSwarm: true,
 };
 
 export interface KnowledgeConfig {

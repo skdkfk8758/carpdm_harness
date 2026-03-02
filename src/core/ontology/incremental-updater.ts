@@ -10,7 +10,7 @@ import type {
   OntologyData,
   OntologyBuildReport,
 } from '../../types/ontology.js';
-import { PluginRegistry } from './plugin-registry.js';
+import type { LanguagePlugin } from '../../types/ontology.js';
 import { updateStructureIncremental } from './structure-builder.js';
 import { updateSemanticsIncremental } from './semantics-builder.js';
 import { buildDomainLayer } from './domain-builder.js';
@@ -173,7 +173,7 @@ export async function applyIncrementalUpdate(
   existingData: OntologyData,
   changes: IncrementalChange,
   config: OntologyConfig,
-  pluginRegistry: PluginRegistry,
+  plugin: LanguagePlugin,
 ): Promise<OntologyBuildReport> {
   const startTime = Date.now();
   const results: OntologyBuildReport['results'] = [];
@@ -219,7 +219,7 @@ export async function applyIncrementalUpdate(
         projectRoot,
         existingData.semantics,
         changes,
-        pluginRegistry,
+        plugin,
       );
       existingData.semantics = result.data;
       results.push({

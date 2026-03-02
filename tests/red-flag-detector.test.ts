@@ -4,7 +4,7 @@ import {
   detectCompletionIntent,
   buildRedFlagContext,
   buildCompletionChecklist,
-} from '../src/core/red-flag-detector.js';
+} from '../src/core/behavioral-validator.js';
 
 describe('detectRedFlags', () => {
   describe('hedging 패턴', () => {

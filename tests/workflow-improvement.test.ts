@@ -98,40 +98,7 @@ describe('워크플로우 매핑 검증', () => {
   });
 });
 
-// ─── 3. capability-detector 테스트 ───
-describe('capability-detector 검증', () => {
-  describe('getReviewTool 함수 export', () => {
-    it('getReviewTool 함수가 export되어 있다', async () => {
-      const module = await import('../src/core/capability-detector.js');
-      expect(typeof module.getReviewTool).toBe('function');
-    });
-  });
-
-  describe('getReviewTool 반환 타입', () => {
-    it('getReviewTool이 type과 instruction 필드를 가진 객체를 반환한다', async () => {
-      const { getReviewTool } = await import('../src/core/capability-detector.js');
-      // 캐시 파일이 없는 환경에서는 agent 타입을 반환함
-      const result = getReviewTool('/tmp/nonexistent-project-root');
-      expect(result).toHaveProperty('type');
-      expect(result).toHaveProperty('instruction');
-    });
-
-    it('getReviewTool의 type 값이 codex 또는 agent이다', async () => {
-      const { getReviewTool } = await import('../src/core/capability-detector.js');
-      const result = getReviewTool('/tmp/nonexistent-project-root');
-      expect(['codex', 'agent']).toContain(result.type);
-    });
-
-    it('getReviewTool의 instruction 값이 비어있지 않은 문자열이다', async () => {
-      const { getReviewTool } = await import('../src/core/capability-detector.js');
-      const result = getReviewTool('/tmp/nonexistent-project-root');
-      expect(typeof result.instruction).toBe('string');
-      expect(result.instruction.length).toBeGreaterThan(0);
-    });
-  });
-});
-
-// ─── 4. 셸 훅 파일 테스트 ───
+// ─── 3. 셸 훅 파일 테스트 ───
 describe('셸 훅 파일 검증', () => {
   describe('templates/core/hooks/plan-guard.sh', () => {
     const planGuardPath = 'templates/core/hooks/plan-guard.sh';

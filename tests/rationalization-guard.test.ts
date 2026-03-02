@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveWorkflowPhase,
   buildRationalizationContext,
-} from '../src/core/rationalization-guard.js';
+} from '../src/core/behavioral-validator.js';
 import type { WorkflowStateData } from '../src/hooks/hook-utils.js';
 
 function makeInstance(agent: string, currentStep = 1): WorkflowStateData {
