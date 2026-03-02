@@ -34,7 +34,8 @@
         { "source": "core/docs/lessons-template.md", "destination": "docs/templates/lessons-template.md" },
         { "source": "core/docs/handoff-template.md", "destination": "docs/templates/handoff-template.md" },
         { "source": "core/docs/session-log-template.md", "destination": "docs/templates/session-log-template.md" },
-        { "source": "core/docs/sdd-template.md", "destination": "docs/templates/sdd-template.md" }
+        { "source": "core/docs/sdd-template.md", "destination": "docs/templates/sdd-template.md" },
+        { "source": "core/docs/migration-guide.md", "destination": "docs/templates/migration-guide.md" }
       ],
       "agentFiles": [
         { "source": "core/agent/plan.md", "destination": ".agent/plan.md" },
