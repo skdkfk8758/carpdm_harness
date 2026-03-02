@@ -9,7 +9,9 @@ import {
   omcSwarmMarkerPath,
   omcSwarmSummaryPath,
   harnessStateDir as harnessStateDirFn,
+  detectRufloSwarmStatus,
 } from '../core/omc-compat.js';
+import { syncPlanFromClaudeCode, cleanupStalePlans } from '../core/plan-sync.js';
 
 // ============================================================
 // Types
@@ -729,6 +731,40 @@ function checkPersistentMode(input: HookInput): { blocked: boolean; output: stri
     }
   }
 
+  // Priority 4.5: Ruflo Swarm (max 10, swarm active)
+  try {
+    const rufloStatus = detectRufloSwarmStatus(directory);
+    if (rufloStatus.active && rufloStatus.agentCount > 0) {
+      const isRufloStale = !rufloStatus.timestamp ||
+        (Date.now() - new Date(rufloStatus.timestamp).getTime()) > STALE_STATE_THRESHOLD_MS;
+
+      if (!isRufloStale) {
+        const countPath = join(harnessDir, 'ruflo-reinforcement.json');
+        const countData = readJsonFile(countPath) as { count?: number } | null;
+        const newCount = ((countData?.count) || 0) + 1;
+
+        if (newCount <= 10) {
+          writeJsonFile(countPath, { count: newCount, lastCheckedAt: new Date().toISOString() });
+
+          const toolError = readLastToolError(harnessDir);
+          const errorGuidance = getToolErrorRetryGuidance(toolError);
+
+          let reason = `[RUFLO SWARM ACTIVE] claude-flow swarm running with ${rufloStatus.agentCount} agents. Do not end session. To stop: use ruflo swarm_shutdown tool.`;
+          if (errorGuidance) {
+            reason = errorGuidance + reason;
+          }
+
+          return {
+            blocked: true,
+            output: JSON.stringify({ decision: 'block', reason }),
+          };
+        }
+      }
+    }
+  } catch {
+    // ruflo 감지 실패 — fall through
+  }
+
   // Priority 5: Pipeline (max 15, currentStage < totalStages)
   if (
     pipeline.state?.active &&
@@ -1265,45 +1301,34 @@ function main(): void {
     // On persistent mode error, fall through to team-memory sync
   }
 
-  // Step 2: Team-memory sync check + CLAUDE.md sync check + Bug Mode check (only when not blocking)
+  // Step 2: 후처리 작업 (독립 작업 — 개별 실패가 다른 작업에 영향 없음)
   const cwd = input.cwd || input.directory || process.cwd();
   const messages: string[] = [];
 
-  // Step 2a: Auto-generate handoff + session-log (non-persistent modes only)
+  // 후처리 그룹 1: handoff + session-log 생성
+  try { generateHandoff(cwd); } catch { /* 격리 */ }
+  try { appendSessionLog(cwd); } catch { /* 격리 */ }
+
+  // 후처리 그룹 2: memory.md 동기화
+  try { syncMemoryMd(cwd); } catch { /* 격리 */ }
+
+  // 후처리 그룹 3: plan 동기화 + stale 정리
   try {
-    generateHandoff(cwd);
-  } catch {
-    // handoff 생성 실패 — 무시
-  }
-  try {
-    appendSessionLog(cwd);
-  } catch {
-    // session-log 추가 실패 — 무시
-  }
+    const planSync = syncPlanFromClaudeCode(cwd);
+    if (planSync.synced) {
+      messages.push(`[harness-session-end] plan mode 설계를 .agent/plan.md로 동기화했습니다 (DRAFT). 구현 전 승인이 필요합니다.`);
+    }
+    const cleaned = cleanupStalePlans(7);
+    if (cleaned > 0) {
+      messages.push(`[harness-session-end] ~/.claude/plans/ 정리: ${cleaned}개 오래된 plan 파일 삭제`);
+    }
+  } catch { /* 격리 */ }
 
-  const syncMessage = checkTeamMemorySync(cwd);
-  if (syncMessage) messages.push(syncMessage);
-
-  const claudeMessage = checkClaudeMdSync(cwd);
-  if (claudeMessage) messages.push(claudeMessage);
-
-  const bugMessage = checkBugModeCompletion(cwd);
-  if (bugMessage) messages.push(bugMessage);
-
-  // Step 2d: memory.md 자동 동기화 (team-memory.json → .agent/memory.md 마커 영역)
-  try {
-    syncMemoryMd(cwd);
-  } catch {
-    // memory 동기화 실패 — 무시
-  }
-
-  // Step 2e: ontology stale 감지
-  try {
-    const ontologyMessage = checkOntologyStale(cwd);
-    if (ontologyMessage) messages.push(ontologyMessage);
-  } catch {
-    // ontology 감지 실패 — 무시
-  }
+  // 후처리 그룹 4: 상태 체크 (team-memory, CLAUDE.md, bug mode, ontology)
+  try { const m = checkTeamMemorySync(cwd); if (m) messages.push(m); } catch { /* 격리 */ }
+  try { const m = checkClaudeMdSync(cwd); if (m) messages.push(m); } catch { /* 격리 */ }
+  try { const m = checkBugModeCompletion(cwd); if (m) messages.push(m); } catch { /* 격리 */ }
+  try { const m = checkOntologyStale(cwd); if (m) messages.push(m); } catch { /* 격리 */ }
 
   if (messages.length > 0) {
     process.stdout.write(JSON.stringify({

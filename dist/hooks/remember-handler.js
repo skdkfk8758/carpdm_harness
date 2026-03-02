@@ -24,7 +24,8 @@ var OMC_SKILLS = {
   deepsearch: "/oh-my-claudecode:deepsearch",
   "code-review": "/oh-my-claudecode:code-review",
   "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel"
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
 };
 var AGENT_SKILL_MAP = {
   analyst: { skill: OMC_SKILLS.analyze, model: "opus" },

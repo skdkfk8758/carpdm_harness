@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { safeWriteFile, readFileContent } from './file-ops.js';
 
 export type MemoryCategory = 'conventions' | 'patterns' | 'decisions' | 'mistakes' | 'bugs';
 export type ConventionSubcategory = 'naming' | 'structure' | 'error-handling' | 'other';
@@ -117,11 +119,8 @@ export function addEntry(
   syncRuleFile(projectRoot, entry.category, store);
   syncMemoryMd(projectRoot, store);
 
-  // Knowledge Vault + auto-memory 동기화 (비동기, 실패 무시)
-  // 순환 참조 방지를 위해 dynamic import 사용
-  import('./knowledge-vault.js')
-    .then(({ syncAutoMemory }) => syncAutoMemory(projectRoot, store))
-    .catch(() => {});
+  // auto-memory 동기화 (실패 무시)
+  try { syncAutoMemory(projectRoot, store); } catch { /* noop */ }
 
   return entry;
 }
@@ -249,5 +248,82 @@ function renderEntry(entry: MemoryEntry): string {
     lines.push('', `_근거: ${entry.evidence.join(', ')}_`);
   }
   lines.push('', `_추가: ${entry.addedAt.slice(0, 10)}_`);
+  return lines.join('\n');
+}
+
+// ============================================================
+// Auto-Memory 동기화 (knowledge-vault.ts에서 이동)
+// ============================================================
+
+/** team-memory → auto-memory MEMORY.md 컴팩트 동기화 */
+function syncAutoMemory(projectRoot: string, store: TeamMemoryStore): void {
+  const memoryDir = resolveAutoMemoryDir(projectRoot);
+  if (!memoryDir) return;
+
+  const memoryPath = join(memoryDir, 'MEMORY.md');
+  const existing = readFileContent(memoryPath);
+  if (!existing) return; // auto-memory가 없으면 생성하지 않음 (Claude Code 관리)
+
+  const startMarker = '<!-- harness:team-knowledge:start -->';
+  const endMarker = '<!-- harness:team-knowledge:end -->';
+
+  const summary = renderAutoMemorySummary(store);
+  const section = `${startMarker}\n${summary}\n${endMarker}`;
+
+  let updated: string;
+  const startIdx = existing.indexOf(startMarker);
+  const endIdx = existing.indexOf(endMarker);
+
+  if (startIdx !== -1 && endIdx !== -1) {
+    updated = existing.substring(0, startIdx) + section + existing.substring(endIdx + endMarker.length);
+  } else {
+    updated = existing.trimEnd() + '\n\n' + section + '\n';
+  }
+
+  safeWriteFile(memoryPath, updated);
+}
+
+function resolveAutoMemoryDir(projectRoot: string): string | null {
+  const encoded = projectRoot.replace(/\//g, '-');
+  const dir = join(homedir(), '.claude', 'projects', encoded, 'memory');
+  if (existsSync(dir)) return dir;
+  return null;
+}
+
+function renderAutoMemorySummary(store: TeamMemoryStore): string {
+  const lines: string[] = ['## 팀 지식 요약 (자동 동기화)', ''];
+  const MAX_ENTRIES = 15;
+
+  const categories: Array<{ key: string; label: string }> = [
+    { key: 'conventions', label: '컨벤션' },
+    { key: 'patterns', label: '패턴' },
+    { key: 'decisions', label: '결정' },
+    { key: 'mistakes', label: '교훈' },
+  ];
+
+  for (const { key, label } of categories) {
+    const entries = store.entries
+      .filter((e: MemoryEntry) => e.category === key)
+      .slice(-MAX_ENTRIES);
+    if (entries.length === 0) continue;
+
+    lines.push(`### ${label}`);
+    for (const entry of entries) {
+      lines.push(`- **${entry.title}**: ${entry.content.split('\n')[0]}`);
+    }
+    lines.push('');
+  }
+
+  const openBugs = store.entries.filter(
+    (e: MemoryEntry) => e.category === 'bugs' && e.status === 'open',
+  );
+  if (openBugs.length > 0) {
+    lines.push('### 열린 버그');
+    for (const bug of openBugs.slice(-5)) {
+      lines.push(`- [${bug.severity ?? 'medium'}] ${bug.title}`);
+    }
+    lines.push('');
+  }
+
   return lines.join('\n');
 }

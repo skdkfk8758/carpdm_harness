@@ -29,7 +29,7 @@ export const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
     description: '기능 개발 워크플로우',
     requiredModules: ['core', 'quality'],
     pipeline: [
-      { order: 1, agent: 'analyst', action: '요구사항 분석', checkpoint: '요구사항 확정', omcSkill: OMC_SKILLS.analyze },
+      { order: 1, agent: 'analyst', action: '요구사항 분석', omcSkill: OMC_SKILLS.analyze },
       { order: 2, agent: 'planner', action: '구현 계획 수립', checkpoint: '계획 승인', omcSkill: OMC_SKILLS.plan },
       { order: 3, agent: 'architect', action: '아키텍처 검증', optional: true },
       { order: 4, agent: 'executor', action: '구현', checkpoint: '구현 완료', omcSkill: OMC_SKILLS.autopilot },

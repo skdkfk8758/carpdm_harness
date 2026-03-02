@@ -101,7 +101,6 @@ function searchFieldInDirRecursive(dirPath: string, field: string): boolean {
 
 /** trigger가 참조하지만 skills/ 디렉토리가 없는 skill — .claude/commands/ 커맨드로 제공 */
 const KNOWN_TRIGGER_SKILL_GAPS = new Set<string>([
-  'plan-gate',        // .claude/commands/plan-gate.md로 제공
   'logical-commit',   // .claude/commands/logical-commit.md로 제공
 ]);
 
@@ -110,26 +109,10 @@ const KNOWN_SKILL_WITHOUT_TOOL = new Set([
   'scaffold',         // tool 미구현 (Phase 2 예정)
   'branch-cleanup',   // 순수 instruction skill (git 명령 안내)
   'design-guide',     // 순수 instruction skill (디자인 시스템 가이드)
-  'work-start',        // 순수 instruction skill (브랜치 생성 + Knowledge Vault 초기화)
-  'work-finish',       // 순수 instruction skill (PR 생성 + Knowledge Vault 아카이브)
-  'todo-loop',        // 순수 instruction skill (ralph-todo 루프 시작)
-  'branch-info',      // 순수 instruction skill (브랜치 상태 조회)
-  'bug',              // 순수 instruction skill (버그 기록)
-  'changelog',        // 순수 instruction skill (변경 내역 생성)
-  'context',          // 순수 instruction skill (작업 컨텍스트 조회)
-  'diff-summary',     // 순수 instruction skill (변경사항 요약)
-  'lesson',           // 순수 instruction skill (교훈 기록)
-  'logical-commit',   // 순수 instruction skill (논리 커밋)
-  'plan',             // 순수 instruction skill (작업 계획 조회)
+  'work-start',       // 통합 워크플로우 entry skill (harness_workflow 도구 사용)
+  'work-finish',      // 순수 instruction skill (PR 생성 + Knowledge Vault 아카이브)
+  'ontology',         // 라우터 skill (ontology-generate/refresh 도구로 위임)
   'plan-gate',        // 순수 instruction skill (Plan Gate 프로세스)
-  'plan-restore',     // 순수 instruction skill (아카이브 복원, harness_plan_archive 도구 사용)
-  'preflight',        // 순수 instruction skill (작업 전 점검)
-  'quick-check',      // 순수 instruction skill (빠른 검증)
-  'resume',           // 순수 instruction skill (세션 이어받기)
-  'review-prep',      // 순수 instruction skill (PR 리뷰 준비)
-  'status',           // 순수 instruction skill (상태 조회)
-  'todo',             // 순수 instruction skill (작업 목록 조회)
-  'todo-update',      // 순수 instruction skill (작업 항목 갱신)
 ]);
 
 /** tool은 있지만 skill wrapper가 없는 경우 */
@@ -143,11 +126,15 @@ const KNOWN_TOOL_WITHOUT_SKILL = new Set([
   'list',                  // doctor 스킬로 통합
   'quality-check',         // verify-all 스킬로 통합
   'manage-verify',         // 도구 직접 호출 전용
-  'ontology-status',       // ontology-generate 스킬로 통합
+  'ontology-status',       // ontology 스킬로 통합
+  'ontology-generate',     // ontology 스킬로 통합
+  'ontology-refresh',      // ontology 스킬로 통합
   'ontology-annotations',  // 도구 직접 호출 전용
   'ontology-domain-write', // 도구 직접 호출 전용
   'memory-add',            // 도구 직접 호출 전용
   'memory-list',           // 도구 직접 호출 전용
+  'dashboard',             // skill wrapper 삭제, 도구 직접 호출 전용
+  'migrate',               // skill wrapper 삭제, 도구 직접 호출 전용
 ]);
 
 /** config에 선언되었지만 코드에서 읽지 않는 필드 */
@@ -155,6 +142,7 @@ const KNOWN_DEAD_CONFIG_FIELDS = new Set([
   'pluginVersion',      // 추후 버전 체크에 사용 예정
   'lastPluginUpdateAt', // 추후 업데이트 알림에 사용 예정
   'workflowEngine',     // HarnessConfig에 선언만, engine은 DEFAULT_ENGINE_CONFIG 직접 사용
+  'rufloConfig',        // ruflo 감지는 omc-compat.ts에서 직접 처리, config 기반 제어는 추후 확장 예정
 ]);
 
 // === 테스트 ===

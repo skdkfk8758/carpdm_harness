@@ -7,6 +7,14 @@ import { scanOverlaps, renderOverlapInterview } from '../core/overlap-detector.j
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
+/** 도구별 미감지 시 영향도 — 데이터 중앙화로 유지보수 용이 */
+const TOOL_IMPACT_MAP: { key: 'serena' | 'context7' | 'codex' | 'gemini'; label: string; message: string }[] = [
+  { key: 'serena', label: 'Serena', message: 'Serena 미감지 → architect/verifier 단계에서 LSP 기반 코드 분석 불가' },
+  { key: 'context7', label: 'Context7', message: 'Context7 미감지 → 라이브러리 문서 자동 조회 불가' },
+  { key: 'codex', label: 'Codex', message: 'Codex 미감지 → MCP 위임 (병렬 실행) 불가' },
+  { key: 'gemini', label: 'Gemini', message: 'Gemini 미감지 → MCP 위임 (병렬 실행) 불가' },
+];
+
 export function registerSetupTool(server: McpServer): void {
   server.tool(
     'harness_setup',
@@ -46,11 +54,9 @@ export function registerSetupTool(server: McpServer): void {
         res.info('외부 도구 감지 중...');
         const capabilities = detectCapabilities(pRoot);
 
-        const detectedTools: string[] = [];
-        if (capabilities.tools.serena.detected) detectedTools.push('Serena');
-        if (capabilities.tools.context7.detected) detectedTools.push('Context7');
-        if (capabilities.tools.codex.detected) detectedTools.push('Codex');
-        if (capabilities.tools.gemini.detected) detectedTools.push('Gemini');
+        const detectedTools = TOOL_IMPACT_MAP
+          .filter(({ key }) => capabilities.tools[key].detected)
+          .map(({ label }) => label);
 
         if (detectedTools.length > 0) {
           res.ok(`감지된 도구: ${detectedTools.join(', ')}`);
@@ -59,17 +65,12 @@ export function registerSetupTool(server: McpServer): void {
         }
 
         // 미감지 도구별 영향 안내
-        const toolImpacts: [boolean, string][] = [
-          [!capabilities.tools.serena.detected, 'Serena 미감지 → architect/verifier 단계에서 LSP 기반 코드 분석 불가'],
-          [!capabilities.tools.context7.detected, 'Context7 미감지 → 라이브러리 문서 자동 조회 불가'],
-          [!capabilities.tools.codex.detected, 'Codex 미감지 → MCP 위임 (병렬 실행) 불가'],
-          [!capabilities.tools.gemini.detected, 'Gemini 미감지 → MCP 위임 (병렬 실행) 불가'],
-        ];
-        const missing = toolImpacts.filter(([absent]) => absent);
-        if (missing.length > 0 && missing.length < 4) {
+        const missing = TOOL_IMPACT_MAP
+          .filter(({ key }) => !capabilities.tools[key].detected);
+        if (missing.length > 0 && missing.length < TOOL_IMPACT_MAP.length) {
           res.blank();
-          for (const [, msg] of missing) {
-            res.info(msg);
+          for (const { message } of missing) {
+            res.info(message);
           }
         }
 

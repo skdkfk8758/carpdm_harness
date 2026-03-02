@@ -1,29 +1,30 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveModules, getModule, getPresetModules } from '../core/module-registry.js';
 import { createConfig, saveConfig, loadConfig } from '../core/config.js';
 import { installModuleFiles, installDocsTemplates } from '../core/template-engine.js';
 import { registerHooks } from '../core/hook-registrar.js';
-import { ensureDir, safeWriteFile } from '../core/file-ops.js';
-import { detectLocalMcpConflict, formatMcpConflictWarning } from '../core/omc-compat.js';
-import { buildOntology, collectIndexData } from '../core/ontology/index.js';
-import { renderIndexMarkdown } from '../core/ontology/markdown-renderer.js';
-import { loadStore, syncMemoryMd } from '../core/team-memory.js';
-import { getPackageVersion } from '../utils/version.js';
-import { syncClaudeMd } from '../core/claudemd-sync.js';
+import { ensureDir } from '../core/file-ops.js';
+import { buildOntology } from '../core/ontology/index.js';
 import { setupGithubLabels } from '../core/github-labels.js';
-import { getTemplatesDir } from '../utils/paths.js';
 import { DEFAULT_ONTOLOGY_CONFIG, ONTOLOGY_LANGUAGE_PRESETS } from '../types/ontology.js';
 import { CONFIG_FILENAME } from '../types/config.js';
-import { requireOmc, detectCapabilities, cacheCapabilities } from '../core/capability-detector.js';
+import { requireOmc, detectCapabilities } from '../core/capability-detector.js';
 import { bootstrapProjectSettings, getCapabilityAllowRules } from '../core/settings-bootstrap.js';
-import { scanOverlaps } from '../core/overlap-detector.js';
 import { applyOverlapChoices } from '../core/overlap-applier.js';
 import type { OverlapChoices } from '../types/overlap.js';
-import { initKnowledgeVault, syncOntologyToVault } from '../core/knowledge-vault.js';
-import { DEFAULT_KNOWLEDGE_CONFIG } from '../types/config.js';
+import {
+  regenerateOntologyIndex,
+  syncTeamMemoryMd,
+  ensureKnowledgeVault,
+  ensureClaudeMd,
+  checkMcpConflict,
+  detectAndCacheCapabilities,
+  ensureGitignoreEntries,
+  installTriggers,
+  scanOverlapsWithCaps,
+} from '../core/post-install-tasks.js';
 import { logger } from '../utils/logger.js';
 import { McpResponseBuilder, errorResult } from '../types/mcp.js';
 
@@ -126,14 +127,17 @@ export function registerInitTool(server: McpServer): void {
         }
 
         // 필수 설정 부트스트랩 (모든 프리셋에 적용)
+        // capabilities를 한 번만 감지하여 재사용
+        let capabilities: import('../types/capabilities.js').CapabilityResult | null = null;
+
         if (!pDryRun) {
           res.info('필수 설정 부트스트랩 중...');
 
           // capabilities 기반 추가 allow 규칙
           let extraAllow: string[] = [];
           try {
-            const caps = detectCapabilities(pRoot);
-            extraAllow = getCapabilityAllowRules(caps);
+            capabilities = detectCapabilities(pRoot);
+            extraAllow = getCapabilityAllowRules(capabilities);
           } catch {
             // 감지 실패 시 빈 배열
           }
@@ -150,13 +154,12 @@ export function registerInitTool(server: McpServer): void {
           if (bsResult.envAdded > 0) res.line(`  env: +${bsResult.envAdded}`);
           if (bsResult.languageSet) res.line(`  language: Korea`);
 
-          // Phase 4.5: 중복 적용
+          // Phase 4.5: 중복 적용 (capabilities 재사용)
           if (overlapChoicesStr) {
             try {
               const choices = JSON.parse(overlapChoicesStr as string) as OverlapChoices;
-              const caps = detectCapabilities(pRoot);
-              const scan = scanOverlaps(pRoot, config, caps);
-              if (scan.totalOverlaps > 0) {
+              const scan = scanOverlapsWithCaps(pRoot, config, capabilities);
+              if (scan && scan.totalOverlaps > 0) {
                 const overlapResult = applyOverlapChoices(pRoot, scan, choices);
                 config.overlapPreferences = {
                   lastOptimizedAt: new Date().toISOString(),
@@ -178,40 +181,8 @@ export function registerInitTool(server: McpServer): void {
         if (!pDryRun) {
           ensureDir(join(pRoot, '.agent'));
           ensureDir(join(pRoot, '.harness', 'state'));
-
-          // triggers.json 설치 (스킬 트리거 매니페스트)
-          try {
-            const triggersSrc = join(getTemplatesDir(), 'triggers.json');
-            if (existsSync(triggersSrc)) {
-              const triggersDest = join(pRoot, '.harness', 'triggers.json');
-              const content = readFileSync(triggersSrc, 'utf-8');
-              writeFileSync(triggersDest, content);
-              res.ok('스킬 트리거 매니페스트 설치');
-            }
-          } catch (err) {
-            res.warn(`triggers.json 설치 실패: ${String(err)}`);
-          }
-
-          // .gitignore에 .harness/ + .knowledge/ 추가
-          const gitignorePath = join(pRoot, '.gitignore');
-          const gitignoreEntries = ['.harness/', '.knowledge/'];
-          if (existsSync(gitignorePath)) {
-            let content = readFileSync(gitignorePath, 'utf-8');
-            const added: string[] = [];
-            for (const entry of gitignoreEntries) {
-              if (!content.includes(entry)) {
-                content = content.trimEnd() + '\n' + entry + '\n';
-                added.push(entry);
-              }
-            }
-            if (added.length > 0) {
-              writeFileSync(gitignorePath, content);
-              res.info(`.gitignore에 ${added.join(', ')} 추가`);
-            }
-          } else {
-            writeFileSync(gitignorePath, gitignoreEntries.join('\n') + '\n');
-            res.info('.gitignore 생성 (.harness/, .knowledge/)');
-          }
+          installTriggers(pRoot, res);
+          ensureGitignoreEntries(pRoot, ['.harness/', '.knowledge/'], res);
         }
 
         let ontologyConfig;
@@ -303,76 +274,23 @@ export function registerInitTool(server: McpServer): void {
         }
 
         if (!pDryRun) {
-          // .agent/ INDEX 생성 (온톨로지 유무와 무관)
-          try {
-            const version = getPackageVersion();
-            const indexData = collectIndexData(pRoot, version);
-            const indexContent = renderIndexMarkdown(indexData);
-            const indexPath = join(pRoot, '.agent', 'ontology', 'ONTOLOGY-INDEX.md');
-            ensureDir(join(pRoot, '.agent', 'ontology'));
-            safeWriteFile(indexPath, indexContent);
-            res.ok('ONTOLOGY-INDEX.md 생성 완료');
-          } catch (err) {
-            res.warn(`INDEX 생성 실패: ${String(err)}`);
-          }
+          regenerateOntologyIndex(pRoot, res);
+          ensureKnowledgeVault(pRoot, config, { ontologyEnabled: pEnableOntology }, res);
 
-          // Knowledge Vault 초기화
-          try {
-            const knowledgeConfig = { ...DEFAULT_KNOWLEDGE_CONFIG };
-            config.knowledge = knowledgeConfig;
-            initKnowledgeVault(pRoot, knowledgeConfig);
-            res.ok('Knowledge Vault 초기화 완료 (.knowledge/)');
-            // 온톨로지가 있으면 vault에 동기화
-            if (pEnableOntology) {
-              syncOntologyToVault(pRoot);
-              res.ok('온톨로지 → Knowledge Vault 동기화 완료');
-            }
-          } catch (err) {
-            res.warn(`Knowledge Vault 초기화 실패 (무시하고 계속): ${String(err)}`);
-          }
-
-          // memory.md 초기 동기화
           if (resolvedModules.includes('team-memory')) {
-            try {
-              const store = loadStore(pRoot);
-              syncMemoryMd(pRoot, store);
-              res.ok('.agent/memory.md 초기 동기화 완료');
-            } catch (err) {
-              res.warn(`memory.md 동기화 실패: ${String(err)}`);
-            }
+            syncTeamMemoryMd(pRoot, res);
           }
 
-          // capabilities 감지 및 캐시
-          try {
-            const capabilities = detectCapabilities(pRoot);
+          // capabilities 캐시 (이미 감지한 것 재사용, 없으면 새로 감지)
+          if (capabilities) {
             config.capabilities = capabilities;
-            cacheCapabilities(pRoot, capabilities);
-          } catch {
-            // 감지 실패는 무시
+            detectAndCacheCapabilities(pRoot, config);
+          } else {
+            detectAndCacheCapabilities(pRoot, config);
           }
 
           saveConfig(pRoot, config);
-
-          // CLAUDE.md 생성 (없을 때만) + 마커 영역 자동 갱신
-          const claudeMdPath = join(pRoot, 'CLAUDE.md');
-          if (!existsSync(claudeMdPath)) {
-            try {
-              const templatePath = join(getTemplatesDir(), 'core', 'CLAUDE.md.template');
-              if (existsSync(templatePath)) {
-                const projectName = pRoot.split('/').pop() || 'my-project';
-                const template = readFileSync(templatePath, 'utf-8');
-                const content = template.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
-                safeWriteFile(claudeMdPath, content);
-                res.ok('CLAUDE.md 기본 템플릿 생성');
-              }
-            } catch (err) {
-              res.warn(`CLAUDE.md 생성 실패: ${String(err)}`);
-            }
-          }
-          const claudeResult = syncClaudeMd(pRoot);
-          if (claudeResult.updated) {
-            res.ok('CLAUDE.md 자동 섹션 갱신 완료');
-          }
+          ensureClaudeMd(pRoot, res);
 
           // GitHub Labels 자동 생성 (ship 모듈 포함 시)
           if (resolvedModules.includes('ship')) {
@@ -403,10 +321,7 @@ export function registerInitTool(server: McpServer): void {
           res.line(coreLog);
         }
 
-        // Local MCP 충돌 감지
-        if (detectLocalMcpConflict(pRoot)) {
-          formatMcpConflictWarning(res);
-        }
+        checkMcpConflict(pRoot, res);
 
         res.blank();
         res.header('설치 완료');

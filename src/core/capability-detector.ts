@@ -129,25 +129,6 @@ export function cacheCapabilities(projectRoot: string, result: CapabilityResult)
 }
 
 /**
- * 교차 검증에 사용할 리뷰 도구를 capabilities 기반으로 선택합니다.
- */
-export function getReviewTool(projectRoot: string): { type: 'codex' | 'agent'; instruction: string } {
-  const capabilities = getCachedCapabilities(projectRoot);
-  if (capabilities?.tools.codex.detected) {
-    return {
-      type: 'codex',
-      instruction:
-        'Codex MCP로 코드 리뷰: ask_codex(agent_role: "code-reviewer", task: "코드 변경사항 리뷰", context_files: [변경된 파일])',
-    };
-  }
-  return {
-    type: 'agent',
-    instruction:
-      'Claude 에이전트로 코드 리뷰: Task(subagent_type: "code-reviewer", model: "sonnet", prompt: "변경사항 리뷰")',
-  };
-}
-
-/**
  * OMC 미설치 시 에러를 throw합니다.
  */
 export function requireOmc(): void {

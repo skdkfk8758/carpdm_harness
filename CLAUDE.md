@@ -125,6 +125,30 @@ npm run typecheck     # tsc --noEmit
 | `[기록]` | 파일/메모리에 기록 완료 |
 | `[경고]` | 주의가 필요한 상황 |
 
+## 도구 라우팅 가이드 (harness / OMC / ruflo)
+
+프로젝트에 3개의 MCP 시스템이 공존합니다. 기능 중복을 피하려면:
+
+| 기능 | 사용 도구 | 비고 |
+|------|----------|------|
+| **메모리 (장기)** | `harness_memory_add/list` | canonical store |
+| **메모리 (세션)** | OMC notepad | 임시 메모 전용 |
+| **워크플로우** | `harness_workflow` | FSM + 품질 게이트 |
+| **에이전트 스웜** | OMC team/swarm | 검증된 orchestration |
+| **코드 탐색** | Serena LSP | 시맨틱 분석 |
+| **라이브러리 문서** | Context7 | 최신 API 조회 |
+| **ruflo 도구** | 필요 시 명시적 사용 | hooks 비활성, harness와 충돌 가능 |
+
+### 상태 파일 소유권
+- `.omc/state/`: OMC 소유 — harness는 읽기 + reinforcement_count 업데이트만
+- `.harness/state/`: harness 전용 (ruflo-reinforcement.json 포함)
+- `.claude-flow/`: ruflo 전용 — **harness는 읽기만, 쓰기 금지**
+
+### 메모리 계층
+1. **Canonical**: `.harness/team-memory.json` → MEMORY.md 자동 동기화
+2. **Session**: OMC notepad — 세션 내 임시 메모
+3. **ruflo**: `.claude-flow/data/` — 읽기 전용 참조
+
 ## 주의사항
 
 - **stdout 오염 금지**: MCP 서버는 stdout을 JSON-RPC로 사용. `console.log` 대신 `McpLogger` 사용

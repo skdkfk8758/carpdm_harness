@@ -9,6 +9,26 @@ import { existsSync, readFileSync } from "fs";
 function omcStateDir(projectRoot) {
   return join(projectRoot, ".omc", "state");
 }
+function rufloSwarmActivityPath(projectRoot) {
+  return join(projectRoot, ".claude-flow", "metrics", "swarm-activity.json");
+}
+function detectRufloSwarmStatus(projectRoot) {
+  const inactive = { active: false, agentCount: 0, timestamp: null };
+  const activityPath = rufloSwarmActivityPath(projectRoot);
+  if (!existsSync(activityPath)) return inactive;
+  try {
+    const raw = JSON.parse(readFileSync(activityPath, "utf-8"));
+    const swarm = raw?.swarm;
+    if (!swarm) return inactive;
+    return {
+      active: swarm.active ?? false,
+      agentCount: swarm.agent_count ?? 0,
+      timestamp: raw.timestamp ?? null
+    };
+  } catch {
+    return inactive;
+  }
+}
 var OMC_SKILLS = {
   analyze: "/oh-my-claudecode:analyze",
   plan: "/oh-my-claudecode:plan",
@@ -18,7 +38,8 @@ var OMC_SKILLS = {
   deepsearch: "/oh-my-claudecode:deepsearch",
   "code-review": "/oh-my-claudecode:code-review",
   "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel"
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
 };
 var AGENT_SKILL_MAP = {
   analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
@@ -126,6 +147,14 @@ function main() {
   } else {
     contextLines.push(`\uB2E8\uACC4 \uC644\uB8CC \uC2DC: harness_workflow({ action: "advance" })`);
   }
+  const CODE_MODIFY_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit"]);
+  if (state.status === "waiting_checkpoint" && CODE_MODIFY_TOOLS.has(toolName)) {
+    contextLines.push(`[BLOCK] \uCCB4\uD06C\uD3EC\uC778\uD2B8 \uC2B9\uC778 \uC804 \uCF54\uB4DC \uC218\uC815 \uC2DC\uB3C4 \uAC10\uC9C0. \uBA3C\uC800 harness_workflow({ action: "approve" })\uB97C \uC2E4\uD589\uD558\uC138\uC694.`);
+    if (guardLevel === "block") {
+      outputResult("block", contextLines.join("\n"));
+      return;
+    }
+  }
   const CLAUDE_BUILTIN_TOOLS = /* @__PURE__ */ new Set([
     "Bash",
     "Read",
@@ -169,6 +198,17 @@ function checkOmcActiveMode(cwd) {
         }
       } catch {
       }
+    }
+  } catch {
+  }
+  try {
+    const rufloStatus = detectRufloSwarmStatus(cwd);
+    if (rufloStatus.active) {
+      outputResult(
+        "continue",
+        `[harness-workflow-guard] ruflo swarm \uD65C\uC131 (agents: ${rufloStatus.agentCount}). \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD589 \uC2DC \uCDA9\uB3CC \uC8FC\uC758.`
+      );
+      return;
     }
   } catch {
   }

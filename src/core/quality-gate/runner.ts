@@ -13,6 +13,8 @@ import { SecuredValidator } from './validators/secured.js';
 import { TrackableValidator } from './validators/trackable.js';
 import type { BaseValidator } from './validators/base.js';
 
+export const VALIDATOR_TIMEOUT_MS = 30_000;
+
 export class QualityGateRunner {
   private validators: BaseValidator[] = [
     new TestedValidator(),
@@ -42,22 +44,32 @@ export class QualityGateRunner {
       }
     }
 
-    // 순차 실행 (도구 실행 충돌 방지)
+    // 순차 실행 (도구 실행 충돌 방지) + 개별 타임아웃
     for (const validator of activeValidators) {
       try {
-        results[validator.criterion] = await validator.validate(context);
+        results[validator.criterion] = await Promise.race([
+          validator.validate(context),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('VALIDATOR_TIMEOUT')), VALIDATOR_TIMEOUT_MS),
+          ),
+        ]);
       } catch (err: unknown) {
+        const isTimeout = err instanceof Error && err.message === 'VALIDATOR_TIMEOUT';
         results[validator.criterion] = {
           criterion: validator.criterion,
           passed: true,
           score: 0,
           checks: [{
-            name: '검증 오류',
+            name: isTimeout ? '타임아웃' : '검증 오류',
             passed: false,
-            message: `검증기 실행 실패: ${String(err)}`,
+            message: isTimeout
+              ? `검증기 ${validator.criterion} 실행이 ${VALIDATOR_TIMEOUT_MS / 1000}초를 초과하여 건너뜀`
+              : `검증기 실행 실패: ${String(err)}`,
             severity: 'warning',
           }],
-          summary: `${validator.criterion}: 검증 실패 (오류)`,
+          summary: isTimeout
+            ? `${validator.criterion}: 타임아웃 (${VALIDATOR_TIMEOUT_MS / 1000}s 초과)`
+            : `${validator.criterion}: 검증 실패 (오류)`,
         };
       }
     }

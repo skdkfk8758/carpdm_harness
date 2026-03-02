@@ -211184,47 +211184,6 @@ var TypeScriptPlugin = class {
   }
 };
 
-// src/core/ontology/plugin-registry.ts
-var PluginRegistry = class _PluginRegistry {
-  plugins = /* @__PURE__ */ new Map();
-  /** 플러그인 등록 */
-  register(plugin) {
-    if (this.plugins.has(plugin.name)) {
-      logger.warn(`\uD50C\uB7EC\uADF8\uC778 '${plugin.name}'\uC774 \uC774\uBBF8 \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uB36E\uC5B4\uC501\uB2C8\uB2E4.`);
-    }
-    this.plugins.set(plugin.name, plugin);
-    logger.dim(`\uD50C\uB7EC\uADF8\uC778 \uB4F1\uB85D: ${plugin.name} (\uD655\uC7A5\uC790: ${plugin.extensions.join(", ")})`);
-  }
-  /**
-   * 파일 경로에 맞는 플러그인 반환
-   * 등록된 플러그인의 canHandle()을 순서대로 확인합니다.
-   */
-  getPluginForFile(filePath) {
-    for (const plugin of this.plugins.values()) {
-      if (plugin.canHandle(filePath)) {
-        return plugin;
-      }
-    }
-    return null;
-  }
-  /** 등록된 언어 목록 반환 */
-  getRegisteredLanguages() {
-    return Array.from(this.plugins.values()).map((p) => p.language);
-  }
-  /** 특정 이름의 플러그인 등록 여부 확인 */
-  hasPlugin(name) {
-    return this.plugins.has(name);
-  }
-  /**
-   * TypeScriptPlugin이 기본 등록된 레지스트리 생성
-   */
-  static createDefault() {
-    const registry = new _PluginRegistry();
-    registry.register(new TypeScriptPlugin());
-    return registry;
-  }
-};
-
 // src/core/ontology/structure-builder.ts
 import { readdirSync, readFileSync as readFileSync2, statSync, existsSync as existsSync2 } from "fs";
 import { join, relative, extname as extname2, basename } from "path";
@@ -211865,20 +211824,19 @@ function buildDependencyGraph(files, modules, projectRoot2, pkgExternal) {
   }));
   return { internal, external };
 }
-async function analyzeFile(filePath, pluginRegistry) {
-  const plugin = pluginRegistry.getPluginForFile(filePath);
-  if (!plugin) return null;
+async function analyzeFile(filePath, plugin) {
+  if (!plugin.canHandle(filePath)) return null;
   const content = readFileSync4(filePath, "utf-8");
   return plugin.analyzeFile(filePath, content);
 }
-async function buildSemanticsLayer(projectRoot2, structureLayer, config2, pluginRegistry, capabilities) {
+async function buildSemanticsLayer(projectRoot2, structureLayer, config2, plugin, capabilities) {
   const startTime = Date.now();
   logger.info("Semantics Layer \uBE4C\uB4DC \uC2DC\uC791");
   const warnings = [];
   const sourceFiles = collectSourceFiles(structureLayer.tree, projectRoot2, config2.languages);
   logger.dim(`\uBD84\uC11D \uB300\uC0C1 \uD30C\uC77C: ${sourceFiles.length}\uAC1C`);
   const settled = await Promise.allSettled(
-    sourceFiles.map((fp) => analyzeFile(fp, pluginRegistry))
+    sourceFiles.map((fp) => analyzeFile(fp, plugin))
   );
   const files = [];
   for (let i = 0; i < settled.length; i++) {
@@ -211917,7 +211875,7 @@ async function buildSemanticsLayer(projectRoot2, structureLayer, config2, plugin
     data: semanticsData
   };
 }
-async function updateSemanticsIncremental(projectRoot2, existing, changes, pluginRegistry) {
+async function updateSemanticsIncremental(projectRoot2, existing, changes, plugin) {
   const startTime = Date.now();
   logger.info(
     `Semantics Layer \uC810\uC9C4\uC801 \uAC31\uC2E0 \u2014 \uCD94\uAC00 ${changes.added.length}, \uC218\uC815 ${changes.modified.length}, \uC0AD\uC81C ${changes.deleted.length}`
@@ -211932,7 +211890,7 @@ async function updateSemanticsIncremental(projectRoot2, existing, changes, plugi
   const settled = await Promise.allSettled(
     addedOrModified.map((relPath) => {
       const fullPath = join3(projectRoot2, relPath);
-      return analyzeFile(fullPath, pluginRegistry);
+      return analyzeFile(fullPath, plugin);
     })
   );
   const newFiles = [];
@@ -213341,7 +213299,7 @@ async function computeIncrementalChanges(projectRoot2, cache, excludePatterns) {
     currentHashes
   };
 }
-async function applyIncrementalUpdate(projectRoot2, existingData, changes, config2, pluginRegistry) {
+async function applyIncrementalUpdate(projectRoot2, existingData, changes, config2, plugin) {
   const startTime = Date.now();
   const results = [];
   const outputFiles = [];
@@ -213381,7 +213339,7 @@ async function applyIncrementalUpdate(projectRoot2, existingData, changes, confi
         projectRoot2,
         existingData.semantics,
         changes,
-        pluginRegistry
+        plugin
       );
       existingData.semantics = result.data;
       results.push({
@@ -213501,7 +213459,7 @@ async function safeLayerBuild(layer, fn) {
 async function buildOntology(projectRoot2, config2) {
   const startTime = Date.now();
   logger.header("\uC628\uD1A8\uB85C\uC9C0 \uBE4C\uB4DC \uC2DC\uC791");
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const version = readHarnessVersion(projectRoot2);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const metadata = {
@@ -213539,7 +213497,7 @@ async function buildOntology(projectRoot2, config2) {
     logger.info("Layer 2: Semantics \uBE4C\uB4DC \uC911...");
     const result = await safeLayerBuild(
       "semantics",
-      () => buildSemanticsLayer(projectRoot2, structureData, config2.layers.semantics, pluginRegistry)
+      () => buildSemanticsLayer(projectRoot2, structureData, config2.layers.semantics, plugin)
     );
     results.push(result);
     metadata.layerStatus.semantics = updateLayerStatus(metadata.layerStatus.semantics, result);
@@ -213651,13 +213609,13 @@ async function refreshOntology(projectRoot2, config2) {
     cache,
     effectiveExcludes
   );
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const report = await applyIncrementalUpdate(
     projectRoot2,
     existingData,
     changes,
     config2,
-    pluginRegistry
+    plugin
   );
   const outputFiles = await writeOntologyFiles(projectRoot2, existingData, config2.outputDir);
   report.outputFiles = outputFiles;

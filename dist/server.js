@@ -10,9 +10,6 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -6803,59 +6800,6 @@ var require_dist = __commonJS({
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = formatsPlugin;
-  }
-});
-
-// src/types/common.ts
-var init_common = __esm({
-  "src/types/common.ts"() {
-    "use strict";
-  }
-});
-
-// src/core/file-ops.ts
-import { readFileSync as readFileSync2, writeFileSync, mkdirSync, copyFileSync, existsSync as existsSync2, chmodSync } from "fs";
-import { dirname as dirname2 } from "path";
-import { createHash } from "crypto";
-function computeHash(content) {
-  return "sha256:" + createHash("sha256").update(content).digest("hex");
-}
-function computeFileHash(filePath) {
-  const content = readFileSync2(filePath, "utf-8");
-  return computeHash(content);
-}
-function ensureDir(dirPath) {
-  mkdirSync(dirPath, { recursive: true });
-}
-function safeWriteFile(filePath, content) {
-  ensureDir(dirname2(filePath));
-  writeFileSync(filePath, content, "utf-8");
-}
-function safeCopyFile(src, dest, executable) {
-  ensureDir(dirname2(dest));
-  copyFileSync(src, dest);
-  if (executable) {
-    chmodSync(dest, 493);
-  }
-}
-function backupFile(filePath) {
-  const backupPath = filePath + ".backup";
-  if (existsSync2(filePath)) {
-    copyFileSync(filePath, backupPath);
-  }
-  return backupPath;
-}
-function readFileContent(filePath) {
-  try {
-    return readFileSync2(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-}
-var init_file_ops = __esm({
-  "src/core/file-ops.ts"() {
-    "use strict";
-    init_common();
   }
 });
 
@@ -217601,622 +217545,6 @@ Additional information: BADCLIENT: Bad error code, ${badCode} not found in range
   }
 });
 
-// src/core/omc-compat.ts
-var omc_compat_exports = {};
-__export(omc_compat_exports, {
-  AGENT_SKILL_MAP: () => AGENT_SKILL_MAP,
-  HARNESS_NPM_PACKAGE: () => HARNESS_NPM_PACKAGE,
-  HARNESS_REGISTRY_URL: () => HARNESS_REGISTRY_URL,
-  MCP_DELEGATION_KEYWORDS: () => MCP_DELEGATION_KEYWORDS,
-  OMC_AGENT_PREFIX: () => OMC_AGENT_PREFIX,
-  OMC_CANCEL_MODES: () => OMC_CANCEL_MODES,
-  OMC_CANCEL_SKILL: () => OMC_CANCEL_SKILL,
-  OMC_KEYWORD_PRIORITY: () => OMC_KEYWORD_PRIORITY,
-  OMC_MODES: () => OMC_MODES,
-  OMC_NPM_PACKAGE: () => OMC_NPM_PACKAGE,
-  OMC_PERSISTENT_MODES: () => OMC_PERSISTENT_MODES,
-  OMC_PLANNING_MODES: () => OMC_PLANNING_MODES,
-  OMC_REGISTRY_URL: () => OMC_REGISTRY_URL,
-  OMC_SKILLS: () => OMC_SKILLS,
-  OMC_SKILL_PREFIX: () => OMC_SKILL_PREFIX,
-  OMC_STATEFUL_MODES: () => OMC_STATEFUL_MODES,
-  OMC_TEAM_MODES: () => OMC_TEAM_MODES,
-  detectLocalMcpConflict: () => detectLocalMcpConflict,
-  docsOntologyDir: () => docsOntologyDir,
-  formatMcpConflictWarning: () => formatMcpConflictWarning,
-  harnessCapabilitiesPath: () => harnessCapabilitiesPath,
-  harnessOnboardedMarkerPath: () => harnessOnboardedMarkerPath,
-  harnessPromptsDir: () => harnessPromptsDir,
-  harnessStateDir: () => harnessStateDir,
-  harnessTeamMemoryPath: () => harnessTeamMemoryPath,
-  harnessToolErrorPath: () => harnessToolErrorPath,
-  harnessUpdateCheckPath: () => harnessUpdateCheckPath,
-  knowledgeArchiveDir: () => knowledgeArchiveDir,
-  knowledgeBranchDir: () => knowledgeBranchDir,
-  knowledgeBranchesDir: () => knowledgeBranchesDir,
-  knowledgeDir: () => knowledgeDir,
-  knowledgeDomainsDir: () => knowledgeDomainsDir,
-  knowledgeIndexPath: () => knowledgeIndexPath,
-  knowledgeOntologyDir: () => knowledgeOntologyDir,
-  knowledgeTemplatesDir: () => knowledgeTemplatesDir,
-  localMcpConfigPath: () => localMcpConfigPath,
-  omcConfigPath: () => omcConfigPath,
-  omcDir: () => omcDir,
-  omcGlobalStateDir: () => omcGlobalStateDir,
-  omcGlobalStatePath: () => omcGlobalStatePath,
-  omcNotepadPath: () => omcNotepadPath,
-  omcProjectMemoryPath: () => omcProjectMemoryPath,
-  omcSessionStateDir: () => omcSessionStateDir,
-  omcStateDir: () => omcStateDir,
-  omcStatePath: () => omcStatePath,
-  omcSwarmMarkerPath: () => omcSwarmMarkerPath,
-  omcSwarmSummaryPath: () => omcSwarmSummaryPath,
-  omcTodosPath: () => omcTodosPath,
-  omcWorkflowStatePath: () => omcWorkflowStatePath,
-  sanitizeBranchName: () => sanitizeBranchName
-});
-import { join as join11 } from "path";
-import { homedir } from "os";
-import { existsSync as existsSync7, readFileSync as readFileSync10 } from "fs";
-function omcDir(projectRoot) {
-  return join11(projectRoot, ".omc");
-}
-function omcStateDir(projectRoot) {
-  return join11(projectRoot, ".omc", "state");
-}
-function omcGlobalStateDir() {
-  return join11(homedir(), ".omc", "state");
-}
-function omcStatePath(projectRoot, mode) {
-  return join11(projectRoot, ".omc", "state", `${mode}-state.json`);
-}
-function omcGlobalStatePath(mode) {
-  return join11(homedir(), ".omc", "state", `${mode}-state.json`);
-}
-function omcSessionStateDir(projectRoot, sessionId) {
-  return join11(projectRoot, ".omc", "state", "sessions", sessionId);
-}
-function omcProjectMemoryPath(projectRoot) {
-  return join11(projectRoot, ".omc", "project-memory.json");
-}
-function omcNotepadPath(projectRoot) {
-  return join11(projectRoot, ".omc", "notepad.md");
-}
-function omcWorkflowStatePath(projectRoot) {
-  return join11(projectRoot, ".omc", "state", "workflow-state.json");
-}
-function omcConfigPath() {
-  return join11(homedir(), ".claude", ".omc-config.json");
-}
-function omcSwarmMarkerPath(projectRoot) {
-  return join11(projectRoot, ".omc", "state", "swarm-active.marker");
-}
-function omcSwarmSummaryPath(projectRoot) {
-  return join11(projectRoot, ".omc", "state", "swarm-summary.json");
-}
-function omcTodosPath(projectRoot) {
-  return join11(projectRoot, ".omc", "todos.json");
-}
-function harnessStateDir(projectRoot) {
-  return join11(projectRoot, ".harness", "state");
-}
-function harnessToolErrorPath(projectRoot) {
-  return join11(projectRoot, ".harness", "state", "last-tool-error.json");
-}
-function harnessUpdateCheckPath() {
-  return join11(homedir(), ".harness", "update-check.json");
-}
-function harnessPromptsDir(projectRoot) {
-  return join11(projectRoot, ".harness", "prompts");
-}
-function harnessOnboardedMarkerPath(projectRoot) {
-  return join11(projectRoot, ".harness", "state", "onboarded");
-}
-function harnessCapabilitiesPath(projectRoot) {
-  return join11(projectRoot, ".harness", "capabilities.json");
-}
-function harnessTeamMemoryPath(projectRoot) {
-  return join11(projectRoot, ".harness", "team-memory.json");
-}
-function sanitizeBranchName(branch) {
-  return branch.replace(/\//g, "-");
-}
-function knowledgeDir(projectRoot) {
-  return join11(projectRoot, ".knowledge");
-}
-function knowledgeBranchesDir(projectRoot) {
-  return join11(projectRoot, ".knowledge", "branches");
-}
-function knowledgeBranchDir(projectRoot, branch) {
-  return join11(projectRoot, ".knowledge", "branches", sanitizeBranchName(branch));
-}
-function knowledgeArchiveDir(projectRoot) {
-  return join11(projectRoot, ".knowledge", "branches", "_archive");
-}
-function knowledgeDomainsDir(projectRoot) {
-  return join11(projectRoot, ".knowledge", "domains");
-}
-function knowledgeOntologyDir(projectRoot) {
-  return join11(projectRoot, ".knowledge", "ontology");
-}
-function knowledgeTemplatesDir(projectRoot) {
-  return join11(projectRoot, ".knowledge", "_templates");
-}
-function knowledgeIndexPath(projectRoot) {
-  return join11(projectRoot, ".knowledge", "_index.md");
-}
-function docsOntologyDir(projectRoot) {
-  return join11(projectRoot, "docs", "ontology");
-}
-function localMcpConfigPath(projectRoot) {
-  return join11(projectRoot, ".mcp.json");
-}
-function detectLocalMcpConflict(projectRoot) {
-  try {
-    const pkgPath = join11(projectRoot, "package.json");
-    if (existsSync7(pkgPath)) {
-      const pkg = JSON.parse(readFileSync10(pkgPath, "utf-8"));
-      if (pkg.name === "carpdm-harness") return false;
-    }
-    const mcpPath = localMcpConfigPath(projectRoot);
-    if (!existsSync7(mcpPath)) return false;
-    const raw = JSON.parse(readFileSync10(mcpPath, "utf-8"));
-    const servers = raw.mcpServers;
-    if (!servers || typeof servers !== "object") return false;
-    return "carpdm-harness" in servers;
-  } catch {
-    return false;
-  }
-}
-function formatMcpConflictWarning(res) {
-  res.blank();
-  res.warn("Local MCP \uCDA9\uB3CC \uAC10\uC9C0");
-  res.line("`.mcp.json`\uC5D0 `carpdm-harness`\uAC00 Local MCP\uB85C \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
-  res.line("\uD50C\uB7EC\uADF8\uC778\uC774 MCP \uC11C\uBC84\uB97C \uC790\uB3D9 \uC81C\uACF5\uD558\uBBC0\uB85C \uC218\uB3D9 \uB4F1\uB85D\uC740 \uBD88\uD544\uC694\uD569\uB2C8\uB2E4.");
-  res.info("\uD574\uACB0: `.mcp.json`\uC758 mcpServers\uC5D0\uC11C `carpdm-harness` \uD56D\uBAA9\uC744 \uC81C\uAC70\uD558\uC138\uC694.");
-}
-var OMC_MODES, OMC_PERSISTENT_MODES, OMC_PLANNING_MODES, OMC_TEAM_MODES, OMC_STATEFUL_MODES, OMC_CANCEL_MODES, OMC_KEYWORD_PRIORITY, OMC_AGENT_PREFIX, OMC_SKILL_PREFIX, OMC_CANCEL_SKILL, OMC_SKILLS, AGENT_SKILL_MAP, MCP_DELEGATION_KEYWORDS, OMC_NPM_PACKAGE, OMC_REGISTRY_URL, HARNESS_NPM_PACKAGE, HARNESS_REGISTRY_URL;
-var init_omc_compat = __esm({
-  "src/core/omc-compat.ts"() {
-    "use strict";
-    OMC_MODES = [
-      "ralph",
-      "ralph-todo",
-      "autopilot",
-      "ultrapilot",
-      "ultrawork",
-      "ecomode",
-      "pipeline",
-      "swarm",
-      "ultraqa",
-      "team"
-    ];
-    OMC_PERSISTENT_MODES = [
-      "ralph",
-      "ralph-todo",
-      "autopilot",
-      "ultrapilot",
-      "ultrawork",
-      "ecomode",
-      "pipeline",
-      "swarm",
-      "ultraqa"
-    ];
-    OMC_PLANNING_MODES = [
-      "autopilot",
-      "ralph",
-      "ultrapilot",
-      "ultrawork"
-    ];
-    OMC_TEAM_MODES = ["team", "swarm", "ultrapilot"];
-    OMC_STATEFUL_MODES = [
-      "ralph",
-      "ralph-todo",
-      "autopilot",
-      "team",
-      "ultrawork",
-      "ecomode"
-    ];
-    OMC_CANCEL_MODES = [
-      "ralph",
-      "ralph-todo",
-      "autopilot",
-      "team",
-      "ultrawork",
-      "ecomode",
-      "pipeline"
-    ];
-    OMC_KEYWORD_PRIORITY = [
-      "cancel",
-      "ralph-todo",
-      "ralph",
-      "autopilot",
-      "team",
-      "ultrawork",
-      "ecomode",
-      "pipeline",
-      "ralplan",
-      "plan",
-      "tdd",
-      "research",
-      "ultrathink",
-      "deepsearch",
-      "analyze",
-      "codex",
-      "gemini"
-    ];
-    OMC_AGENT_PREFIX = "oh-my-claudecode:";
-    OMC_SKILL_PREFIX = "/oh-my-claudecode:";
-    OMC_CANCEL_SKILL = "/oh-my-claudecode:cancel";
-    OMC_SKILLS = {
-      analyze: "/oh-my-claudecode:analyze",
-      plan: "/oh-my-claudecode:plan",
-      autopilot: "/oh-my-claudecode:autopilot",
-      tdd: "/oh-my-claudecode:tdd",
-      "git-master": "/oh-my-claudecode:git-master",
-      deepsearch: "/oh-my-claudecode:deepsearch",
-      "code-review": "/oh-my-claudecode:code-review",
-      "security-review": "/oh-my-claudecode:security-review",
-      cancel: "/oh-my-claudecode:cancel"
-    };
-    AGENT_SKILL_MAP = {
-      analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
-      planner: { skill: OMC_SKILLS.plan, model: "opus" },
-      architect: { skill: void 0, model: "opus" },
-      executor: { skill: OMC_SKILLS.autopilot, model: "sonnet" },
-      "deep-executor": { skill: OMC_SKILLS.autopilot, model: "opus" },
-      "test-engineer": { skill: OMC_SKILLS.tdd, model: "sonnet" },
-      verifier: { skill: void 0, model: "sonnet" },
-      "git-master": { skill: OMC_SKILLS["git-master"], model: "sonnet" },
-      explore: { skill: OMC_SKILLS.deepsearch, model: "haiku" },
-      debugger: { skill: OMC_SKILLS.analyze, model: "sonnet" },
-      "quality-reviewer": { skill: OMC_SKILLS["code-review"], model: "sonnet" },
-      "security-reviewer": { skill: OMC_SKILLS["security-review"], model: "sonnet" },
-      "qa-tester": { skill: void 0, model: "sonnet" }
-    };
-    MCP_DELEGATION_KEYWORDS = ["codex", "gemini"];
-    OMC_NPM_PACKAGE = "oh-my-claude-sisyphus";
-    OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
-    HARNESS_NPM_PACKAGE = "carpdm-harness";
-    HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest`;
-  }
-});
-
-// src/core/knowledge-vault.ts
-var knowledge_vault_exports = {};
-__export(knowledge_vault_exports, {
-  archiveBranchKnowledge: () => archiveBranchKnowledge,
-  createBranchKnowledge: () => createBranchKnowledge,
-  initKnowledgeVault: () => initKnowledgeVault,
-  publishOntologyDocs: () => publishOntologyDocs,
-  readBranchContext: () => readBranchContext,
-  syncAutoMemory: () => syncAutoMemory,
-  syncOntologyToVault: () => syncOntologyToVault,
-  updateKnowledgeIndex: () => updateKnowledgeIndex
-});
-import { existsSync as existsSync15, readdirSync as readdirSync7, renameSync, readFileSync as readFileSync13, statSync as statSync4 } from "fs";
-import { join as join19 } from "path";
-import { homedir as homedir3 } from "os";
-function initKnowledgeVault(projectRoot, config2) {
-  if (!config2.enabled) return;
-  const dirs = [
-    knowledgeDir(projectRoot),
-    knowledgeBranchesDir(projectRoot),
-    knowledgeArchiveDir(projectRoot),
-    knowledgeDomainsDir(projectRoot),
-    knowledgeOntologyDir(projectRoot),
-    knowledgeTemplatesDir(projectRoot)
-  ];
-  for (const dir of dirs) {
-    ensureDir(dir);
-  }
-  const templateSrcDir = getKnowledgeTemplatesSourceDir();
-  if (templateSrcDir && existsSync15(templateSrcDir)) {
-    const templateFiles = readdirSync7(templateSrcDir).filter((f) => f.endsWith(".md"));
-    for (const file of templateFiles) {
-      const dest = join19(knowledgeTemplatesDir(projectRoot), file);
-      if (!existsSync15(dest)) {
-        const content = readFileSync13(join19(templateSrcDir, file), "utf-8");
-        safeWriteFile(dest, content);
-      }
-    }
-  }
-  updateKnowledgeIndex(projectRoot);
-}
-function createBranchKnowledge(projectRoot, branchName) {
-  const branchDir = knowledgeBranchDir(projectRoot, branchName);
-  if (existsSync15(branchDir)) return;
-  ensureDir(branchDir);
-  const sanitized = sanitizeBranchName(branchName);
-  const now = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-  const files = {
-    "spec.md": [
-      "---",
-      `branch: ${branchName}`,
-      `created: ${now}`,
-      "type: spec",
-      "---",
-      "",
-      `# ${sanitized} \u2014 \uC2A4\uD399`,
-      "",
-      "## \uBAA9\uD45C",
-      "",
-      "",
-      "## \uC694\uAD6C\uC0AC\uD56D",
-      "",
-      "",
-      "## \uC81C\uC57D\uC0AC\uD56D",
-      "",
-      ""
-    ].join("\n"),
-    "design.md": [
-      "---",
-      `branch: ${branchName}`,
-      `created: ${now}`,
-      "type: design",
-      "---",
-      "",
-      `# ${sanitized} \u2014 \uC124\uACC4`,
-      "",
-      "## \uC544\uD0A4\uD14D\uCC98 \uACB0\uC815",
-      "",
-      "",
-      "## \uC8FC\uC694 \uCEF4\uD3EC\uB10C\uD2B8",
-      "",
-      "",
-      "## \uB370\uC774\uD130 \uD750\uB984",
-      "",
-      ""
-    ].join("\n"),
-    "decisions.md": [
-      "---",
-      `branch: ${branchName}`,
-      `created: ${now}`,
-      "type: decisions",
-      "---",
-      "",
-      `# ${sanitized} \u2014 \uACB0\uC815 \uAE30\uB85D`,
-      "",
-      "<!-- \uAC01 \uACB0\uC815\uC740 ## Decision: \uC81C\uBAA9 \uD615\uC2DD\uC73C\uB85C \uCD94\uAC00 -->",
-      ""
-    ].join("\n"),
-    "notes.md": [
-      "---",
-      `branch: ${branchName}`,
-      `created: ${now}`,
-      "type: notes",
-      "---",
-      "",
-      `# ${sanitized} \u2014 \uBA54\uBAA8`,
-      ""
-    ].join("\n")
-  };
-  for (const [filename, content] of Object.entries(files)) {
-    safeWriteFile(join19(branchDir, filename), content);
-  }
-  updateKnowledgeIndex(projectRoot);
-}
-function archiveBranchKnowledge(projectRoot, branchName) {
-  const branchDir = knowledgeBranchDir(projectRoot, branchName);
-  if (!existsSync15(branchDir)) return;
-  const archiveDir = knowledgeArchiveDir(projectRoot);
-  ensureDir(archiveDir);
-  const dest = join19(archiveDir, sanitizeBranchName(branchName));
-  if (existsSync15(dest)) return;
-  renameSync(branchDir, dest);
-  updateKnowledgeIndex(projectRoot);
-}
-function readBranchContext(projectRoot, branchName) {
-  const branchDir = knowledgeBranchDir(projectRoot, branchName);
-  if (!existsSync15(branchDir)) return null;
-  const lines = [`[Knowledge Context]`, `Branch: ${branchName}`];
-  const MAX_LINES_PER_FILE = 15;
-  const targetFiles = ["design.md", "decisions.md", "spec.md"];
-  for (const filename of targetFiles) {
-    const filePath = join19(branchDir, filename);
-    const content = readFileContent(filePath);
-    if (!content) continue;
-    const body = stripFrontmatter(content).trim();
-    if (!body || body.split("\n").length <= 2) continue;
-    const truncated = body.split("\n").slice(0, MAX_LINES_PER_FILE).join("\n");
-    lines.push("", `--- ${filename} ---`, truncated);
-  }
-  if (lines.length <= 2) return null;
-  return lines.join("\n");
-}
-function updateKnowledgeIndex(projectRoot) {
-  const indexPath = knowledgeIndexPath(projectRoot);
-  const lines = [
-    "---",
-    "type: index",
-    `updated: ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19)}`,
-    "---",
-    "",
-    "# Knowledge Vault",
-    ""
-  ];
-  const branchesDir = knowledgeBranchesDir(projectRoot);
-  const activeBranches = listSubdirs(branchesDir).filter((d) => d !== "_archive");
-  lines.push("## \uD65C\uC131 \uBE0C\uB79C\uCE58", "");
-  if (activeBranches.length === 0) {
-    lines.push("_(\uC5C6\uC74C)_", "");
-  } else {
-    for (const b of activeBranches) {
-      lines.push(`- [[branches/${b}/design|${b}]]`);
-    }
-    lines.push("");
-  }
-  const archiveDir = knowledgeArchiveDir(projectRoot);
-  const archivedBranches = listSubdirs(archiveDir);
-  lines.push("## \uC544\uCE74\uC774\uBE0C", "");
-  if (archivedBranches.length === 0) {
-    lines.push("_(\uC5C6\uC74C)_", "");
-  } else {
-    for (const b of archivedBranches.slice(-10)) {
-      lines.push(`- [[branches/_archive/${b}/design|${b}]]`);
-    }
-    if (archivedBranches.length > 10) {
-      lines.push(`- _...\uC678 ${archivedBranches.length - 10}\uAC1C_`);
-    }
-    lines.push("");
-  }
-  const domainsDir = knowledgeDomainsDir(projectRoot);
-  const domains = listSubdirs(domainsDir);
-  lines.push("## \uB3C4\uBA54\uC778", "");
-  if (domains.length === 0) {
-    lines.push("_(\uC5C6\uC74C)_", "");
-  } else {
-    for (const d of domains) {
-      lines.push(`- [[domains/${d}/overview|${d}]]`);
-    }
-    lines.push("");
-  }
-  const ontologyDir = knowledgeOntologyDir(projectRoot);
-  if (existsSync15(ontologyDir)) {
-    lines.push("## \uC628\uD1A8\uB85C\uC9C0", "");
-    lines.push("- [[ontology/structure|Structure]]");
-    lines.push("- [[ontology/semantics|Semantics]]");
-    lines.push("- [[ontology/domain|Domain]]");
-    lines.push("");
-  }
-  safeWriteFile(indexPath, lines.join("\n"));
-}
-function syncOntologyToVault(projectRoot) {
-  const sourceDir = join19(projectRoot, ".agent", "ontology");
-  const destDir = knowledgeOntologyDir(projectRoot);
-  if (!existsSync15(sourceDir) || !existsSync15(knowledgeDir(projectRoot))) return;
-  ensureDir(destDir);
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  const layerMap = {
-    "ONTOLOGY-STRUCTURE.md": "structure.md",
-    "ONTOLOGY-SEMANTICS.md": "semantics.md",
-    "ONTOLOGY-DOMAIN.md": "domain.md"
-  };
-  for (const [src, dest] of Object.entries(layerMap)) {
-    const srcPath = join19(sourceDir, src);
-    const content = readFileContent(srcPath);
-    if (!content) continue;
-    const frontmatter = [
-      "---",
-      "type: ontology",
-      `layer: ${dest.replace(".md", "")}`,
-      `synced: ${now}`,
-      `source: .agent/ontology/${src}`,
-      "---",
-      ""
-    ].join("\n");
-    safeWriteFile(join19(destDir, dest), frontmatter + content);
-  }
-}
-function publishOntologyDocs(projectRoot) {
-  const sourceDir = join19(projectRoot, ".agent", "ontology");
-  const destDir = join19(projectRoot, "docs", "ontology");
-  if (!existsSync15(sourceDir)) return;
-  ensureDir(destDir);
-  const files = ["ONTOLOGY-STRUCTURE.md", "ONTOLOGY-SEMANTICS.md", "ONTOLOGY-DOMAIN.md", "ONTOLOGY-INDEX.md"];
-  for (const file of files) {
-    const srcPath = join19(sourceDir, file);
-    const content = readFileContent(srcPath);
-    if (!content) continue;
-    safeWriteFile(join19(destDir, file), content);
-  }
-}
-function syncAutoMemory(projectRoot, store) {
-  const memoryDir = resolveAutoMemoryDir(projectRoot);
-  if (!memoryDir) return;
-  const memoryPath = join19(memoryDir, "MEMORY.md");
-  const existing = readFileContent(memoryPath);
-  if (!existing) return;
-  const startMarker = "<!-- harness:team-knowledge:start -->";
-  const endMarker = "<!-- harness:team-knowledge:end -->";
-  const summary = renderAutoMemorySummary(store);
-  const section = `${startMarker}
-${summary}
-${endMarker}`;
-  let updated;
-  const startIdx = existing.indexOf(startMarker);
-  const endIdx = existing.indexOf(endMarker);
-  if (startIdx !== -1 && endIdx !== -1) {
-    updated = existing.substring(0, startIdx) + section + existing.substring(endIdx + endMarker.length);
-  } else {
-    updated = existing.trimEnd() + "\n\n" + section + "\n";
-  }
-  safeWriteFile(memoryPath, updated);
-}
-function getKnowledgeTemplatesSourceDir() {
-  const candidates = [
-    join19(__dirname, "..", "..", "templates", "knowledge"),
-    join19(__dirname, "..", "templates", "knowledge")
-  ];
-  for (const c of candidates) {
-    if (existsSync15(c)) return c;
-  }
-  return null;
-}
-function listSubdirs(dirPath) {
-  if (!existsSync15(dirPath)) return [];
-  try {
-    return readdirSync7(dirPath).filter((name) => !name.startsWith(".")).filter((name) => {
-      try {
-        return statSync4(join19(dirPath, name)).isDirectory();
-      } catch {
-        return false;
-      }
-    }).sort();
-  } catch {
-    return [];
-  }
-}
-function stripFrontmatter(content) {
-  if (!content.startsWith("---")) return content;
-  const endIdx = content.indexOf("---", 3);
-  if (endIdx === -1) return content;
-  return content.substring(endIdx + 3);
-}
-function resolveAutoMemoryDir(projectRoot) {
-  const encoded = projectRoot.replace(/\//g, "-");
-  const dir = join19(homedir3(), ".claude", "projects", encoded, "memory");
-  if (existsSync15(dir)) return dir;
-  return null;
-}
-function renderAutoMemorySummary(store) {
-  const lines = ["## \uD300 \uC9C0\uC2DD \uC694\uC57D (\uC790\uB3D9 \uB3D9\uAE30\uD654)", ""];
-  const MAX_ENTRIES = 15;
-  const categories = [
-    { key: "conventions", label: "\uCEE8\uBCA4\uC158" },
-    { key: "patterns", label: "\uD328\uD134" },
-    { key: "decisions", label: "\uACB0\uC815" },
-    { key: "mistakes", label: "\uAD50\uD6C8" }
-  ];
-  for (const { key, label } of categories) {
-    const entries = store.entries.filter((e) => e.category === key).slice(-MAX_ENTRIES);
-    if (entries.length === 0) continue;
-    lines.push(`### ${label}`);
-    for (const entry of entries) {
-      lines.push(`- **${entry.title}**: ${entry.content.split("\n")[0]}`);
-    }
-    lines.push("");
-  }
-  const openBugs = store.entries.filter(
-    (e) => e.category === "bugs" && e.status === "open"
-  );
-  if (openBugs.length > 0) {
-    lines.push("### \uC5F4\uB9B0 \uBC84\uADF8");
-    for (const bug of openBugs.slice(-5)) {
-      lines.push(`- [${bug.severity ?? "medium"}] ${bug.title}`);
-    }
-    lines.push("");
-  }
-  return lines.join("\n");
-}
-var init_knowledge_vault = __esm({
-  "src/core/knowledge-vault.ts"() {
-    "use strict";
-    init_file_ops();
-    init_omc_compat();
-  }
-});
-
 // node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -232637,8 +231965,47 @@ var DEFAULT_KNOWLEDGE_CONFIG = {
   syncAutoMemory: true
 };
 
+// src/core/file-ops.ts
+import { readFileSync as readFileSync2, writeFileSync, mkdirSync, copyFileSync, existsSync as existsSync2, chmodSync } from "fs";
+import { dirname as dirname2 } from "path";
+import { createHash } from "crypto";
+function computeHash(content) {
+  return "sha256:" + createHash("sha256").update(content).digest("hex");
+}
+function computeFileHash(filePath) {
+  const content = readFileSync2(filePath, "utf-8");
+  return computeHash(content);
+}
+function ensureDir(dirPath) {
+  mkdirSync(dirPath, { recursive: true });
+}
+function safeWriteFile(filePath, content) {
+  ensureDir(dirname2(filePath));
+  writeFileSync(filePath, content, "utf-8");
+}
+function safeCopyFile(src, dest, executable) {
+  ensureDir(dirname2(dest));
+  copyFileSync(src, dest);
+  if (executable) {
+    chmodSync(dest, 493);
+  }
+}
+function backupFile(filePath) {
+  const backupPath = filePath + ".backup";
+  if (existsSync2(filePath)) {
+    copyFileSync(filePath, backupPath);
+  }
+  return backupPath;
+}
+function readFileContent(filePath) {
+  try {
+    return readFileSync2(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+}
+
 // src/core/config.ts
-init_file_ops();
 function loadConfig(projectRoot) {
   const configPath = join3(projectRoot, CONFIG_FILENAME);
   const content = readFileContent(configPath);
@@ -232729,9 +232096,6 @@ var McpLogger = class {
   }
 };
 var logger = new McpLogger();
-
-// src/core/ontology/index.ts
-init_file_ops();
 
 // src/core/ontology/plugins/typescript-plugin.ts
 import { extname } from "path";
@@ -233084,47 +232448,6 @@ var TypeScriptPlugin = class {
       logger.warn(`\uD30C\uC77C \uBD84\uC11D \uC2E4\uD328: ${filePath} \u2014 ${String(err)}, \uC815\uADDC\uC2DD \uD3F4\uBC31 \uC0AC\uC6A9`);
       return analyzeWithRegex(filePath, content);
     }
-  }
-};
-
-// src/core/ontology/plugin-registry.ts
-var PluginRegistry = class _PluginRegistry {
-  plugins = /* @__PURE__ */ new Map();
-  /** 플러그인 등록 */
-  register(plugin) {
-    if (this.plugins.has(plugin.name)) {
-      logger.warn(`\uD50C\uB7EC\uADF8\uC778 '${plugin.name}'\uC774 \uC774\uBBF8 \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uB36E\uC5B4\uC501\uB2C8\uB2E4.`);
-    }
-    this.plugins.set(plugin.name, plugin);
-    logger.dim(`\uD50C\uB7EC\uADF8\uC778 \uB4F1\uB85D: ${plugin.name} (\uD655\uC7A5\uC790: ${plugin.extensions.join(", ")})`);
-  }
-  /**
-   * 파일 경로에 맞는 플러그인 반환
-   * 등록된 플러그인의 canHandle()을 순서대로 확인합니다.
-   */
-  getPluginForFile(filePath) {
-    for (const plugin of this.plugins.values()) {
-      if (plugin.canHandle(filePath)) {
-        return plugin;
-      }
-    }
-    return null;
-  }
-  /** 등록된 언어 목록 반환 */
-  getRegisteredLanguages() {
-    return Array.from(this.plugins.values()).map((p) => p.language);
-  }
-  /** 특정 이름의 플러그인 등록 여부 확인 */
-  hasPlugin(name) {
-    return this.plugins.has(name);
-  }
-  /**
-   * TypeScriptPlugin이 기본 등록된 레지스트리 생성
-   */
-  static createDefault() {
-    const registry2 = new _PluginRegistry();
-    registry2.register(new TypeScriptPlugin());
-    return registry2;
   }
 };
 
@@ -233768,20 +233091,19 @@ function buildDependencyGraph(files, modules, projectRoot, pkgExternal) {
   }));
   return { internal, external };
 }
-async function analyzeFile(filePath, pluginRegistry) {
-  const plugin = pluginRegistry.getPluginForFile(filePath);
-  if (!plugin) return null;
+async function analyzeFile(filePath, plugin) {
+  if (!plugin.canHandle(filePath)) return null;
   const content = readFileSync5(filePath, "utf-8");
   return plugin.analyzeFile(filePath, content);
 }
-async function buildSemanticsLayer(projectRoot, structureLayer, config2, pluginRegistry, capabilities) {
+async function buildSemanticsLayer(projectRoot, structureLayer, config2, plugin, capabilities) {
   const startTime = Date.now();
   logger.info("Semantics Layer \uBE4C\uB4DC \uC2DC\uC791");
   const warnings = [];
   const sourceFiles = collectSourceFiles(structureLayer.tree, projectRoot, config2.languages);
   logger.dim(`\uBD84\uC11D \uB300\uC0C1 \uD30C\uC77C: ${sourceFiles.length}\uAC1C`);
   const settled = await Promise.allSettled(
-    sourceFiles.map((fp) => analyzeFile(fp, pluginRegistry))
+    sourceFiles.map((fp) => analyzeFile(fp, plugin))
   );
   const files = [];
   for (let i = 0; i < settled.length; i++) {
@@ -233820,7 +233142,7 @@ async function buildSemanticsLayer(projectRoot, structureLayer, config2, pluginR
     data: semanticsData
   };
 }
-async function updateSemanticsIncremental(projectRoot, existing, changes, pluginRegistry) {
+async function updateSemanticsIncremental(projectRoot, existing, changes, plugin) {
   const startTime = Date.now();
   logger.info(
     `Semantics Layer \uC810\uC9C4\uC801 \uAC31\uC2E0 \u2014 \uCD94\uAC00 ${changes.added.length}, \uC218\uC815 ${changes.modified.length}, \uC0AD\uC81C ${changes.deleted.length}`
@@ -233835,7 +233157,7 @@ async function updateSemanticsIncremental(projectRoot, existing, changes, plugin
   const settled = await Promise.allSettled(
     addedOrModified.map((relPath) => {
       const fullPath = join6(projectRoot, relPath);
-      return analyzeFile(fullPath, pluginRegistry);
+      return analyzeFile(fullPath, plugin);
     })
   );
   const newFiles = [];
@@ -235244,7 +234566,7 @@ async function computeIncrementalChanges(projectRoot, cache, excludePatterns) {
     currentHashes
   };
 }
-async function applyIncrementalUpdate(projectRoot, existingData, changes, config2, pluginRegistry) {
+async function applyIncrementalUpdate(projectRoot, existingData, changes, config2, plugin) {
   const startTime = Date.now();
   const results = [];
   const outputFiles = [];
@@ -235284,7 +234606,7 @@ async function applyIncrementalUpdate(projectRoot, existingData, changes, config
         projectRoot,
         existingData.semantics,
         changes,
-        pluginRegistry
+        plugin
       );
       existingData.semantics = result.data;
       results.push({
@@ -235404,7 +234726,7 @@ async function safeLayerBuild(layer, fn) {
 async function buildOntology(projectRoot, config2) {
   const startTime = Date.now();
   logger.header("\uC628\uD1A8\uB85C\uC9C0 \uBE4C\uB4DC \uC2DC\uC791");
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const version2 = readHarnessVersion(projectRoot);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const metadata = {
@@ -235442,7 +234764,7 @@ async function buildOntology(projectRoot, config2) {
     logger.info("Layer 2: Semantics \uBE4C\uB4DC \uC911...");
     const result = await safeLayerBuild(
       "semantics",
-      () => buildSemanticsLayer(projectRoot, structureData, config2.layers.semantics, pluginRegistry)
+      () => buildSemanticsLayer(projectRoot, structureData, config2.layers.semantics, plugin)
     );
     results.push(result);
     metadata.layerStatus.semantics = updateLayerStatus(metadata.layerStatus.semantics, result);
@@ -235554,13 +234876,13 @@ async function refreshOntology(projectRoot, config2) {
     cache,
     effectiveExcludes
   );
-  const pluginRegistry = PluginRegistry.createDefault();
+  const plugin = new TypeScriptPlugin();
   const report = await applyIncrementalUpdate(
     projectRoot,
     existingData,
     changes,
     config2,
-    pluginRegistry
+    plugin
   );
   const outputFiles = await writeOntologyFiles(projectRoot, existingData, config2.outputDir);
   report.outputFiles = outputFiles;
@@ -235762,9 +235084,116 @@ var DEFAULT_CAPABILITY_RESULT = {
   detectedAt: (/* @__PURE__ */ new Date()).toISOString()
 };
 
+// src/core/omc-compat.ts
+import { join as join11 } from "path";
+import { homedir } from "os";
+import { existsSync as existsSync7, readFileSync as readFileSync10 } from "fs";
+function omcDir(projectRoot) {
+  return join11(projectRoot, ".omc");
+}
+function omcStateDir(projectRoot) {
+  return join11(projectRoot, ".omc", "state");
+}
+function omcProjectMemoryPath(projectRoot) {
+  return join11(projectRoot, ".omc", "project-memory.json");
+}
+function omcWorkflowStatePath(projectRoot) {
+  return join11(projectRoot, ".omc", "state", "workflow-state.json");
+}
+function omcConfigPath() {
+  return join11(homedir(), ".claude", ".omc-config.json");
+}
+function harnessCapabilitiesPath(projectRoot) {
+  return join11(projectRoot, ".harness", "capabilities.json");
+}
+function sanitizeBranchName(branch) {
+  return branch.replace(/\//g, "-");
+}
+function knowledgeDir(projectRoot) {
+  return join11(projectRoot, ".knowledge");
+}
+function knowledgeBranchesDir(projectRoot) {
+  return join11(projectRoot, ".knowledge", "branches");
+}
+function knowledgeBranchDir(projectRoot, branch) {
+  return join11(projectRoot, ".knowledge", "branches", sanitizeBranchName(branch));
+}
+function knowledgeArchiveDir(projectRoot) {
+  return join11(projectRoot, ".knowledge", "branches", "_archive");
+}
+function knowledgeDomainsDir(projectRoot) {
+  return join11(projectRoot, ".knowledge", "domains");
+}
+function knowledgeOntologyDir(projectRoot) {
+  return join11(projectRoot, ".knowledge", "ontology");
+}
+function knowledgeTemplatesDir(projectRoot) {
+  return join11(projectRoot, ".knowledge", "_templates");
+}
+function knowledgeIndexPath(projectRoot) {
+  return join11(projectRoot, ".knowledge", "_index.md");
+}
+var OMC_AGENT_PREFIX = "oh-my-claudecode:";
+var OMC_SKILLS = {
+  analyze: "/oh-my-claudecode:analyze",
+  plan: "/oh-my-claudecode:plan",
+  autopilot: "/oh-my-claudecode:autopilot",
+  tdd: "/oh-my-claudecode:tdd",
+  "git-master": "/oh-my-claudecode:git-master",
+  deepsearch: "/oh-my-claudecode:deepsearch",
+  "code-review": "/oh-my-claudecode:code-review",
+  "security-review": "/oh-my-claudecode:security-review",
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
+};
+var AGENT_SKILL_MAP = {
+  analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
+  planner: { skill: OMC_SKILLS.plan, model: "opus" },
+  architect: { skill: void 0, model: "opus" },
+  executor: { skill: OMC_SKILLS.autopilot, model: "sonnet" },
+  "deep-executor": { skill: OMC_SKILLS.autopilot, model: "opus" },
+  "test-engineer": { skill: OMC_SKILLS.tdd, model: "sonnet" },
+  verifier: { skill: void 0, model: "sonnet" },
+  "git-master": { skill: OMC_SKILLS["git-master"], model: "sonnet" },
+  explore: { skill: OMC_SKILLS.deepsearch, model: "haiku" },
+  debugger: { skill: OMC_SKILLS.analyze, model: "sonnet" },
+  "quality-reviewer": { skill: OMC_SKILLS["code-review"], model: "sonnet" },
+  "security-reviewer": { skill: OMC_SKILLS["security-review"], model: "sonnet" },
+  "qa-tester": { skill: void 0, model: "sonnet" }
+};
+var OMC_NPM_PACKAGE = "oh-my-claude-sisyphus";
+var OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
+var HARNESS_NPM_PACKAGE = "carpdm-harness";
+var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest`;
+function localMcpConfigPath(projectRoot) {
+  return join11(projectRoot, ".mcp.json");
+}
+function detectLocalMcpConflict(projectRoot) {
+  try {
+    const pkgPath = join11(projectRoot, "package.json");
+    if (existsSync7(pkgPath)) {
+      const pkg = JSON.parse(readFileSync10(pkgPath, "utf-8"));
+      if (pkg.name === "carpdm-harness") return false;
+    }
+    const mcpPath = localMcpConfigPath(projectRoot);
+    if (!existsSync7(mcpPath)) return false;
+    const raw = JSON.parse(readFileSync10(mcpPath, "utf-8"));
+    const servers = raw.mcpServers;
+    if (!servers || typeof servers !== "object") return false;
+    return "carpdm-harness" in servers;
+  } catch {
+    return false;
+  }
+}
+function formatMcpConflictWarning(res) {
+  res.blank();
+  res.warn("Local MCP \uCDA9\uB3CC \uAC10\uC9C0");
+  res.line("`.mcp.json`\uC5D0 `carpdm-harness`\uAC00 Local MCP\uB85C \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
+  res.line("\uD50C\uB7EC\uADF8\uC778\uC774 MCP \uC11C\uBC84\uB97C \uC790\uB3D9 \uC81C\uACF5\uD558\uBBC0\uB85C \uC218\uB3D9 \uB4F1\uB85D\uC740 \uBD88\uD544\uC694\uD569\uB2C8\uB2E4.");
+  res.info("\uD574\uACB0: `.mcp.json`\uC758 mcpServers\uC5D0\uC11C `carpdm-harness` \uD56D\uBAA9\uC744 \uC81C\uAC70\uD558\uC138\uC694.");
+}
+
 // src/core/capability-detector.ts
-init_file_ops();
-init_omc_compat();
 function detectOmc() {
   try {
     const configPath = omcConfigPath();
@@ -235864,8 +235293,6 @@ function requireOmc() {
 }
 
 // src/core/omc-bridge.ts
-init_file_ops();
-init_omc_compat();
 import { existsSync as existsSync9, readdirSync as readdirSync4 } from "fs";
 import { join as join13 } from "path";
 function getActiveOmcMode(projectRoot) {
@@ -235928,13 +235355,9 @@ function getOmcVersion() {
   }
 }
 
-// src/tools/doctor.ts
-init_file_ops();
-
 // src/core/template-engine.ts
 import { join as join14, relative as relative5 } from "path";
 import { existsSync as existsSync10 } from "fs";
-init_file_ops();
 function getAllModuleFiles(mod) {
   return [...mod.commands, ...mod.hooks, ...mod.docs, ...mod.rules ?? [], ...mod.agents ?? [], ...mod.agentFiles ?? [], ...mod.github ?? []];
 }
@@ -236113,8 +235536,8 @@ function registerDoctorTool(server3) {
             res.line(`  - ${label} (\uBBF8\uAC10\uC9C0)`);
           }
         }
-        const harnessStateDir2 = join15(projectRoot, ".harness", "state");
-        if (existsSync11(harnessStateDir2)) {
+        const harnessStateDir = join15(projectRoot, ".harness", "state");
+        if (existsSync11(harnessStateDir)) {
           res.check(true, ".harness/state/ \uB514\uB809\uD1A0\uB9AC");
         } else {
           res.warn(".harness/state/ \uC5C6\uC74C (harness_update \uC2E4\uD589 \uAD8C\uC7A5)");
@@ -236386,13 +235809,33 @@ function registerOntologyStatusTool(server3) {
   );
 }
 
+// src/core/ontology/config-loader.ts
+function loadMergedOntologyConfig(projectRoot) {
+  const config2 = loadConfig(projectRoot);
+  const userOntology = config2?.ontology;
+  return userOntology ? {
+    ...DEFAULT_ONTOLOGY_CONFIG,
+    ...userOntology,
+    layers: {
+      ...DEFAULT_ONTOLOGY_CONFIG.layers,
+      ...userOntology.layers,
+      structure: {
+        ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
+        ...userOntology.layers?.structure,
+        excludePatterns: mergeExcludePatterns(
+          DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
+          userOntology.layers?.structure?.excludePatterns ?? []
+        )
+      }
+    }
+  } : DEFAULT_ONTOLOGY_CONFIG;
+}
+
 // src/core/state-sync.ts
-init_file_ops();
 import { existsSync as existsSync13 } from "fs";
 import { join as join17 } from "path";
 
 // src/core/workflow-persistence.ts
-init_file_ops();
 import { existsSync as existsSync12, readdirSync as readdirSync5, statSync as statSync3 } from "fs";
 import { join as join16 } from "path";
 var WORKFLOWS_DIR = ".harness/workflows";
@@ -236493,7 +235936,6 @@ function listWorkflowDirs(projectRoot, count = 10) {
 }
 
 // src/core/workflow-omc-mapper.ts
-init_omc_compat();
 function syncWorkflowStateToOmc(projectRoot, instance) {
   try {
     const omcMemory = readOmcProjectMemory(projectRoot) ?? {};
@@ -236822,24 +236264,7 @@ function registerOntologyGenerateTool(server3) {
     async ({ projectRoot, layer, dryRun }) => {
       try {
         const res = new McpResponseBuilder();
-        const config2 = loadConfig(projectRoot);
-        const userOntology = config2?.ontology;
-        let ontologyConfig = userOntology ? {
-          ...DEFAULT_ONTOLOGY_CONFIG,
-          ...userOntology,
-          layers: {
-            ...DEFAULT_ONTOLOGY_CONFIG.layers,
-            ...userOntology.layers,
-            structure: {
-              ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
-              ...userOntology.layers?.structure,
-              excludePatterns: mergeExcludePatterns(
-                DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
-                userOntology.layers?.structure?.excludePatterns ?? []
-              )
-            }
-          }
-        } : DEFAULT_ONTOLOGY_CONFIG;
+        let ontologyConfig = loadMergedOntologyConfig(projectRoot);
         if (layer) {
           const validLayers = ["structure", "semantics", "domain"];
           if (!validLayers.includes(layer)) {
@@ -236947,24 +236372,7 @@ function registerOntologyRefreshTool(server3) {
     async ({ projectRoot, dryRun }) => {
       try {
         const res = new McpResponseBuilder();
-        const config2 = loadConfig(projectRoot);
-        const userOntology = config2?.ontology;
-        const ontologyConfig = userOntology ? {
-          ...DEFAULT_ONTOLOGY_CONFIG,
-          ...userOntology,
-          layers: {
-            ...DEFAULT_ONTOLOGY_CONFIG.layers,
-            ...userOntology.layers,
-            structure: {
-              ...DEFAULT_ONTOLOGY_CONFIG.layers.structure,
-              ...userOntology.layers?.structure,
-              excludePatterns: mergeExcludePatterns(
-                DEFAULT_ONTOLOGY_CONFIG.layers.structure.excludePatterns,
-                userOntology.layers?.structure?.excludePatterns ?? []
-              )
-            }
-          }
-        } : DEFAULT_ONTOLOGY_CONFIG;
+        const ontologyConfig = loadMergedOntologyConfig(projectRoot);
         if (!ontologyConfig.enabled) {
           return errorResult("\uC628\uD1A8\uB85C\uC9C0\uAC00 \uBE44\uD65C\uC131\uD654 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uBA3C\uC800 harness_ontology_generate\uB85C \uD65C\uC131\uD654\uD558\uC138\uC694.");
         }
@@ -237020,13 +236428,11 @@ function registerOntologyRefreshTool(server3) {
 }
 
 // src/tools/init.ts
-import { existsSync as existsSync21, readFileSync as readFileSync17, writeFileSync as writeFileSync7 } from "fs";
-import { join as join25 } from "path";
+import { join as join26 } from "path";
 
 // src/core/hook-registrar.ts
 import { join as join18 } from "path";
 import { existsSync as existsSync14, readFileSync as readFileSync12, writeFileSync as writeFileSync4, mkdirSync as mkdirSync4, readdirSync as readdirSync6 } from "fs";
-init_omc_compat();
 var HOOK_MAP = {
   core: [
     { event: "UserPromptSubmit", command: "bash .claude/hooks/pre-task.sh" },
@@ -237181,263 +236587,6 @@ function getOmcModeHint(projectRoot) {
   return null;
 }
 
-// src/tools/init.ts
-init_file_ops();
-init_omc_compat();
-
-// src/core/team-memory.ts
-import { existsSync as existsSync16, readFileSync as readFileSync14, writeFileSync as writeFileSync5, mkdirSync as mkdirSync5 } from "fs";
-import { join as join20 } from "path";
-var STORE_PATH = (projectRoot) => join20(projectRoot, ".harness", "team-memory.json");
-var RULE_PATHS = {
-  conventions: ".claude/rules/conventions.md",
-  patterns: ".claude/rules/patterns.md",
-  decisions: ".claude/rules/decisions.md",
-  mistakes: ".claude/rules/mistakes.md",
-  bugs: ".claude/rules/bugs.md"
-};
-var MARKERS = {
-  "conventions:naming": "<!-- harness:conventions:naming -->",
-  "conventions:structure": "<!-- harness:conventions:structure -->",
-  "conventions:error-handling": "<!-- harness:conventions:error-handling -->",
-  "conventions:other": "<!-- harness:conventions:other -->",
-  "patterns": "<!-- harness:patterns:list -->",
-  "decisions": "<!-- harness:decisions:list -->",
-  "mistakes": "<!-- harness:mistakes:list -->",
-  "bugs": "<!-- harness:bugs:list -->"
-};
-function markerKey(entry) {
-  if (entry.category === "conventions" && entry.subcategory) {
-    return `conventions:${entry.subcategory}`;
-  }
-  return entry.category;
-}
-function loadStore(projectRoot) {
-  const path = STORE_PATH(projectRoot);
-  if (!existsSync16(path)) {
-    return { version: "1.0.0", entries: [] };
-  }
-  try {
-    return JSON.parse(readFileSync14(path, "utf-8"));
-  } catch {
-    return { version: "1.0.0", entries: [] };
-  }
-}
-function saveStore(projectRoot, store) {
-  const path = STORE_PATH(projectRoot);
-  mkdirSync5(join20(projectRoot, ".harness"), { recursive: true });
-  writeFileSync5(path, JSON.stringify(store, null, 2) + "\n");
-}
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-function addEntry(projectRoot, params) {
-  const store = loadStore(projectRoot);
-  const entry = {
-    id: generateId(),
-    category: params.category,
-    subcategory: params.subcategory,
-    title: params.title,
-    content: params.content,
-    evidence: params.evidence,
-    addedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    ...params.status && { status: params.status },
-    ...params.severity && { severity: params.severity },
-    ...params.rootCause && { rootCause: params.rootCause },
-    ...params.resolution && { resolution: params.resolution },
-    ...params.linkedIssue && { linkedIssue: params.linkedIssue },
-    ...params.affectedFiles && { affectedFiles: params.affectedFiles }
-  };
-  store.entries.push(entry);
-  saveStore(projectRoot, store);
-  syncRuleFile(projectRoot, entry.category, store);
-  syncMemoryMd(projectRoot, store);
-  Promise.resolve().then(() => (init_knowledge_vault(), knowledge_vault_exports)).then(({ syncAutoMemory: syncAutoMemory2 }) => syncAutoMemory2(projectRoot, store)).catch(() => {
-  });
-  return entry;
-}
-function listEntries(projectRoot, category, filters) {
-  const store = loadStore(projectRoot);
-  let entries = category === "all" ? store.entries : store.entries.filter((e) => e.category === category);
-  if (filters?.status) {
-    entries = entries.filter((e) => e.status === filters.status);
-  }
-  if (filters?.severity) {
-    entries = entries.filter((e) => e.severity === filters.severity);
-  }
-  return entries;
-}
-function syncRuleFile(projectRoot, category, store) {
-  const relPath = RULE_PATHS[category];
-  const filePath = join20(projectRoot, relPath);
-  if (!existsSync16(filePath)) return;
-  let content = readFileSync14(filePath, "utf-8");
-  const byMarker = {};
-  for (const entry of store.entries.filter((e) => e.category === category)) {
-    const key = markerKey(entry);
-    if (!byMarker[key]) byMarker[key] = [];
-    byMarker[key].push(entry);
-  }
-  for (const [key, marker] of Object.entries(MARKERS)) {
-    if (!key.startsWith(category === "conventions" ? "conventions" : category)) continue;
-    const entries = byMarker[key] ?? [];
-    const rendered = entries.length === 0 ? marker : entries.map((e) => renderEntry(e)).join("\n\n") + "\n\n" + marker;
-    content = content.replace(marker, rendered);
-  }
-  writeFileSync5(filePath, content);
-}
-function syncMemoryMd(projectRoot, store) {
-  const memoryPath = join20(projectRoot, ".agent", "memory.md");
-  if (!existsSync16(memoryPath)) return;
-  let content = readFileSync14(memoryPath, "utf-8");
-  const categories = ["conventions", "patterns", "decisions", "mistakes", "bugs"];
-  for (const category of categories) {
-    const startMarker = `<!-- team-memory:${category}:start -->`;
-    const endMarker = `<!-- team-memory:${category}:end -->`;
-    const startIdx = content.indexOf(startMarker);
-    const endIdx = content.indexOf(endMarker);
-    if (startIdx === -1 || endIdx === -1) continue;
-    const entries = store.entries.filter((e) => e.category === category);
-    let rendered;
-    if (entries.length === 0) {
-      rendered = `${startMarker}
-_(\uB4F1\uB85D\uB41C ${categoryLabel(category)} \uC5C6\uC74C)_
-${endMarker}`;
-    } else {
-      const items = entries.map((e) => renderEntry(e)).join("\n\n");
-      rendered = `${startMarker}
-${items}
-${endMarker}`;
-    }
-    content = content.substring(0, startIdx) + rendered + content.substring(endIdx + endMarker.length);
-  }
-  content = content.replace(
-    /> 마지막 동기화: .*/,
-    `> \uB9C8\uC9C0\uB9C9 \uB3D9\uAE30\uD654: ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19)}`
-  );
-  writeFileSync5(memoryPath, content);
-}
-function categoryLabel(category) {
-  const labels = {
-    conventions: "\uCEE8\uBCA4\uC158",
-    patterns: "\uD328\uD134",
-    decisions: "\uACB0\uC815",
-    mistakes: "\uC2E4\uC218",
-    bugs: "\uBC84\uADF8"
-  };
-  return labels[category];
-}
-function renderEntry(entry) {
-  const lines = [`### ${entry.title}`, "", entry.content];
-  if (entry.category === "bugs") {
-    const meta = [];
-    if (entry.severity) meta.push(`\uC2EC\uAC01\uB3C4: ${entry.severity}`);
-    if (entry.status) meta.push(`\uC0C1\uD0DC: ${entry.status}`);
-    if (entry.linkedIssue) meta.push(`\uC774\uC288: ${entry.linkedIssue}`);
-    if (meta.length > 0) lines.push("", `> ${meta.join(" | ")}`);
-    if (entry.rootCause) lines.push("", `**\uC6D0\uC778**: ${entry.rootCause}`);
-    if (entry.resolution) lines.push("", `**\uD574\uACB0**: ${entry.resolution}`);
-    if (entry.affectedFiles && entry.affectedFiles.length > 0) {
-      lines.push("", `_\uC601\uD5A5 \uD30C\uC77C: ${entry.affectedFiles.join(", ")}_`);
-    }
-  }
-  if (entry.evidence && entry.evidence.length > 0) {
-    lines.push("", `_\uADFC\uAC70: ${entry.evidence.join(", ")}_`);
-  }
-  lines.push("", `_\uCD94\uAC00: ${entry.addedAt.slice(0, 10)}_`);
-  return lines.join("\n");
-}
-
-// src/core/claudemd-sync.ts
-init_file_ops();
-import { join as join21 } from "path";
-import { existsSync as existsSync17, readdirSync as readdirSync8 } from "fs";
-var MARKER_START = "<!-- harness:auto:start -->";
-var MARKER_END = "<!-- harness:auto:end -->";
-function parseMarkers(content) {
-  const startIdx = content.indexOf(MARKER_START);
-  const endIdx = content.indexOf(MARKER_END);
-  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
-    return null;
-  }
-  const before = content.slice(0, startIdx + MARKER_START.length);
-  const after = content.slice(endIdx);
-  return { before, after };
-}
-function buildAutoSection(projectRoot) {
-  const config2 = loadConfig(projectRoot);
-  const version2 = getPackageVersion();
-  const lines = [];
-  lines.push("");
-  lines.push(`> \uC774 \uC139\uC158\uC740 carpdm-harness v${version2}\uC5D0 \uC758\uD574 \uC790\uB3D9 \uC0DD\uC131\uB429\uB2C8\uB2E4. \uC218\uB3D9\uC73C\uB85C \uD3B8\uC9D1\uD558\uC9C0 \uB9C8\uC138\uC694.`);
-  lines.push("");
-  if (config2) {
-    lines.push(`## Harness \uC124\uC815`);
-    lines.push("");
-    lines.push(`- **\uD504\uB9AC\uC14B**: ${config2.preset}`);
-    lines.push(`- **\uBAA8\uB4C8**: ${config2.modules.join(", ") || "(\uC5C6\uC74C)"}`);
-    lines.push("");
-  }
-  const commandsDir = join21(projectRoot, ".claude", "commands");
-  const commands = listFiles(commandsDir, ".md");
-  if (commands.length > 0) {
-    lines.push("## \uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC2A4\uD0AC");
-    lines.push("");
-    for (const cmd of commands) {
-      lines.push(`- \`/${cmd.replace(".md", "")}\``);
-    }
-    lines.push("");
-  }
-  const hooksDir = join21(projectRoot, ".claude", "hooks");
-  const hooks = listFiles(hooksDir, ".sh");
-  if (hooks.length > 0) {
-    lines.push("## \uD65C\uC131 \uD6C5");
-    lines.push("");
-    for (const hook of hooks) {
-      lines.push(`- \`${hook}\``);
-    }
-    lines.push("");
-  }
-  if (config2) {
-    const toolModules = config2.modules.filter((m) => m !== "team-memory");
-    if (toolModules.length > 0) {
-      lines.push("## MCP \uB3C4\uAD6C \uBAA8\uB4C8");
-      lines.push("");
-      for (const mod of toolModules) {
-        lines.push(`- \`${mod}\``);
-      }
-      lines.push("");
-    }
-  }
-  return lines.join("\n");
-}
-function syncClaudeMd(projectRoot) {
-  const claudeMdPath = join21(projectRoot, "CLAUDE.md");
-  const content = readFileContent(claudeMdPath);
-  if (!content) {
-    return { updated: false, reason: "CLAUDE.md \uD30C\uC77C \uC5C6\uC74C" };
-  }
-  const markers = parseMarkers(content);
-  if (!markers) {
-    return { updated: false, reason: "\uB9C8\uCEE4 \uC5C6\uC74C \u2014 \uAC31\uC2E0 \uC2A4\uD0B5" };
-  }
-  const autoSection = buildAutoSection(projectRoot);
-  const newContent = markers.before + "\n" + autoSection + "\n" + markers.after;
-  if (newContent === content) {
-    return { updated: false, reason: "\uBCC0\uACBD \uC5C6\uC74C" };
-  }
-  safeWriteFile(claudeMdPath, newContent);
-  return { updated: true, reason: "\uB9C8\uCEE4 \uC601\uC5ED \uAC31\uC2E0 \uC644\uB8CC" };
-}
-function listFiles(dir, ext) {
-  try {
-    if (!existsSync17(dir)) return [];
-    return readdirSync8(dir).filter((f) => f.endsWith(ext)).sort();
-  } catch {
-    return [];
-  }
-}
-
 // src/core/github-labels.ts
 import { execFileSync } from "child_process";
 var TYPE_LABELS = [
@@ -237527,8 +236676,8 @@ function setupGithubLabels(projectRoot) {
 }
 
 // src/core/settings-bootstrap.ts
-import { existsSync as existsSync18, readFileSync as readFileSync15, writeFileSync as writeFileSync6, mkdirSync as mkdirSync6 } from "fs";
-import { join as join22 } from "path";
+import { existsSync as existsSync15, readFileSync as readFileSync13, writeFileSync as writeFileSync5, mkdirSync as mkdirSync5 } from "fs";
+import { join as join19 } from "path";
 var CORE_TOOL_ALLOW = [
   "AskUserQuestion",
   "Edit",
@@ -237678,11 +236827,11 @@ function bootstrapProjectSettings(projectRoot, options = {}) {
     extraAllow = [],
     dryRun = false
   } = options;
-  const settingsPath = join22(projectRoot, ".claude", "settings.local.json");
+  const settingsPath = join19(projectRoot, ".claude", "settings.local.json");
   let settings = {};
-  if (existsSync18(settingsPath)) {
+  if (existsSync15(settingsPath)) {
     try {
-      settings = JSON.parse(readFileSync15(settingsPath, "utf-8"));
+      settings = JSON.parse(readFileSync13(settingsPath, "utf-8"));
     } catch {
       settings = {};
     }
@@ -237741,8 +236890,8 @@ function bootstrapProjectSettings(projectRoot, options = {}) {
     languageSet = true;
   }
   if (!dryRun) {
-    mkdirSync6(join22(projectRoot, ".claude"), { recursive: true });
-    writeFileSync6(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+    mkdirSync5(join19(projectRoot, ".claude"), { recursive: true });
+    writeFileSync5(settingsPath, JSON.stringify(settings, null, 2) + "\n");
   }
   return {
     allowAdded,
@@ -237821,11 +236970,11 @@ function getCapabilityAllowRules(capabilities) {
   return rules;
 }
 function modifyPermissionRules(projectRoot, operations) {
-  const settingsPath = join22(projectRoot, ".claude", "settings.local.json");
+  const settingsPath = join19(projectRoot, ".claude", "settings.local.json");
   let settings = {};
-  if (existsSync18(settingsPath)) {
+  if (existsSync15(settingsPath)) {
     try {
-      settings = JSON.parse(readFileSync15(settingsPath, "utf-8"));
+      settings = JSON.parse(readFileSync13(settingsPath, "utf-8"));
     } catch {
       settings = {};
     }
@@ -237853,14 +237002,624 @@ function modifyPermissionRules(projectRoot, operations) {
       }
     }
   }
-  mkdirSync6(join22(projectRoot, ".claude"), { recursive: true });
-  writeFileSync6(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+  mkdirSync5(join19(projectRoot, ".claude"), { recursive: true });
+  writeFileSync5(settingsPath, JSON.stringify(settings, null, 2) + "\n");
   return { removed, added };
 }
 
-// src/core/overlap-detector.ts
-import { existsSync as existsSync19, readFileSync as readFileSync16 } from "fs";
+// src/core/overlap-applier.ts
+import { existsSync as existsSync16, unlinkSync } from "fs";
+import { join as join20 } from "path";
+function applyOverlapChoices(projectRoot, scanResult, choices) {
+  const details = [];
+  let applied = 0;
+  let skipped = 0;
+  const errors = [];
+  const decisions = choices.applyDefaults ? Object.fromEntries(scanResult.items.map((i) => [i.id, i.recommended])) : choices.decisions ?? {};
+  for (const item of scanResult.items) {
+    const action = decisions[item.id] ?? "keep";
+    if (action === "keep") {
+      skipped++;
+      details.push({
+        overlapId: item.id,
+        action: "keep",
+        success: true,
+        message: `${item.title}: \uC720\uC9C0`
+      });
+      continue;
+    }
+    try {
+      if (action === "disable") {
+        const ops = item.affectedItems.map((rule) => ({
+          rule,
+          from: "allow",
+          to: "deny"
+        }));
+        modifyPermissionRules(projectRoot, ops);
+        applied++;
+        details.push({
+          overlapId: item.id,
+          action: "disable",
+          success: true,
+          message: `${item.title}: ${item.affectedItems.length}\uAC1C \uB3C4\uAD6C \uBE44\uD65C\uC131\uD654`
+        });
+      } else if (action === "delete") {
+        if (item.category === "empty-rules") {
+          let deleted = 0;
+          for (const filePath of item.affectedItems) {
+            const fullPath = join20(projectRoot, filePath);
+            if (existsSync16(fullPath)) {
+              unlinkSync(fullPath);
+              deleted++;
+            }
+          }
+          applied++;
+          details.push({
+            overlapId: item.id,
+            action: "delete",
+            success: true,
+            message: `${item.title}: ${deleted}\uAC1C \uD30C\uC77C \uC0AD\uC81C`
+          });
+        } else if (item.category === "bloated-permissions") {
+          const ops = item.affectedItems.map((rule) => ({
+            rule,
+            from: "allow"
+          }));
+          modifyPermissionRules(projectRoot, ops);
+          applied++;
+          details.push({
+            overlapId: item.id,
+            action: "delete",
+            success: true,
+            message: `${item.title}: ${item.affectedItems.length}\uAC1C \uC911\uBCF5 \uD56D\uBAA9 \uC81C\uAC70`
+          });
+        }
+      }
+    } catch (err) {
+      const message = `${item.title} \uCC98\uB9AC \uC2E4\uD328: ${String(err)}`;
+      errors.push(message);
+      details.push({
+        overlapId: item.id,
+        action,
+        success: false,
+        message
+      });
+    }
+  }
+  return { applied, skipped, errors, details };
+}
+
+// src/core/post-install-tasks.ts
+import { join as join25 } from "path";
+import { existsSync as existsSync21, readFileSync as readFileSync17, writeFileSync as writeFileSync7 } from "fs";
+
+// src/core/team-memory.ts
+import { existsSync as existsSync17, readFileSync as readFileSync14, writeFileSync as writeFileSync6, mkdirSync as mkdirSync6 } from "fs";
+import { join as join21 } from "path";
+import { homedir as homedir3 } from "os";
+var STORE_PATH = (projectRoot) => join21(projectRoot, ".harness", "team-memory.json");
+var RULE_PATHS = {
+  conventions: ".claude/rules/conventions.md",
+  patterns: ".claude/rules/patterns.md",
+  decisions: ".claude/rules/decisions.md",
+  mistakes: ".claude/rules/mistakes.md",
+  bugs: ".claude/rules/bugs.md"
+};
+var MARKERS = {
+  "conventions:naming": "<!-- harness:conventions:naming -->",
+  "conventions:structure": "<!-- harness:conventions:structure -->",
+  "conventions:error-handling": "<!-- harness:conventions:error-handling -->",
+  "conventions:other": "<!-- harness:conventions:other -->",
+  "patterns": "<!-- harness:patterns:list -->",
+  "decisions": "<!-- harness:decisions:list -->",
+  "mistakes": "<!-- harness:mistakes:list -->",
+  "bugs": "<!-- harness:bugs:list -->"
+};
+function markerKey(entry) {
+  if (entry.category === "conventions" && entry.subcategory) {
+    return `conventions:${entry.subcategory}`;
+  }
+  return entry.category;
+}
+function loadStore(projectRoot) {
+  const path = STORE_PATH(projectRoot);
+  if (!existsSync17(path)) {
+    return { version: "1.0.0", entries: [] };
+  }
+  try {
+    return JSON.parse(readFileSync14(path, "utf-8"));
+  } catch {
+    return { version: "1.0.0", entries: [] };
+  }
+}
+function saveStore(projectRoot, store) {
+  const path = STORE_PATH(projectRoot);
+  mkdirSync6(join21(projectRoot, ".harness"), { recursive: true });
+  writeFileSync6(path, JSON.stringify(store, null, 2) + "\n");
+}
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function addEntry(projectRoot, params) {
+  const store = loadStore(projectRoot);
+  const entry = {
+    id: generateId(),
+    category: params.category,
+    subcategory: params.subcategory,
+    title: params.title,
+    content: params.content,
+    evidence: params.evidence,
+    addedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    ...params.status && { status: params.status },
+    ...params.severity && { severity: params.severity },
+    ...params.rootCause && { rootCause: params.rootCause },
+    ...params.resolution && { resolution: params.resolution },
+    ...params.linkedIssue && { linkedIssue: params.linkedIssue },
+    ...params.affectedFiles && { affectedFiles: params.affectedFiles }
+  };
+  store.entries.push(entry);
+  saveStore(projectRoot, store);
+  syncRuleFile(projectRoot, entry.category, store);
+  syncMemoryMd(projectRoot, store);
+  try {
+    syncAutoMemory(projectRoot, store);
+  } catch {
+  }
+  return entry;
+}
+function listEntries(projectRoot, category, filters) {
+  const store = loadStore(projectRoot);
+  let entries = category === "all" ? store.entries : store.entries.filter((e) => e.category === category);
+  if (filters?.status) {
+    entries = entries.filter((e) => e.status === filters.status);
+  }
+  if (filters?.severity) {
+    entries = entries.filter((e) => e.severity === filters.severity);
+  }
+  return entries;
+}
+function syncRuleFile(projectRoot, category, store) {
+  const relPath = RULE_PATHS[category];
+  const filePath = join21(projectRoot, relPath);
+  if (!existsSync17(filePath)) return;
+  let content = readFileSync14(filePath, "utf-8");
+  const byMarker = {};
+  for (const entry of store.entries.filter((e) => e.category === category)) {
+    const key = markerKey(entry);
+    if (!byMarker[key]) byMarker[key] = [];
+    byMarker[key].push(entry);
+  }
+  for (const [key, marker] of Object.entries(MARKERS)) {
+    if (!key.startsWith(category === "conventions" ? "conventions" : category)) continue;
+    const entries = byMarker[key] ?? [];
+    const rendered = entries.length === 0 ? marker : entries.map((e) => renderEntry(e)).join("\n\n") + "\n\n" + marker;
+    content = content.replace(marker, rendered);
+  }
+  writeFileSync6(filePath, content);
+}
+function syncMemoryMd(projectRoot, store) {
+  const memoryPath = join21(projectRoot, ".agent", "memory.md");
+  if (!existsSync17(memoryPath)) return;
+  let content = readFileSync14(memoryPath, "utf-8");
+  const categories = ["conventions", "patterns", "decisions", "mistakes", "bugs"];
+  for (const category of categories) {
+    const startMarker = `<!-- team-memory:${category}:start -->`;
+    const endMarker = `<!-- team-memory:${category}:end -->`;
+    const startIdx = content.indexOf(startMarker);
+    const endIdx = content.indexOf(endMarker);
+    if (startIdx === -1 || endIdx === -1) continue;
+    const entries = store.entries.filter((e) => e.category === category);
+    let rendered;
+    if (entries.length === 0) {
+      rendered = `${startMarker}
+_(\uB4F1\uB85D\uB41C ${categoryLabel(category)} \uC5C6\uC74C)_
+${endMarker}`;
+    } else {
+      const items = entries.map((e) => renderEntry(e)).join("\n\n");
+      rendered = `${startMarker}
+${items}
+${endMarker}`;
+    }
+    content = content.substring(0, startIdx) + rendered + content.substring(endIdx + endMarker.length);
+  }
+  content = content.replace(
+    /> 마지막 동기화: .*/,
+    `> \uB9C8\uC9C0\uB9C9 \uB3D9\uAE30\uD654: ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19)}`
+  );
+  writeFileSync6(memoryPath, content);
+}
+function categoryLabel(category) {
+  const labels = {
+    conventions: "\uCEE8\uBCA4\uC158",
+    patterns: "\uD328\uD134",
+    decisions: "\uACB0\uC815",
+    mistakes: "\uC2E4\uC218",
+    bugs: "\uBC84\uADF8"
+  };
+  return labels[category];
+}
+function renderEntry(entry) {
+  const lines = [`### ${entry.title}`, "", entry.content];
+  if (entry.category === "bugs") {
+    const meta = [];
+    if (entry.severity) meta.push(`\uC2EC\uAC01\uB3C4: ${entry.severity}`);
+    if (entry.status) meta.push(`\uC0C1\uD0DC: ${entry.status}`);
+    if (entry.linkedIssue) meta.push(`\uC774\uC288: ${entry.linkedIssue}`);
+    if (meta.length > 0) lines.push("", `> ${meta.join(" | ")}`);
+    if (entry.rootCause) lines.push("", `**\uC6D0\uC778**: ${entry.rootCause}`);
+    if (entry.resolution) lines.push("", `**\uD574\uACB0**: ${entry.resolution}`);
+    if (entry.affectedFiles && entry.affectedFiles.length > 0) {
+      lines.push("", `_\uC601\uD5A5 \uD30C\uC77C: ${entry.affectedFiles.join(", ")}_`);
+    }
+  }
+  if (entry.evidence && entry.evidence.length > 0) {
+    lines.push("", `_\uADFC\uAC70: ${entry.evidence.join(", ")}_`);
+  }
+  lines.push("", `_\uCD94\uAC00: ${entry.addedAt.slice(0, 10)}_`);
+  return lines.join("\n");
+}
+function syncAutoMemory(projectRoot, store) {
+  const memoryDir = resolveAutoMemoryDir(projectRoot);
+  if (!memoryDir) return;
+  const memoryPath = join21(memoryDir, "MEMORY.md");
+  const existing = readFileContent(memoryPath);
+  if (!existing) return;
+  const startMarker = "<!-- harness:team-knowledge:start -->";
+  const endMarker = "<!-- harness:team-knowledge:end -->";
+  const summary = renderAutoMemorySummary(store);
+  const section = `${startMarker}
+${summary}
+${endMarker}`;
+  let updated;
+  const startIdx = existing.indexOf(startMarker);
+  const endIdx = existing.indexOf(endMarker);
+  if (startIdx !== -1 && endIdx !== -1) {
+    updated = existing.substring(0, startIdx) + section + existing.substring(endIdx + endMarker.length);
+  } else {
+    updated = existing.trimEnd() + "\n\n" + section + "\n";
+  }
+  safeWriteFile(memoryPath, updated);
+}
+function resolveAutoMemoryDir(projectRoot) {
+  const encoded = projectRoot.replace(/\//g, "-");
+  const dir = join21(homedir3(), ".claude", "projects", encoded, "memory");
+  if (existsSync17(dir)) return dir;
+  return null;
+}
+function renderAutoMemorySummary(store) {
+  const lines = ["## \uD300 \uC9C0\uC2DD \uC694\uC57D (\uC790\uB3D9 \uB3D9\uAE30\uD654)", ""];
+  const MAX_ENTRIES = 15;
+  const categories = [
+    { key: "conventions", label: "\uCEE8\uBCA4\uC158" },
+    { key: "patterns", label: "\uD328\uD134" },
+    { key: "decisions", label: "\uACB0\uC815" },
+    { key: "mistakes", label: "\uAD50\uD6C8" }
+  ];
+  for (const { key, label } of categories) {
+    const entries = store.entries.filter((e) => e.category === key).slice(-MAX_ENTRIES);
+    if (entries.length === 0) continue;
+    lines.push(`### ${label}`);
+    for (const entry of entries) {
+      lines.push(`- **${entry.title}**: ${entry.content.split("\n")[0]}`);
+    }
+    lines.push("");
+  }
+  const openBugs = store.entries.filter(
+    (e) => e.category === "bugs" && e.status === "open"
+  );
+  if (openBugs.length > 0) {
+    lines.push("### \uC5F4\uB9B0 \uBC84\uADF8");
+    for (const bug of openBugs.slice(-5)) {
+      lines.push(`- [${bug.severity ?? "medium"}] ${bug.title}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+// src/core/knowledge-vault.ts
+import { existsSync as existsSync18, readdirSync as readdirSync7, renameSync, readFileSync as readFileSync15, statSync as statSync4 } from "fs";
+import { join as join22 } from "path";
+function initKnowledgeVault(projectRoot, config2) {
+  if (!config2.enabled) return;
+  const dirs = [
+    knowledgeDir(projectRoot),
+    knowledgeBranchesDir(projectRoot),
+    knowledgeArchiveDir(projectRoot),
+    knowledgeDomainsDir(projectRoot),
+    knowledgeOntologyDir(projectRoot),
+    knowledgeTemplatesDir(projectRoot)
+  ];
+  for (const dir of dirs) {
+    ensureDir(dir);
+  }
+  const templateSrcDir = getKnowledgeTemplatesSourceDir();
+  if (templateSrcDir && existsSync18(templateSrcDir)) {
+    const templateFiles = readdirSync7(templateSrcDir).filter((f) => f.endsWith(".md"));
+    for (const file of templateFiles) {
+      const dest = join22(knowledgeTemplatesDir(projectRoot), file);
+      if (!existsSync18(dest)) {
+        const content = readFileSync15(join22(templateSrcDir, file), "utf-8");
+        safeWriteFile(dest, content);
+      }
+    }
+  }
+  updateKnowledgeIndex(projectRoot);
+}
+function createBranchKnowledge(projectRoot, branchName) {
+  const branchDir = knowledgeBranchDir(projectRoot, branchName);
+  if (existsSync18(branchDir)) return;
+  ensureDir(branchDir);
+  const sanitized = sanitizeBranchName(branchName);
+  const now = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const files = {
+    "spec.md": [
+      "---",
+      `branch: ${branchName}`,
+      `created: ${now}`,
+      "type: spec",
+      "---",
+      "",
+      `# ${sanitized} \u2014 \uC2A4\uD399`,
+      "",
+      "## \uBAA9\uD45C",
+      "",
+      "",
+      "## \uC694\uAD6C\uC0AC\uD56D",
+      "",
+      "",
+      "## \uC81C\uC57D\uC0AC\uD56D",
+      "",
+      ""
+    ].join("\n"),
+    "design.md": [
+      "---",
+      `branch: ${branchName}`,
+      `created: ${now}`,
+      "type: design",
+      "---",
+      "",
+      `# ${sanitized} \u2014 \uC124\uACC4`,
+      "",
+      "## \uC544\uD0A4\uD14D\uCC98 \uACB0\uC815",
+      "",
+      "",
+      "## \uC8FC\uC694 \uCEF4\uD3EC\uB10C\uD2B8",
+      "",
+      "",
+      "## \uB370\uC774\uD130 \uD750\uB984",
+      "",
+      ""
+    ].join("\n"),
+    "decisions.md": [
+      "---",
+      `branch: ${branchName}`,
+      `created: ${now}`,
+      "type: decisions",
+      "---",
+      "",
+      `# ${sanitized} \u2014 \uACB0\uC815 \uAE30\uB85D`,
+      "",
+      "<!-- \uAC01 \uACB0\uC815\uC740 ## Decision: \uC81C\uBAA9 \uD615\uC2DD\uC73C\uB85C \uCD94\uAC00 -->",
+      ""
+    ].join("\n"),
+    "notes.md": [
+      "---",
+      `branch: ${branchName}`,
+      `created: ${now}`,
+      "type: notes",
+      "---",
+      "",
+      `# ${sanitized} \u2014 \uBA54\uBAA8`,
+      ""
+    ].join("\n")
+  };
+  for (const [filename, content] of Object.entries(files)) {
+    safeWriteFile(join22(branchDir, filename), content);
+  }
+  updateKnowledgeIndex(projectRoot);
+}
+function updateKnowledgeIndex(projectRoot) {
+  const indexPath = knowledgeIndexPath(projectRoot);
+  const lines = [
+    "---",
+    "type: index",
+    `updated: ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19)}`,
+    "---",
+    "",
+    "# Knowledge Vault",
+    ""
+  ];
+  const branchesDir = knowledgeBranchesDir(projectRoot);
+  const activeBranches = listSubdirs(branchesDir).filter((d) => d !== "_archive");
+  lines.push("## \uD65C\uC131 \uBE0C\uB79C\uCE58", "");
+  if (activeBranches.length === 0) {
+    lines.push("_(\uC5C6\uC74C)_", "");
+  } else {
+    for (const b of activeBranches) {
+      lines.push(`- [[branches/${b}/design|${b}]]`);
+    }
+    lines.push("");
+  }
+  const archiveDir = knowledgeArchiveDir(projectRoot);
+  const archivedBranches = listSubdirs(archiveDir);
+  lines.push("## \uC544\uCE74\uC774\uBE0C", "");
+  if (archivedBranches.length === 0) {
+    lines.push("_(\uC5C6\uC74C)_", "");
+  } else {
+    for (const b of archivedBranches.slice(-10)) {
+      lines.push(`- [[branches/_archive/${b}/design|${b}]]`);
+    }
+    if (archivedBranches.length > 10) {
+      lines.push(`- _...\uC678 ${archivedBranches.length - 10}\uAC1C_`);
+    }
+    lines.push("");
+  }
+  const domainsDir = knowledgeDomainsDir(projectRoot);
+  const domains = listSubdirs(domainsDir);
+  lines.push("## \uB3C4\uBA54\uC778", "");
+  if (domains.length === 0) {
+    lines.push("_(\uC5C6\uC74C)_", "");
+  } else {
+    for (const d of domains) {
+      lines.push(`- [[domains/${d}/overview|${d}]]`);
+    }
+    lines.push("");
+  }
+  const ontologyDir = knowledgeOntologyDir(projectRoot);
+  if (existsSync18(ontologyDir)) {
+    lines.push("## \uC628\uD1A8\uB85C\uC9C0", "");
+    lines.push("- [[ontology/structure|Structure]]");
+    lines.push("- [[ontology/semantics|Semantics]]");
+    lines.push("- [[ontology/domain|Domain]]");
+    lines.push("");
+  }
+  safeWriteFile(indexPath, lines.join("\n"));
+}
+function syncOntologyToVault(projectRoot) {
+  const sourceDir = join22(projectRoot, ".agent", "ontology");
+  const destDir = knowledgeOntologyDir(projectRoot);
+  if (!existsSync18(sourceDir) || !existsSync18(knowledgeDir(projectRoot))) return;
+  ensureDir(destDir);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const layerMap = {
+    "ONTOLOGY-STRUCTURE.md": "structure.md",
+    "ONTOLOGY-SEMANTICS.md": "semantics.md",
+    "ONTOLOGY-DOMAIN.md": "domain.md"
+  };
+  for (const [src, dest] of Object.entries(layerMap)) {
+    const srcPath = join22(sourceDir, src);
+    const content = readFileContent(srcPath);
+    if (!content) continue;
+    const frontmatter = [
+      "---",
+      "type: ontology",
+      `layer: ${dest.replace(".md", "")}`,
+      `synced: ${now}`,
+      `source: .agent/ontology/${src}`,
+      "---",
+      ""
+    ].join("\n");
+    safeWriteFile(join22(destDir, dest), frontmatter + content);
+  }
+}
+function getKnowledgeTemplatesSourceDir() {
+  const candidates = [
+    join22(__dirname, "..", "..", "templates", "knowledge"),
+    join22(__dirname, "..", "templates", "knowledge")
+  ];
+  for (const c of candidates) {
+    if (existsSync18(c)) return c;
+  }
+  return null;
+}
+function listSubdirs(dirPath) {
+  if (!existsSync18(dirPath)) return [];
+  try {
+    return readdirSync7(dirPath).filter((name) => !name.startsWith(".")).filter((name) => {
+      try {
+        return statSync4(join22(dirPath, name)).isDirectory();
+      } catch {
+        return false;
+      }
+    }).sort();
+  } catch {
+    return [];
+  }
+}
+
+// src/core/claudemd-sync.ts
 import { join as join23 } from "path";
+import { existsSync as existsSync19, readdirSync as readdirSync8 } from "fs";
+var MARKER_START = "<!-- harness:auto:start -->";
+var MARKER_END = "<!-- harness:auto:end -->";
+function parseMarkers(content) {
+  const startIdx = content.indexOf(MARKER_START);
+  const endIdx = content.indexOf(MARKER_END);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+    return null;
+  }
+  const before = content.slice(0, startIdx + MARKER_START.length);
+  const after = content.slice(endIdx);
+  return { before, after };
+}
+function buildAutoSection(projectRoot) {
+  const config2 = loadConfig(projectRoot);
+  const version2 = getPackageVersion();
+  const lines = [];
+  lines.push("");
+  lines.push(`> \uC774 \uC139\uC158\uC740 carpdm-harness v${version2}\uC5D0 \uC758\uD574 \uC790\uB3D9 \uC0DD\uC131\uB429\uB2C8\uB2E4. \uC218\uB3D9\uC73C\uB85C \uD3B8\uC9D1\uD558\uC9C0 \uB9C8\uC138\uC694.`);
+  lines.push("");
+  if (config2) {
+    lines.push(`## Harness \uC124\uC815`);
+    lines.push("");
+    lines.push(`- **\uD504\uB9AC\uC14B**: ${config2.preset}`);
+    lines.push(`- **\uBAA8\uB4C8**: ${config2.modules.join(", ") || "(\uC5C6\uC74C)"}`);
+    lines.push("");
+  }
+  const commandsDir = join23(projectRoot, ".claude", "commands");
+  const commands = listFiles(commandsDir, ".md");
+  if (commands.length > 0) {
+    lines.push("## \uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC2A4\uD0AC");
+    lines.push("");
+    for (const cmd of commands) {
+      lines.push(`- \`/${cmd.replace(".md", "")}\``);
+    }
+    lines.push("");
+  }
+  const hooksDir = join23(projectRoot, ".claude", "hooks");
+  const hooks = listFiles(hooksDir, ".sh");
+  if (hooks.length > 0) {
+    lines.push("## \uD65C\uC131 \uD6C5");
+    lines.push("");
+    for (const hook of hooks) {
+      lines.push(`- \`${hook}\``);
+    }
+    lines.push("");
+  }
+  if (config2) {
+    const toolModules = config2.modules.filter((m) => m !== "team-memory");
+    if (toolModules.length > 0) {
+      lines.push("## MCP \uB3C4\uAD6C \uBAA8\uB4C8");
+      lines.push("");
+      for (const mod of toolModules) {
+        lines.push(`- \`${mod}\``);
+      }
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+function syncClaudeMd(projectRoot) {
+  const claudeMdPath = join23(projectRoot, "CLAUDE.md");
+  const content = readFileContent(claudeMdPath);
+  if (!content) {
+    return { updated: false, reason: "CLAUDE.md \uD30C\uC77C \uC5C6\uC74C" };
+  }
+  const markers = parseMarkers(content);
+  if (!markers) {
+    return { updated: false, reason: "\uB9C8\uCEE4 \uC5C6\uC74C \u2014 \uAC31\uC2E0 \uC2A4\uD0B5" };
+  }
+  const autoSection = buildAutoSection(projectRoot);
+  const newContent = markers.before + "\n" + autoSection + "\n" + markers.after;
+  if (newContent === content) {
+    return { updated: false, reason: "\uBCC0\uACBD \uC5C6\uC74C" };
+  }
+  safeWriteFile(claudeMdPath, newContent);
+  return { updated: true, reason: "\uB9C8\uCEE4 \uC601\uC5ED \uAC31\uC2E0 \uC644\uB8CC" };
+}
+function listFiles(dir, ext) {
+  try {
+    if (!existsSync19(dir)) return [];
+    return readdirSync8(dir).filter((f) => f.endsWith(ext)).sort();
+  } catch {
+    return [];
+  }
+}
+
+// src/core/overlap-detector.ts
+import { existsSync as existsSync20, readFileSync as readFileSync16 } from "fs";
+import { join as join24 } from "path";
 var OMC_LSP_TOOLS = [
   "mcp__plugin_oh-my-claudecode_t__lsp_hover",
   "mcp__plugin_oh-my-claudecode_t__lsp_goto_definition",
@@ -237923,7 +237682,7 @@ function scanOverlaps(projectRoot, config2, capabilities) {
       });
     }
   }
-  if (hasTeamMemory && existsSync19(join23(projectRoot, ".agent"))) {
+  if (hasTeamMemory && existsSync20(join24(projectRoot, ".agent"))) {
     const overlapping = OMC_NOTEPAD_TOOLS.filter((t) => allowList.includes(t));
     if (overlapping.length > 0) {
       items.push({
@@ -237940,8 +237699,8 @@ function scanOverlaps(projectRoot, config2, capabilities) {
   if (hasTeamMemory) {
     const emptyFiles = [];
     for (const file of TEAM_MEMORY_RULE_FILES) {
-      const filePath = join23(projectRoot, ".claude", "rules", file);
-      if (existsSync19(filePath)) {
+      const filePath = join24(projectRoot, ".claude", "rules", file);
+      if (existsSync20(filePath)) {
         const content = readFileSafe(filePath);
         if (content !== null) {
           const entryCount = (content.match(/^### /gm) || []).length;
@@ -237957,9 +237716,9 @@ function scanOverlaps(projectRoot, config2, capabilities) {
         category: "empty-rules",
         severity: "low",
         title: `\uBE48 \uADDC\uCE59 \uD30C\uC77C ${emptyFiles.length}\uAC1C`,
-        description: "\uD56D\uBAA9\uC774 \uC5C6\uB294 \uADDC\uCE59 \uD30C\uC77C\uC774 \uC5D0\uC774\uC804\uD2B8 \uCEE8\uD14D\uC2A4\uD2B8\uB97C \uCC28\uC9C0\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. \uC0AD\uC81C\uD558\uBA74 \uCEE8\uD14D\uC2A4\uD2B8\uB97C \uC808\uC57D\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+        description: "\uD56D\uBAA9\uC774 \uC5C6\uB294 \uADDC\uCE59 \uD30C\uC77C\uC774 \uC5D0\uC774\uC804\uD2B8 \uCEE8\uD14D\uC2A4\uD2B8\uB97C \uCC28\uC9C0\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. team-memory \uBAA8\uB4C8\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC73C\uBBC0\uB85C \uD30C\uC77C \uC790\uCCB4\uB294 \uC720\uC9C0\uD558\uB294 \uAC83\uC744 \uAD8C\uC7A5\uD569\uB2C8\uB2E4.",
         affectedItems: emptyFiles,
-        recommended: "delete"
+        recommended: "keep"
       });
     }
   }
@@ -238022,7 +237781,7 @@ function renderOverlapInterview(result) {
   return lines.join("\n");
 }
 function loadAllowList(projectRoot) {
-  const settingsPath = join23(projectRoot, ".claude", "settings.local.json");
+  const settingsPath = join24(projectRoot, ".claude", "settings.local.json");
   const content = readFileSafe(settingsPath);
   if (!content) return [];
   try {
@@ -238050,90 +237809,133 @@ function readFileSafe(filePath) {
   }
 }
 
-// src/core/overlap-applier.ts
-import { existsSync as existsSync20, unlinkSync } from "fs";
-import { join as join24 } from "path";
-function applyOverlapChoices(projectRoot, scanResult, choices) {
-  const details = [];
-  let applied = 0;
-  let skipped = 0;
-  const errors = [];
-  const decisions = choices.applyDefaults ? Object.fromEntries(scanResult.items.map((i) => [i.id, i.recommended])) : choices.decisions ?? {};
-  for (const item of scanResult.items) {
-    const action = decisions[item.id] ?? "keep";
-    if (action === "keep") {
-      skipped++;
-      details.push({
-        overlapId: item.id,
-        action: "keep",
-        success: true,
-        message: `${item.title}: \uC720\uC9C0`
-      });
-      continue;
+// src/core/post-install-tasks.ts
+function regenerateOntologyIndex(projectRoot, res) {
+  try {
+    const version2 = getPackageVersion();
+    const indexData = collectIndexData(projectRoot, version2);
+    const indexContent = renderIndexMarkdown(indexData);
+    const indexPath = join25(projectRoot, ".agent", "ontology", "ONTOLOGY-INDEX.md");
+    ensureDir(join25(projectRoot, ".agent", "ontology"));
+    safeWriteFile(indexPath, indexContent);
+    res.ok("ONTOLOGY-INDEX.md \uC0DD\uC131 \uC644\uB8CC");
+  } catch (err) {
+    res.warn(`INDEX \uC0DD\uC131 \uC2E4\uD328: ${String(err)}`);
+  }
+}
+function syncTeamMemoryMd(projectRoot, res) {
+  try {
+    const store = loadStore(projectRoot);
+    syncMemoryMd(projectRoot, store);
+    res.ok(".agent/memory.md \uB3D9\uAE30\uD654 \uC644\uB8CC");
+  } catch (err) {
+    res.warn(`memory.md \uB3D9\uAE30\uD654 \uC2E4\uD328: ${String(err)}`);
+  }
+}
+function ensureKnowledgeVault(projectRoot, config2, options, res) {
+  try {
+    const knowledgeConfig = config2.knowledge ?? { ...DEFAULT_KNOWLEDGE_CONFIG };
+    if (!knowledgeConfig.enabled) return;
+    const kDirPath = knowledgeDir(projectRoot);
+    if (!existsSync21(kDirPath)) {
+      config2.knowledge = knowledgeConfig;
+      initKnowledgeVault(projectRoot, knowledgeConfig);
+      res.ok("Knowledge Vault \uCD08\uAE30\uD654 \uC644\uB8CC (.knowledge/)");
+    } else if (options.updateMode) {
+      updateKnowledgeIndex(projectRoot);
     }
+    if (options.ontologyEnabled || knowledgeConfig.syncOntology) {
+      syncOntologyToVault(projectRoot);
+      res.ok("\uC628\uD1A8\uB85C\uC9C0 \u2192 Knowledge Vault \uB3D9\uAE30\uD654 \uC644\uB8CC");
+    }
+  } catch (err) {
+    res.warn(`Knowledge Vault \uCC98\uB9AC \uC2E4\uD328 (\uBB34\uC2DC\uD558\uACE0 \uACC4\uC18D): ${String(err)}`);
+  }
+}
+function syncClaudeMdMarkers(projectRoot, res) {
+  const claudeResult = syncClaudeMd(projectRoot);
+  if (claudeResult.updated) {
+    res.ok("CLAUDE.md \uC790\uB3D9 \uC139\uC158 \uAC31\uC2E0 \uC644\uB8CC");
+  }
+}
+function ensureClaudeMd(projectRoot, res) {
+  const claudeMdPath = join25(projectRoot, "CLAUDE.md");
+  if (!existsSync21(claudeMdPath)) {
     try {
-      if (action === "disable") {
-        const ops = item.affectedItems.map((rule) => ({
-          rule,
-          from: "allow",
-          to: "deny"
-        }));
-        modifyPermissionRules(projectRoot, ops);
-        applied++;
-        details.push({
-          overlapId: item.id,
-          action: "disable",
-          success: true,
-          message: `${item.title}: ${item.affectedItems.length}\uAC1C \uB3C4\uAD6C \uBE44\uD65C\uC131\uD654`
-        });
-      } else if (action === "delete") {
-        if (item.category === "empty-rules") {
-          let deleted = 0;
-          for (const filePath of item.affectedItems) {
-            const fullPath = join24(projectRoot, filePath);
-            if (existsSync20(fullPath)) {
-              unlinkSync(fullPath);
-              deleted++;
-            }
-          }
-          applied++;
-          details.push({
-            overlapId: item.id,
-            action: "delete",
-            success: true,
-            message: `${item.title}: ${deleted}\uAC1C \uD30C\uC77C \uC0AD\uC81C`
-          });
-        } else if (item.category === "bloated-permissions") {
-          const ops = item.affectedItems.map((rule) => ({
-            rule,
-            from: "allow"
-          }));
-          modifyPermissionRules(projectRoot, ops);
-          applied++;
-          details.push({
-            overlapId: item.id,
-            action: "delete",
-            success: true,
-            message: `${item.title}: ${item.affectedItems.length}\uAC1C \uC911\uBCF5 \uD56D\uBAA9 \uC81C\uAC70`
-          });
-        }
+      const templatePath = join25(getTemplatesDir(), "core", "CLAUDE.md.template");
+      if (existsSync21(templatePath)) {
+        const projectName = projectRoot.split("/").pop() || "my-project";
+        const template = readFileSync17(templatePath, "utf-8");
+        const content = template.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+        safeWriteFile(claudeMdPath, content);
+        res.ok("CLAUDE.md \uAE30\uBCF8 \uD15C\uD50C\uB9BF \uC0DD\uC131");
       }
     } catch (err) {
-      const message = `${item.title} \uCC98\uB9AC \uC2E4\uD328: ${String(err)}`;
-      errors.push(message);
-      details.push({
-        overlapId: item.id,
-        action,
-        success: false,
-        message
-      });
+      res.warn(`CLAUDE.md \uC0DD\uC131 \uC2E4\uD328: ${String(err)}`);
     }
   }
-  return { applied, skipped, errors, details };
+  syncClaudeMdMarkers(projectRoot, res);
+}
+function checkMcpConflict(projectRoot, res) {
+  if (detectLocalMcpConflict(projectRoot)) {
+    formatMcpConflictWarning(res);
+  }
+}
+function detectAndCacheCapabilities(projectRoot, config2) {
+  try {
+    const capabilities = detectCapabilities(projectRoot);
+    config2.capabilities = capabilities;
+    cacheCapabilities(projectRoot, capabilities);
+    return capabilities;
+  } catch {
+    return null;
+  }
+}
+function ensureGitignoreEntries(projectRoot, entries, res) {
+  const gitignorePath = join25(projectRoot, ".gitignore");
+  if (existsSync21(gitignorePath)) {
+    let content = readFileSync17(gitignorePath, "utf-8");
+    const added = [];
+    for (const entry of entries) {
+      if (!content.includes(entry)) {
+        content = content.trimEnd() + "\n" + entry + "\n";
+        added.push(entry);
+      }
+    }
+    if (added.length > 0) {
+      writeFileSync7(gitignorePath, content);
+      res.info(`.gitignore\uC5D0 ${added.join(", ")} \uCD94\uAC00`);
+    }
+  } else {
+    writeFileSync7(gitignorePath, entries.join("\n") + "\n");
+    res.info(`.gitignore \uC0DD\uC131 (${entries.join(", ")})`);
+  }
+}
+function installTriggers(projectRoot, res) {
+  try {
+    const triggersSrc = join25(getTemplatesDir(), "triggers.json");
+    if (existsSync21(triggersSrc)) {
+      const triggersDest = join25(projectRoot, ".harness", "triggers.json");
+      const content = readFileSync17(triggersSrc, "utf-8");
+      writeFileSync7(triggersDest, content);
+      res.ok("\uC2A4\uD0AC \uD2B8\uB9AC\uAC70 \uB9E4\uB2C8\uD398\uC2A4\uD2B8 \uC124\uCE58");
+    }
+  } catch (err) {
+    res.warn(`triggers.json \uC124\uCE58 \uC2E4\uD328: ${String(err)}`);
+  }
+}
+function scanOverlapsWithCaps(projectRoot, config2, capabilities) {
+  if (!capabilities) {
+    try {
+      capabilities = detectCapabilities(projectRoot);
+    } catch {
+      return null;
+    }
+  }
+  return scanOverlaps(projectRoot, config2, capabilities);
 }
 
 // src/tools/init.ts
-init_knowledge_vault();
 function registerInitTool(server3) {
   server3.tool(
     "harness_init",
@@ -238216,12 +238018,13 @@ function registerInitTool(server3) {
           }
           config2.options.hooksRegistered = true;
         }
+        let capabilities = null;
         if (!pDryRun) {
           res.info("\uD544\uC218 \uC124\uC815 \uBD80\uD2B8\uC2A4\uD2B8\uB7A9 \uC911...");
           let extraAllow = [];
           try {
-            const caps = detectCapabilities(pRoot);
-            extraAllow = getCapabilityAllowRules(caps);
+            capabilities = detectCapabilities(pRoot);
+            extraAllow = getCapabilityAllowRules(capabilities);
           } catch {
           }
           const bsResult = bootstrapProjectSettings(pRoot, {
@@ -238237,9 +238040,8 @@ function registerInitTool(server3) {
           if (overlapChoicesStr) {
             try {
               const choices = JSON.parse(overlapChoicesStr);
-              const caps = detectCapabilities(pRoot);
-              const scan = scanOverlaps(pRoot, config2, caps);
-              if (scan.totalOverlaps > 0) {
+              const scan = scanOverlapsWithCaps(pRoot, config2, capabilities);
+              if (scan && scan.totalOverlaps > 0) {
                 const overlapResult = applyOverlapChoices(pRoot, scan, choices);
                 config2.overlapPreferences = {
                   lastOptimizedAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -238256,38 +238058,10 @@ function registerInitTool(server3) {
           }
         }
         if (!pDryRun) {
-          ensureDir(join25(pRoot, ".agent"));
-          ensureDir(join25(pRoot, ".harness", "state"));
-          try {
-            const triggersSrc = join25(getTemplatesDir(), "triggers.json");
-            if (existsSync21(triggersSrc)) {
-              const triggersDest = join25(pRoot, ".harness", "triggers.json");
-              const content = readFileSync17(triggersSrc, "utf-8");
-              writeFileSync7(triggersDest, content);
-              res.ok("\uC2A4\uD0AC \uD2B8\uB9AC\uAC70 \uB9E4\uB2C8\uD398\uC2A4\uD2B8 \uC124\uCE58");
-            }
-          } catch (err) {
-            res.warn(`triggers.json \uC124\uCE58 \uC2E4\uD328: ${String(err)}`);
-          }
-          const gitignorePath = join25(pRoot, ".gitignore");
-          const gitignoreEntries = [".harness/", ".knowledge/"];
-          if (existsSync21(gitignorePath)) {
-            let content = readFileSync17(gitignorePath, "utf-8");
-            const added = [];
-            for (const entry of gitignoreEntries) {
-              if (!content.includes(entry)) {
-                content = content.trimEnd() + "\n" + entry + "\n";
-                added.push(entry);
-              }
-            }
-            if (added.length > 0) {
-              writeFileSync7(gitignorePath, content);
-              res.info(`.gitignore\uC5D0 ${added.join(", ")} \uCD94\uAC00`);
-            }
-          } else {
-            writeFileSync7(gitignorePath, gitignoreEntries.join("\n") + "\n");
-            res.info(".gitignore \uC0DD\uC131 (.harness/, .knowledge/)");
-          }
+          ensureDir(join26(pRoot, ".agent"));
+          ensureDir(join26(pRoot, ".harness", "state"));
+          installTriggers(pRoot, res);
+          ensureGitignoreEntries(pRoot, [".harness/", ".knowledge/"], res);
         }
         let ontologyConfig;
         if (pEnableOntology) {
@@ -238369,64 +238143,19 @@ function registerInitTool(server3) {
           }
         }
         if (!pDryRun) {
-          try {
-            const version2 = getPackageVersion();
-            const indexData = collectIndexData(pRoot, version2);
-            const indexContent = renderIndexMarkdown(indexData);
-            const indexPath = join25(pRoot, ".agent", "ontology", "ONTOLOGY-INDEX.md");
-            ensureDir(join25(pRoot, ".agent", "ontology"));
-            safeWriteFile(indexPath, indexContent);
-            res.ok("ONTOLOGY-INDEX.md \uC0DD\uC131 \uC644\uB8CC");
-          } catch (err) {
-            res.warn(`INDEX \uC0DD\uC131 \uC2E4\uD328: ${String(err)}`);
-          }
-          try {
-            const knowledgeConfig = { ...DEFAULT_KNOWLEDGE_CONFIG };
-            config2.knowledge = knowledgeConfig;
-            initKnowledgeVault(pRoot, knowledgeConfig);
-            res.ok("Knowledge Vault \uCD08\uAE30\uD654 \uC644\uB8CC (.knowledge/)");
-            if (pEnableOntology) {
-              syncOntologyToVault(pRoot);
-              res.ok("\uC628\uD1A8\uB85C\uC9C0 \u2192 Knowledge Vault \uB3D9\uAE30\uD654 \uC644\uB8CC");
-            }
-          } catch (err) {
-            res.warn(`Knowledge Vault \uCD08\uAE30\uD654 \uC2E4\uD328 (\uBB34\uC2DC\uD558\uACE0 \uACC4\uC18D): ${String(err)}`);
-          }
+          regenerateOntologyIndex(pRoot, res);
+          ensureKnowledgeVault(pRoot, config2, { ontologyEnabled: pEnableOntology }, res);
           if (resolvedModules.includes("team-memory")) {
-            try {
-              const store = loadStore(pRoot);
-              syncMemoryMd(pRoot, store);
-              res.ok(".agent/memory.md \uCD08\uAE30 \uB3D9\uAE30\uD654 \uC644\uB8CC");
-            } catch (err) {
-              res.warn(`memory.md \uB3D9\uAE30\uD654 \uC2E4\uD328: ${String(err)}`);
-            }
+            syncTeamMemoryMd(pRoot, res);
           }
-          try {
-            const capabilities = detectCapabilities(pRoot);
+          if (capabilities) {
             config2.capabilities = capabilities;
-            cacheCapabilities(pRoot, capabilities);
-          } catch {
+            detectAndCacheCapabilities(pRoot, config2);
+          } else {
+            detectAndCacheCapabilities(pRoot, config2);
           }
           saveConfig(pRoot, config2);
-          const claudeMdPath = join25(pRoot, "CLAUDE.md");
-          if (!existsSync21(claudeMdPath)) {
-            try {
-              const templatePath = join25(getTemplatesDir(), "core", "CLAUDE.md.template");
-              if (existsSync21(templatePath)) {
-                const projectName = pRoot.split("/").pop() || "my-project";
-                const template = readFileSync17(templatePath, "utf-8");
-                const content = template.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
-                safeWriteFile(claudeMdPath, content);
-                res.ok("CLAUDE.md \uAE30\uBCF8 \uD15C\uD50C\uB9BF \uC0DD\uC131");
-              }
-            } catch (err) {
-              res.warn(`CLAUDE.md \uC0DD\uC131 \uC2E4\uD328: ${String(err)}`);
-            }
-          }
-          const claudeResult = syncClaudeMd(pRoot);
-          if (claudeResult.updated) {
-            res.ok("CLAUDE.md \uC790\uB3D9 \uC139\uC158 \uAC31\uC2E0 \uC644\uB8CC");
-          }
+          ensureClaudeMd(pRoot, res);
           if (resolvedModules.includes("ship")) {
             try {
               const labelResult = setupGithubLabels(pRoot);
@@ -238453,9 +238182,7 @@ function registerInitTool(server3) {
           res.blank();
           res.line(coreLog);
         }
-        if (detectLocalMcpConflict(pRoot)) {
-          formatMcpConflictWarning(res);
-        }
+        checkMcpConflict(pRoot, res);
         res.blank();
         res.header("\uC124\uCE58 \uC644\uB8CC");
         res.table([
@@ -238473,13 +238200,12 @@ function registerInitTool(server3) {
 }
 
 // src/tools/update.ts
-import { join as join27 } from "path";
+import { join as join28 } from "path";
 import { existsSync as existsSync23, copyFileSync as copyFileSync2, mkdirSync as mkdirSync7 } from "fs";
-init_omc_compat();
 
 // src/core/diff-engine.ts
 import { existsSync as existsSync22, readFileSync as readFileSync18 } from "fs";
-import { join as join26 } from "path";
+import { join as join27 } from "path";
 
 // node_modules/diff/libesm/diff/base.js
 var Diff = class {
@@ -238915,19 +238641,18 @@ function splitLines(text) {
 }
 
 // src/core/diff-engine.ts
-init_file_ops();
 function analyzeChanges(config2, projectRoot) {
   const changes = [];
   const templatesDir = getTemplatesDir();
   const modules = getAllModules();
   for (const [relativePath, fileRecord] of Object.entries(config2.files)) {
-    const destPath = join26(projectRoot, relativePath);
+    const destPath = join27(projectRoot, relativePath);
     const mod = modules[fileRecord.module];
     if (!mod) continue;
     const allFiles = getAllModuleFiles(mod);
     const modFile = allFiles.find((f) => f.destination === relativePath);
     if (!modFile) continue;
-    const srcPath = join26(templatesDir, modFile.source);
+    const srcPath = join27(templatesDir, modFile.source);
     if (!existsSync22(srcPath)) continue;
     const templateHash = computeFileHash(srcPath);
     const installedHash = fileRecord.hash;
@@ -238957,17 +238682,15 @@ function classifyFileStatus(installedHash, currentHash, templateHash) {
   return "CONFLICT";
 }
 function generateDiff(projectRoot, relativePath, templateSourcePath) {
-  const currentPath = join26(projectRoot, relativePath);
+  const currentPath = join27(projectRoot, relativePath);
   const templatesDir = getTemplatesDir();
-  const srcPath = join26(templatesDir, templateSourcePath);
+  const srcPath = join27(templatesDir, templateSourcePath);
   const currentContent = existsSync22(currentPath) ? readFileSync18(currentPath, "utf-8") : "";
   const newContent = existsSync22(srcPath) ? readFileSync18(srcPath, "utf-8") : "";
   return createPatch(relativePath, currentContent, newContent, "current", "new");
 }
 
 // src/tools/update.ts
-init_file_ops();
-init_knowledge_vault();
 function registerUpdateTool(server3) {
   server3.tool(
     "harness_update",
@@ -238993,7 +238716,7 @@ function registerUpdateTool(server3) {
         }
         res.header("carpdm-harness \uC5C5\uB370\uC774\uD2B8");
         if (!pDryRun) {
-          const migration = migrateLegacyState(pRoot);
+          const migration = migrateLegacyState(pRoot, config2);
           if (migration.migrated > 0) {
             res.info(`\uB808\uAC70\uC2DC \uC0C1\uD0DC \uB9C8\uC774\uADF8\uB808\uC774\uC158: ${migration.migrated}/${migration.total}\uAC1C \uD30C\uC77C`);
           }
@@ -239024,8 +238747,8 @@ function registerUpdateTool(server3) {
                 res.line(diff);
               }
               if (pAcceptAll && !pDryRun) {
-                const srcPath = join27(templatesDir, modFile.source);
-                const destPath = join27(pRoot, change.relativePath);
+                const srcPath = join28(templatesDir, modFile.source);
+                const destPath = join28(pRoot, change.relativePath);
                 safeCopyFile(srcPath, destPath, modFile.executable);
                 const hash = computeFileHash(destPath);
                 updateFileRecord(config2, change.relativePath, change.module, version2, hash);
@@ -239038,9 +238761,9 @@ function registerUpdateTool(server3) {
             } else if (change.status === "CONFLICT") {
               conflicts++;
               if (pAcceptAll && !pDryRun) {
-                backupFile(join27(pRoot, change.relativePath));
-                const srcPath = join27(templatesDir, modFile.source);
-                const destPath = join27(pRoot, change.relativePath);
+                backupFile(join28(pRoot, change.relativePath));
+                const srcPath = join28(templatesDir, modFile.source);
+                const destPath = join28(pRoot, change.relativePath);
                 safeCopyFile(srcPath, destPath, modFile.executable);
                 const hash = computeFileHash(destPath);
                 updateFileRecord(config2, change.relativePath, change.module, version2, hash);
@@ -239068,50 +238791,15 @@ function registerUpdateTool(server3) {
           }
         }
         if (!pDryRun) {
-          try {
-            const version2 = getPackageVersion();
-            const indexData = collectIndexData(pRoot, version2);
-            const indexContent = renderIndexMarkdown(indexData);
-            const indexPath = join27(pRoot, ".agent", "ontology", "ONTOLOGY-INDEX.md");
-            ensureDir(join27(pRoot, ".agent", "ontology"));
-            safeWriteFile(indexPath, indexContent);
-            res.ok("ONTOLOGY-INDEX.md \uC7AC\uC0DD\uC131 \uC644\uB8CC");
-          } catch (err) {
-            res.warn(`INDEX \uC7AC\uC0DD\uC131 \uC2E4\uD328: ${String(err)}`);
-          }
-          try {
-            const store = loadStore(pRoot);
-            syncMemoryMd(pRoot, store);
-            res.ok(".agent/memory.md \uB3D9\uAE30\uD654 \uC644\uB8CC");
-          } catch (err) {
-            res.warn(`memory.md \uB3D9\uAE30\uD654 \uC2E4\uD328: ${String(err)}`);
-          }
-          try {
-            const knowledgeConfig = config2.knowledge ?? DEFAULT_KNOWLEDGE_CONFIG;
-            if (knowledgeConfig.enabled) {
-              const { knowledgeDir: kDir } = await Promise.resolve().then(() => (init_omc_compat(), omc_compat_exports));
-              const kDirPath = kDir(pRoot);
-              if (!existsSync23(kDirPath)) {
-                initKnowledgeVault(pRoot, knowledgeConfig);
-                config2.knowledge = knowledgeConfig;
-                res.ok("Knowledge Vault \uCD08\uAE30 \uC0DD\uC131 (.knowledge/)");
-              } else {
-                updateKnowledgeIndex(pRoot);
-                if (knowledgeConfig.syncOntology) {
-                  syncOntologyToVault(pRoot);
-                }
-                res.ok("Knowledge Vault \uB3D9\uAE30\uD654 \uC644\uB8CC");
-              }
-            }
-          } catch (err) {
-            res.warn(`Knowledge Vault \uB3D9\uAE30\uD654 \uC2E4\uD328 (\uBB34\uC2DC\uD558\uACE0 \uACC4\uC18D): ${String(err)}`);
-          }
+          regenerateOntologyIndex(pRoot, res);
+          syncTeamMemoryMd(pRoot, res);
+          ensureKnowledgeVault(pRoot, config2, { updateMode: true }, res);
         }
         if (!pDryRun) {
           try {
-            const caps = detectCapabilities(pRoot);
-            const scan = scanOverlaps(pRoot, config2, caps);
-            if (overlapChoicesStr) {
+            const caps = detectAndCacheCapabilities(pRoot, config2);
+            const scan = scanOverlapsWithCaps(pRoot, config2, caps);
+            if (scan && overlapChoicesStr) {
               const choices = JSON.parse(overlapChoicesStr);
               if (scan.totalOverlaps > 0) {
                 const overlapResult = applyOverlapChoices(pRoot, scan, choices);
@@ -239124,7 +238812,7 @@ function registerUpdateTool(server3) {
                   res.warn(e);
                 }
               }
-            } else if (config2.overlapPreferences) {
+            } else if (scan && config2.overlapPreferences) {
               const existingDecisions = config2.overlapPreferences.decisions;
               if (Object.keys(existingDecisions).length > 0 && scan.totalOverlaps > 0) {
                 applyOverlapChoices(pRoot, scan, { decisions: existingDecisions });
@@ -239137,7 +238825,7 @@ function registerUpdateTool(server3) {
                 res.line(renderOverlapInterview({ totalOverlaps: newItems.length, items: newItems }));
                 res.info(`harness_update({ overlapChoices: '{"applyDefaults":true}' })\uB85C \uAD8C\uC7A5 \uC124\uC815 \uC77C\uAD04 \uC801\uC6A9`);
               }
-            } else if (scan.totalOverlaps > 0) {
+            } else if (scan && scan.totalOverlaps > 0) {
               res.blank();
               res.header(`\uC911\uBCF5 \uAC10\uC9C0: ${scan.totalOverlaps}\uAC1C \uD56D\uBAA9`);
               res.line(renderOverlapInterview(scan));
@@ -239150,8 +238838,8 @@ function registerUpdateTool(server3) {
         if (!pDryRun) {
           saveConfig(pRoot, config2);
         }
-        if (!pDryRun && detectLocalMcpConflict(pRoot)) {
-          formatMcpConflictWarning(res);
+        if (!pDryRun) {
+          checkMcpConflict(pRoot, res);
         }
         const coreLog = logger.flush();
         if (coreLog) {
@@ -239172,9 +238860,13 @@ function registerUpdateTool(server3) {
     }
   );
 }
-function migrateLegacyState(projectRoot) {
-  const legacyDir = join27(projectRoot, ".omc", "state");
-  const newDir = join27(projectRoot, ".harness", "state");
+var CURRENT_MIGRATION_VERSION = 1;
+function migrateLegacyState(projectRoot, config2) {
+  if ((config2.migrationVersion ?? 0) >= CURRENT_MIGRATION_VERSION) {
+    return { migrated: 0, total: 0 };
+  }
+  const legacyDir = join28(projectRoot, ".omc", "state");
+  const newDir = join28(projectRoot, ".harness", "state");
   mkdirSync7(newDir, { recursive: true });
   const LEGACY_FILES = [
     "task-mode",
@@ -239190,26 +238882,27 @@ function migrateLegacyState(projectRoot) {
   let migrated = 0;
   const total = LEGACY_FILES.length;
   for (const file of LEGACY_FILES) {
-    const src = join27(legacyDir, file);
-    const dest = join27(newDir, file);
+    const src = join28(legacyDir, file);
+    const dest = join28(newDir, file);
     if (existsSync23(src) && !existsSync23(dest)) {
       copyFileSync2(src, dest);
       migrated++;
     }
   }
-  const legacyLog = join27(projectRoot, ".omc", "change-log.md");
-  const newLog = join27(projectRoot, ".harness", "change-log.md");
+  const legacyLog = join28(projectRoot, ".omc", "change-log.md");
+  const newLog = join28(projectRoot, ".harness", "change-log.md");
   if (existsSync23(legacyLog) && !existsSync23(newLog)) {
-    mkdirSync7(join27(projectRoot, ".harness"), { recursive: true });
+    mkdirSync7(join28(projectRoot, ".harness"), { recursive: true });
     copyFileSync2(legacyLog, newLog);
     migrated++;
   }
+  config2.migrationVersion = CURRENT_MIGRATION_VERSION;
   return { migrated, total: total + 1 };
 }
 
 // src/tools/migrate.ts
-import { existsSync as existsSync24, readdirSync as readdirSync9 } from "fs";
-import { join as join28 } from "path";
+import { existsSync as existsSync24, readdirSync as readdirSync9, readFileSync as readFileSync19, writeFileSync as writeFileSync8, mkdirSync as mkdirSync8 } from "fs";
+import { join as join29 } from "path";
 var FILE_MODULE_MAP = {
   "plan-gate.md": "core",
   "read-domain-context.md": "core",
@@ -239252,15 +238945,15 @@ function registerMigrateTool(server3) {
           return errorResult("\uC774\uBBF8 v4\uC785\uB2C8\uB2E4. harness_update\uB97C \uC0AC\uC6A9\uD558\uC138\uC694.");
         }
         res.header("agent_harness \u2192 carpdm-harness \uB9C8\uC774\uADF8\uB808\uC774\uC158");
-        const commandsDir = join28(pRoot, ".claude", "commands");
-        const hooksDir = join28(pRoot, ".claude", "hooks");
+        const commandsDir = join29(pRoot, ".claude", "commands");
+        const hooksDir = join29(pRoot, ".claude", "hooks");
         const detectedFiles = [];
         if (existsSync24(commandsDir)) {
           const files = readdirSync9(commandsDir).filter((f) => f.endsWith(".md"));
           for (const file of files) {
             const module = FILE_MODULE_MAP[file];
             if (module) {
-              detectedFiles.push({ path: join28(".claude", "commands", file), name: file, module });
+              detectedFiles.push({ path: join29(".claude", "commands", file), name: file, module });
             }
           }
         }
@@ -239269,7 +238962,7 @@ function registerMigrateTool(server3) {
           for (const file of files) {
             const module = FILE_MODULE_MAP[file];
             if (module) {
-              detectedFiles.push({ path: join28(".claude", "hooks", file), name: file, module });
+              detectedFiles.push({ path: join29(".claude", "hooks", file), name: file, module });
             }
           }
         }
@@ -239355,15 +239048,13 @@ function migrateV3ToV4(projectRoot, config2, dryRun, res) {
     res.info("(dry-run \uBAA8\uB4DC \u2014 \uC2E4\uC81C \uBCC0\uACBD \uC5C6\uC74C)");
     return res.toResult();
   }
-  const { readFileSync: readFileSync24, writeFileSync: writeFileSync10, mkdirSync: mkdirSync10 } = __require("fs");
-  const { join: join40 } = __require("path");
-  const backupDir = join40(projectRoot, ".harness", "backup");
+  const backupDir = join29(projectRoot, ".harness", "backup");
   try {
-    mkdirSync10(backupDir, { recursive: true });
-    const configPath = join40(projectRoot, "carpdm-harness.config.json");
-    writeFileSync10(
-      join40(backupDir, `config-v${config2.version}-${Date.now()}.json`),
-      readFileSync24(configPath, "utf-8")
+    mkdirSync8(backupDir, { recursive: true });
+    const configPath = join29(projectRoot, "carpdm-harness.config.json");
+    writeFileSync8(
+      join29(backupDir, `config-v${config2.version}-${Date.now()}.json`),
+      readFileSync19(configPath, "utf-8")
     );
     res.ok("\uAE30\uC874 \uC124\uC815 \uBC31\uC5C5 \uC644\uB8CC");
   } catch {
@@ -239386,8 +239077,7 @@ function migrateV3ToV4(projectRoot, config2, dryRun, res) {
 }
 
 // src/tools/ontology-domain-write.ts
-import { join as join29 } from "path";
-init_file_ops();
+import { join as join30 } from "path";
 function registerOntologyDomainWriteTool(server3) {
   server3.tool(
     "harness_ontology_domain_write",
@@ -239463,7 +239153,7 @@ function registerOntologyDomainWriteTool(server3) {
           domain: domainData
         };
         const { domain: domainMd } = renderOntologyMarkdown(ontologyData);
-        const outputPath = join29(projectRoot, ontologyConfig.outputDir, "ONTOLOGY-DOMAIN.md");
+        const outputPath = join30(projectRoot, ontologyConfig.outputDir, "ONTOLOGY-DOMAIN.md");
         safeWriteFile(outputPath, domainMd);
         if (cache) {
           saveOntologyCache(projectRoot, ontologyConfig.outputDir, {
@@ -239608,22 +239298,21 @@ function registerMemoryListTool(server3) {
 }
 
 // src/tools/dashboard.ts
-import { join as join31, basename as basename4 } from "path";
+import { join as join32, basename as basename4 } from "path";
 import { existsSync as existsSync26 } from "fs";
 import { execSync as execSync2 } from "child_process";
-init_file_ops();
 
 // src/core/event-logger.ts
-import { readdirSync as readdirSync10, readFileSync as readFileSync19, existsSync as existsSync25, unlinkSync as unlinkSync2 } from "fs";
-import { join as join30, basename as basename3 } from "path";
+import { readdirSync as readdirSync10, readFileSync as readFileSync20, existsSync as existsSync25, unlinkSync as unlinkSync2 } from "fs";
+import { join as join31, basename as basename3 } from "path";
 var EVENTS_DIR = ".harness/events";
 function readEvents(projectRoot, sessionId) {
-  const eventsDir = join30(projectRoot, EVENTS_DIR);
+  const eventsDir = join31(projectRoot, EVENTS_DIR);
   if (!existsSync25(eventsDir)) return [];
   const files = readdirSync10(eventsDir).filter((f) => f.endsWith(".jsonl")).filter((f) => !sessionId || basename3(f, ".jsonl") === sessionId);
   const events = [];
   for (const file of files) {
-    const content = readFileSync19(join30(eventsDir, file), "utf-8");
+    const content = readFileSync20(join31(eventsDir, file), "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -239635,7 +239324,7 @@ function readEvents(projectRoot, sessionId) {
   return events.sort((a, b) => a.ts.localeCompare(b.ts));
 }
 function listSessions(projectRoot) {
-  const eventsDir = join30(projectRoot, EVENTS_DIR);
+  const eventsDir = join31(projectRoot, EVENTS_DIR);
   if (!existsSync25(eventsDir)) return [];
   const files = readdirSync10(eventsDir).filter((f) => f.endsWith(".jsonl"));
   const sessions = [];
@@ -239786,14 +239475,14 @@ function getEventStats(events) {
   };
 }
 function pruneOldSessions(projectRoot, retentionDays) {
-  const eventsDir = join30(projectRoot, EVENTS_DIR);
+  const eventsDir = join31(projectRoot, EVENTS_DIR);
   if (!existsSync25(eventsDir)) return { pruned: 0, kept: 0 };
   const files = readdirSync10(eventsDir).filter((f) => f.endsWith(".jsonl"));
   if (files.length <= 3) return { pruned: 0, kept: files.length };
   const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1e3;
   const fileAges = [];
   for (const file of files) {
-    const content = readFileSync19(join30(eventsDir, file), "utf-8");
+    const content = readFileSync20(join31(eventsDir, file), "utf-8");
     const lines = content.split("\n").filter((l) => l.trim());
     if (lines.length === 0) continue;
     try {
@@ -239810,7 +239499,7 @@ function pruneOldSessions(projectRoot, retentionDays) {
     if (i < 3 || fileAges[i].lastTs >= cutoff) {
       kept++;
     } else {
-      unlinkSync2(join30(eventsDir, fileAges[i].file));
+      unlinkSync2(join31(eventsDir, fileAges[i].file));
       pruned++;
     }
   }
@@ -240284,7 +239973,6 @@ function renderDashboard(data) {
 }
 
 // src/tools/dashboard.ts
-init_file_ops();
 function registerDashboardTool(server3) {
   server3.tool(
     "harness_dashboard",
@@ -240332,7 +240020,7 @@ function registerDashboardTool(server3) {
         let missing = 0;
         if (config2?.files) {
           for (const [relPath, record2] of Object.entries(config2.files)) {
-            const absPath = join31(root, relPath);
+            const absPath = join32(root, relPath);
             if (!existsSync26(absPath)) {
               missing++;
             } else {
@@ -240416,7 +240104,7 @@ function registerDashboardTool(server3) {
           hookMap
         };
         const html = renderDashboard(data);
-        const outputPath = join31(root, ".harness", "dashboard.html");
+        const outputPath = join32(root, ".harness", "dashboard.html");
         safeWriteFile(outputPath, html);
         res.header("\uB300\uC2DC\uBCF4\uB4DC \uC0DD\uC131 \uC644\uB8CC");
         res.line(`\uACBD\uB85C: ${outputPath}`);
@@ -240458,6 +240146,12 @@ function inferEventFromHook(hookName) {
 
 // src/tools/setup.ts
 import { existsSync as existsSync27 } from "fs";
+var TOOL_IMPACT_MAP = [
+  { key: "serena", label: "Serena", message: "Serena \uBBF8\uAC10\uC9C0 \u2192 architect/verifier \uB2E8\uACC4\uC5D0\uC11C LSP \uAE30\uBC18 \uCF54\uB4DC \uBD84\uC11D \uBD88\uAC00" },
+  { key: "context7", label: "Context7", message: "Context7 \uBBF8\uAC10\uC9C0 \u2192 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBB38\uC11C \uC790\uB3D9 \uC870\uD68C \uBD88\uAC00" },
+  { key: "codex", label: "Codex", message: "Codex \uBBF8\uAC10\uC9C0 \u2192 MCP \uC704\uC784 (\uBCD1\uB82C \uC2E4\uD589) \uBD88\uAC00" },
+  { key: "gemini", label: "Gemini", message: "Gemini \uBBF8\uAC10\uC9C0 \u2192 MCP \uC704\uC784 (\uBCD1\uB82C \uC2E4\uD589) \uBD88\uAC00" }
+];
 function registerSetupTool(server3) {
   server3.tool(
     "harness_setup",
@@ -240490,27 +240184,17 @@ function registerSetupTool(server3) {
         }
         res.info("\uC678\uBD80 \uB3C4\uAD6C \uAC10\uC9C0 \uC911...");
         const capabilities = detectCapabilities(pRoot);
-        const detectedTools = [];
-        if (capabilities.tools.serena.detected) detectedTools.push("Serena");
-        if (capabilities.tools.context7.detected) detectedTools.push("Context7");
-        if (capabilities.tools.codex.detected) detectedTools.push("Codex");
-        if (capabilities.tools.gemini.detected) detectedTools.push("Gemini");
+        const detectedTools = TOOL_IMPACT_MAP.filter(({ key }) => capabilities.tools[key].detected).map(({ label }) => label);
         if (detectedTools.length > 0) {
           res.ok(`\uAC10\uC9C0\uB41C \uB3C4\uAD6C: ${detectedTools.join(", ")}`);
         } else {
           res.info("\uCD94\uAC00 \uC678\uBD80 \uB3C4\uAD6C \uC5C6\uC74C (\uAE30\uBCF8 \uAD6C\uC131\uC73C\uB85C \uC9C4\uD589)");
         }
-        const toolImpacts = [
-          [!capabilities.tools.serena.detected, "Serena \uBBF8\uAC10\uC9C0 \u2192 architect/verifier \uB2E8\uACC4\uC5D0\uC11C LSP \uAE30\uBC18 \uCF54\uB4DC \uBD84\uC11D \uBD88\uAC00"],
-          [!capabilities.tools.context7.detected, "Context7 \uBBF8\uAC10\uC9C0 \u2192 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBB38\uC11C \uC790\uB3D9 \uC870\uD68C \uBD88\uAC00"],
-          [!capabilities.tools.codex.detected, "Codex \uBBF8\uAC10\uC9C0 \u2192 MCP \uC704\uC784 (\uBCD1\uB82C \uC2E4\uD589) \uBD88\uAC00"],
-          [!capabilities.tools.gemini.detected, "Gemini \uBBF8\uAC10\uC9C0 \u2192 MCP \uC704\uC784 (\uBCD1\uB82C \uC2E4\uD589) \uBD88\uAC00"]
-        ];
-        const missing = toolImpacts.filter(([absent]) => absent);
-        if (missing.length > 0 && missing.length < 4) {
+        const missing = TOOL_IMPACT_MAP.filter(({ key }) => !capabilities.tools[key].detected);
+        if (missing.length > 0 && missing.length < TOOL_IMPACT_MAP.length) {
           res.blank();
-          for (const [, msg] of missing) {
-            res.info(msg);
+          for (const { message } of missing) {
+            res.info(message);
           }
         }
         const scanResult = scanOverlaps(pRoot, null, capabilities);
@@ -240587,14 +240271,13 @@ function registerSetupTool(server3) {
 }
 
 // src/types/workflow.ts
-init_omc_compat();
 var WORKFLOW_DEFINITIONS = {
   feature: {
     name: "feature",
     description: "\uAE30\uB2A5 \uAC1C\uBC1C \uC6CC\uD06C\uD50C\uB85C\uC6B0",
     requiredModules: ["core", "quality"],
     pipeline: [
-      { order: 1, agent: "analyst", action: "\uC694\uAD6C\uC0AC\uD56D \uBD84\uC11D", checkpoint: "\uC694\uAD6C\uC0AC\uD56D \uD655\uC815", omcSkill: OMC_SKILLS.analyze },
+      { order: 1, agent: "analyst", action: "\uC694\uAD6C\uC0AC\uD56D \uBD84\uC11D", omcSkill: OMC_SKILLS.analyze },
       { order: 2, agent: "planner", action: "\uAD6C\uD604 \uACC4\uD68D \uC218\uB9BD", checkpoint: "\uACC4\uD68D \uC2B9\uC778", omcSkill: OMC_SKILLS.plan },
       { order: 3, agent: "architect", action: "\uC544\uD0A4\uD14D\uCC98 \uAC80\uC99D", optional: true },
       { order: 4, agent: "executor", action: "\uAD6C\uD604", checkpoint: "\uAD6C\uD604 \uC644\uB8CC", omcSkill: OMC_SKILLS.autopilot },
@@ -240679,7 +240362,6 @@ var TRANSITION_TABLE = {
 };
 
 // src/core/workflow-engine.ts
-init_omc_compat();
 function applyTransition(current, event) {
   const allowed = TRANSITION_TABLE[current];
   if (!allowed.includes(event)) return null;
@@ -240713,7 +240395,7 @@ function resolveNextAction(instance) {
   if (!currentStep) {
     return { type: "workflow_complete", action: "\uC6CC\uD06C\uD50C\uB85C\uC6B0\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4." };
   }
-  const hint = instance.config.autoDispatch ? generateDispatchHint(currentStep, instance.context) : void 0;
+  const hint = instance.config.autoDispatch ? generateDispatchHint(currentStep, instance.context, instance.config.teamMode) : void 0;
   if (currentStep.omcSkill) {
     return {
       type: "run_omc_skill",
@@ -240730,10 +240412,11 @@ function resolveNextAction(instance) {
     dispatchHint: hint
   };
 }
-function generateDispatchHint(step, context) {
+function generateDispatchHint(step, context, teamMode) {
   const mapping = AGENT_SKILL_MAP[step.agent];
   const model = mapping?.model ?? "sonnet";
-  const skill = step.omcSkill ?? mapping?.skill;
+  const teamModeSkill = (step.agent === "executor" || step.agent === "deep-executor") && teamMode ? `/oh-my-claudecode:${teamMode}` : void 0;
+  const skill = teamModeSkill ?? step.omcSkill ?? mapping?.skill;
   const agentType = `${OMC_AGENT_PREFIX}${step.agent}`;
   const parts = [`\uC791\uC5C5: ${step.action}`];
   if (context?.description) {
@@ -241136,6 +240819,117 @@ function listRecentWorkflows(projectRoot) {
   return instances;
 }
 
+// src/core/workflow-agent-sync.ts
+import { existsSync as existsSync28, mkdirSync as mkdirSync9, readFileSync as readFileSync21, writeFileSync as writeFileSync9 } from "fs";
+import { dirname as dirname5 } from "path";
+
+// src/core/project-paths.ts
+import { join as join33 } from "path";
+function agentPlanPath(projectRoot) {
+  return join33(projectRoot, ".agent", "plan.md");
+}
+function agentTodoPath(projectRoot) {
+  return join33(projectRoot, ".agent", "todo.md");
+}
+function agentArchiveDir(projectRoot) {
+  return join33(projectRoot, ".agent", "archive");
+}
+
+// src/core/workflow-agent-sync.ts
+function generatePlanFromWorkflow(projectRoot, instance, context) {
+  const planPath = agentPlanPath(projectRoot);
+  if (existsSync28(planPath)) {
+    return { created: false, path: planPath };
+  }
+  mkdirSync9(dirname5(planPath), { recursive: true });
+  const description = context?.description || "(\uC6CC\uD06C\uD50C\uB85C\uC6B0\uC5D0\uC11C \uC790\uB3D9 \uC0DD\uC131\uB428)";
+  const now = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const stepsSection = instance.steps.map((s) => {
+    const cp = s.checkpoint ? ` \u2192 checkpoint: ${s.checkpoint}` : "";
+    return `${s.order}. **${s.agent}** \u2014 ${s.action}${cp}`;
+  }).join("\n");
+  const content = `# Plan \u2014 ${instance.workflowType}: ${description}
+
+> \uC0C1\uD0DC: DRAFT
+> \uC6CC\uD06C\uD50C\uB85C\uC6B0: ${instance.workflowType} (${instance.id})
+> \uC0DD\uC131: ${now}
+
+## \uBAA9\uD45C
+
+${description}
+
+## \uAD6C\uD604 \uACC4\uD68D
+
+${stepsSection}
+
+## \uAC80\uC99D
+
+- [ ] \uC804\uCCB4 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uB2E8\uACC4 \uC644\uB8CC
+- [ ] harness_verify_all \uD1B5\uACFC
+`;
+  writeFileSync9(planPath, content, "utf-8");
+  return { created: true, path: planPath };
+}
+function generateTodoFromWorkflow(projectRoot, instance) {
+  const todoPath = agentTodoPath(projectRoot);
+  if (existsSync28(todoPath)) {
+    return { created: false, path: todoPath };
+  }
+  mkdirSync9(dirname5(todoPath), { recursive: true });
+  const lines = [
+    `# Todo \u2014 ${instance.workflowType}`,
+    `> \uC6CC\uD06C\uD50C\uB85C\uC6B0: ${instance.id}`,
+    ""
+  ];
+  for (const step of instance.steps) {
+    const cp = step.checkpoint ? ` \u2192 checkpoint: ${step.checkpoint}` : "";
+    const current = step.order === 1 ? " \u2190 CURRENT" : "";
+    lines.push(`- [ ] Step ${step.order}: ${step.agent} \u2014 ${step.action}${cp}${current}`);
+  }
+  writeFileSync9(todoPath, lines.join("\n") + "\n", "utf-8");
+  return { created: true, path: todoPath };
+}
+function syncTodoProgress(projectRoot, completedStep, nextStep) {
+  const todoPath = agentTodoPath(projectRoot);
+  if (!existsSync28(todoPath)) {
+    return { synced: false };
+  }
+  let content;
+  try {
+    content = readFileSync21(todoPath, "utf-8");
+  } catch {
+    return { synced: false };
+  }
+  const stepPattern = new RegExp(`^(- \\[)( )(\\] Step ${completedStep}:.*)$`, "m");
+  if (!stepPattern.test(content)) {
+    return { synced: false };
+  }
+  content = content.replace(stepPattern, "$1x$3");
+  content = content.replace(/ ← CURRENT/g, "");
+  if (nextStep != null) {
+    const nextPattern = new RegExp(`^(- \\[[ x]\\] Step ${nextStep}:.*)$`, "m");
+    content = content.replace(nextPattern, "$1 \u2190 CURRENT");
+  }
+  if (nextStep == null) {
+    if (!content.includes("> \uC0C1\uD0DC: COMPLETED")) {
+      content = content.replace(/^(# Todo .*)$/m, "$1\n> \uC0C1\uD0DC: COMPLETED");
+    }
+  }
+  writeFileSync9(todoPath, content, "utf-8");
+  return { synced: true };
+}
+function initKnowledgeBranch(projectRoot, branch) {
+  if (!existsSync28(knowledgeDir(projectRoot))) {
+    return { created: false };
+  }
+  try {
+    createBranchKnowledge(projectRoot, branch);
+    return { created: true };
+  } catch {
+    return { created: false };
+  }
+}
+
 // src/tools/workflow.ts
 function registerWorkflowTool(server3) {
   server3.tool(
@@ -241274,7 +241068,9 @@ function handleGuide(pRoot, workflow, config2) {
     }
   }
   res.blank();
-  res.line("  \uCD94\uCC9C \uC790\uB3D9 \uBAA8\uB4DC: /oh-my-claudecode:autopilot (\uC804\uCCB4 \uD30C\uC774\uD504\uB77C\uC778 \uC790\uB3D9 \uC2E4\uD589)");
+  const recommendedMode = def.teamMode ? `/oh-my-claudecode:${def.teamMode}` : "/oh-my-claudecode:autopilot";
+  const modeLabel = def.teamMode ?? "autopilot";
+  res.line(`  \uCD94\uCC9C \uC790\uB3D9 \uBAA8\uB4DC: ${recommendedMode} (${modeLabel} \uBAA8\uB4DC\uB85C \uC2E4\uD589)`);
   res.line("  \uB610\uB294 \uC704 \uC21C\uC11C\uB300\uB85C \uD558\uB098\uC529 \uC218\uB3D9 \uC2E4\uD589");
   res.blank();
   res.info("\uC2E4\uD589 \uC5D4\uC9C4\uC73C\uB85C \uC2DC\uC791\uD558\uB824\uBA74:");
@@ -241319,7 +241115,8 @@ function handleStart(pRoot, workflow, contextJson, guardLevel, autoDispatch, tea
     res.info("autoDispatch: \uD65C\uC131\uD654 (\uAC01 \uB2E8\uACC4\uC5D0 \uC704\uC784 \uD78C\uD2B8 \uD3EC\uD568)");
   }
   if (instance.config.teamMode) {
-    res.info(`teamMode: ${instance.config.teamMode}`);
+    const modeSkill = `/oh-my-claudecode:${instance.config.teamMode}`;
+    res.info(`teamMode: ${instance.config.teamMode} \u2192 \uAD6C\uD604 \uB2E8\uACC4\uC5D0\uC11C ${modeSkill} \uC0AC\uC6A9 \uAD8C\uC7A5`);
   }
   res.blank();
   const currentStep = instance.steps[instance.currentStep - 1];
@@ -241329,6 +241126,20 @@ function handleStart(pRoot, workflow, contextJson, guardLevel, autoDispatch, tea
     res.line(`  \uC791\uC5C5: ${currentStep.action}`);
     if (currentStep.omcSkill) {
       res.line(`  OMC \uC2A4\uD0AC: ${currentStep.omcSkill}`);
+    }
+  }
+  const planResult = generatePlanFromWorkflow(pRoot, instance, context);
+  if (planResult.created) {
+    res.ok(".agent/plan.md \uC790\uB3D9 \uC0DD\uC131 (DRAFT)");
+  }
+  const todoResult = generateTodoFromWorkflow(pRoot, instance);
+  if (todoResult.created) {
+    res.ok(".agent/todo.md \uC790\uB3D9 \uC0DD\uC131 (\uC6CC\uD06C\uD50C\uB85C\uC6B0 \uAE30\uBC18)");
+  }
+  if (context?.branch) {
+    const knResult = initKnowledgeBranch(pRoot, context.branch);
+    if (knResult.created) {
+      res.ok(`.knowledge/branches/ \uCD08\uAE30\uD654`);
     }
   }
   res.blank();
@@ -241356,6 +241167,14 @@ function handleAdvance(pRoot, result, autoDispatch) {
   const res = new McpResponseBuilder();
   res.header(`\uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC9C4\uD589: ${instance.workflowType} (${instance.id})`);
   res.blank();
+  {
+    const completedStepNum = instance.status === "completed" ? instance.totalSteps : instance.currentStep - 1;
+    const nextStepNum = instance.status === "completed" ? void 0 : instance.currentStep;
+    const syncResult = syncTodoProgress(pRoot, completedStepNum, nextStepNum);
+    if (syncResult.synced) {
+      res.ok(`todo.md \uAC31\uC2E0: Step ${completedStepNum} \uC644\uB8CC`);
+    }
+  }
   if (instance.status === "completed") {
     res.ok("\uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC644\uB8CC!");
     renderStepSummary(res, instance);
@@ -241582,7 +241401,6 @@ function renderStepSummary(res, instance) {
 }
 
 // src/tools/sync.ts
-init_omc_compat();
 function formatSyncResult(res, result, label) {
   res.info(`${label}:`);
   res.line(`  \uB3D9\uAE30\uD654: ${result.synced}\uAC1C \uD56D\uBAA9`);
@@ -241689,12 +241507,12 @@ var DEFAULT_QUALITY_GATE_CONFIG = {
 var TRUST_CRITERIA_ORDER = ["tested", "readable", "unified", "secured", "trackable"];
 
 // src/core/quality-gate/validators/tested.ts
-import { existsSync as existsSync28 } from "fs";
-import { join as join32, dirname as dirname5, basename as basename5, extname as extname4 } from "path";
+import { existsSync as existsSync29 } from "fs";
+import { join as join34, dirname as dirname6, basename as basename5, extname as extname4 } from "path";
 
 // src/core/quality-gate/validators/base.ts
 import { execSync as execSync3 } from "child_process";
-import { readFileSync as readFileSync20 } from "fs";
+import { readFileSync as readFileSync22 } from "fs";
 var BaseValidator = class {
   /** 공통 결과 빌더 헬퍼 */
   buildResult(checks) {
@@ -241713,7 +241531,7 @@ var BaseValidator = class {
   /** 파일 내용 읽기 (실패 시 null) */
   readFileContent(filePath) {
     try {
-      return readFileSync20(filePath, "utf-8");
+      return readFileSync22(filePath, "utf-8");
     } catch {
       return null;
     }
@@ -241761,7 +241579,7 @@ var TestedValidator = class extends BaseValidator {
         });
       }
     }
-    const pkgPath = join32(projectRoot, "package.json");
+    const pkgPath = join34(projectRoot, "package.json");
     const pkgContent = this.readFileContent(pkgPath);
     if (pkgContent) {
       try {
@@ -241790,7 +241608,7 @@ var TestedValidator = class extends BaseValidator {
         });
       }
     } else {
-      const hasPytest = existsSync28(join32(projectRoot, "pytest.ini")) || existsSync28(join32(projectRoot, "pyproject.toml")) || existsSync28(join32(projectRoot, "setup.cfg"));
+      const hasPytest = existsSync29(join34(projectRoot, "pytest.ini")) || existsSync29(join34(projectRoot, "pyproject.toml")) || existsSync29(join34(projectRoot, "setup.cfg"));
       checks.push({
         name: "\uD14C\uC2A4\uD2B8 \uBA85\uB839\uC5B4",
         passed: hasPytest,
@@ -241799,18 +241617,18 @@ var TestedValidator = class extends BaseValidator {
       });
     }
     const coverageDirs = [
-      join32(projectRoot, "coverage"),
-      join32(projectRoot, ".harness", "state")
+      join34(projectRoot, "coverage"),
+      join34(projectRoot, ".harness", "state")
     ];
-    const hasCoverage = coverageDirs.some((d) => existsSync28(d));
+    const hasCoverage = coverageDirs.some((d) => existsSync29(d));
     checks.push({
       name: "\uCEE4\uBC84\uB9AC\uC9C0 \uD78C\uD2B8",
       passed: hasCoverage,
       message: hasCoverage ? "\uCEE4\uBC84\uB9AC\uC9C0 \uB370\uC774\uD130 \uB514\uB809\uD1A0\uB9AC \uC874\uC7AC" : "\uCEE4\uBC84\uB9AC\uC9C0 \uB370\uC774\uD130 \uC5C6\uC74C",
       severity: "info"
     });
-    const tddOrderPath = join32(projectRoot, ".harness", "state", "tdd-edit-order");
-    if (existsSync28(tddOrderPath)) {
+    const tddOrderPath = join34(projectRoot, ".harness", "state", "tdd-edit-order");
+    if (existsSync29(tddOrderPath)) {
       const orderContent = this.readFileContent(tddOrderPath);
       if (orderContent) {
         const lines = orderContent.trim().split("\n").filter(Boolean);
@@ -241852,29 +241670,29 @@ var TestedValidator = class extends BaseValidator {
   findTestFile(sourceFile, projectRoot) {
     const ext = extname4(sourceFile);
     const base = basename5(sourceFile, ext);
-    const dir = dirname5(sourceFile);
+    const dir = dirname6(sourceFile);
     const candidates = [
-      join32(projectRoot, dir, `${base}.test${ext}`),
-      join32(projectRoot, dir, `${base}.spec${ext}`),
-      join32(projectRoot, dir, `test_${base}${ext}`)
+      join34(projectRoot, dir, `${base}.test${ext}`),
+      join34(projectRoot, dir, `${base}.spec${ext}`),
+      join34(projectRoot, dir, `test_${base}${ext}`)
     ];
     candidates.push(
-      join32(projectRoot, dir, "__tests__", `${base}.test${ext}`),
-      join32(projectRoot, dir, "__tests__", `${base}.spec${ext}`)
+      join34(projectRoot, dir, "__tests__", `${base}.test${ext}`),
+      join34(projectRoot, dir, "__tests__", `${base}.spec${ext}`)
     );
     candidates.push(
-      join32(projectRoot, "tests", `${base}.test${ext}`),
-      join32(projectRoot, "tests", `${base}.spec${ext}`),
-      join32(projectRoot, "test", `${base}.test${ext}`),
-      join32(projectRoot, "test", `${base}.spec${ext}`)
+      join34(projectRoot, "tests", `${base}.test${ext}`),
+      join34(projectRoot, "tests", `${base}.spec${ext}`),
+      join34(projectRoot, "test", `${base}.test${ext}`),
+      join34(projectRoot, "test", `${base}.spec${ext}`)
     );
-    return candidates.find((c) => existsSync28(c)) ?? null;
+    return candidates.find((c) => existsSync29(c)) ?? null;
   }
 };
 
 // src/core/quality-gate/validators/readable.ts
-import { existsSync as existsSync29 } from "fs";
-import { join as join33, extname as extname5 } from "path";
+import { existsSync as existsSync30 } from "fs";
+import { join as join35, extname as extname5 } from "path";
 var ReadableValidator = class extends BaseValidator {
   criterion = "readable";
   description = "\uCF54\uB4DC \uAC00\uB3C5\uC131 \uBC0F \uB9B0\uD2B8 \uADDC\uCE59 \uC900\uC218 \uAC80\uC99D";
@@ -241885,7 +241703,7 @@ var ReadableValidator = class extends BaseValidator {
     if (lintTool) {
       const filesToLint = targetFiles.filter((f) => this.isLintable(f));
       if (filesToLint.length > 0) {
-        const absFiles = filesToLint.map((f) => f.startsWith("/") ? f : join33(projectRoot, f)).join(" ");
+        const absFiles = filesToLint.map((f) => f.startsWith("/") ? f : join35(projectRoot, f)).join(" ");
         const result = this.execCommand(`${lintTool.command} ${absFiles}`, projectRoot);
         if (result.exitCode === 0) {
           checks.push({
@@ -241913,7 +241731,7 @@ var ReadableValidator = class extends BaseValidator {
       });
     }
     for (const file of targetFiles) {
-      const absPath = file.startsWith("/") ? file : join33(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (content) {
         const lineCount = content.split("\n").length;
@@ -241938,7 +241756,7 @@ var ReadableValidator = class extends BaseValidator {
     }
     const longFunctions = [];
     for (const file of targetFiles) {
-      const absPath = file.startsWith("/") ? file : join33(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (content) {
         const found = this.detectLongFunctions(content, file);
@@ -241962,7 +241780,7 @@ var ReadableValidator = class extends BaseValidator {
     }
     let markerCount = 0;
     for (const file of targetFiles) {
-      const absPath = file.startsWith("/") ? file : join33(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (content) {
         const matches = content.match(/\b(TODO|FIXME|HACK|XXX)\b/g);
@@ -241978,7 +241796,7 @@ var ReadableValidator = class extends BaseValidator {
     const namingIssues = [];
     for (const file of targetFiles) {
       const ext = extname5(file);
-      const absPath = file.startsWith("/") ? file : join33(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (content) {
         const hasMixed = this.detectMixedNaming(content, ext);
@@ -242014,10 +241832,10 @@ var ReadableValidator = class extends BaseValidator {
   }
   /** 린트 도구 자동 감지 */
   detectLintTool(projectRoot) {
-    if (existsSync29(join33(projectRoot, "node_modules", ".bin", "eslint"))) {
+    if (existsSync30(join35(projectRoot, "node_modules", ".bin", "eslint"))) {
       return { tool: "eslint", command: "npx eslint --format json --no-warn-ignored" };
     }
-    if (existsSync29(join33(projectRoot, "node_modules", ".bin", "biome"))) {
+    if (existsSync30(join35(projectRoot, "node_modules", ".bin", "biome"))) {
       return { tool: "biome", command: "npx biome check --reporter=json" };
     }
     const ruffResult = this.execCommand("which ruff", projectRoot);
@@ -242102,8 +241920,8 @@ var ReadableValidator = class extends BaseValidator {
 };
 
 // src/core/quality-gate/validators/unified.ts
-import { existsSync as existsSync30 } from "fs";
-import { join as join34, extname as extname6 } from "path";
+import { existsSync as existsSync31 } from "fs";
+import { join as join36, extname as extname6 } from "path";
 var UnifiedValidator = class extends BaseValidator {
   criterion = "unified";
   description = "\uCF54\uB4DC \uC2A4\uD0C0\uC77C \uD1B5\uC77C\uC131 \uAC80\uC99D";
@@ -242112,7 +241930,7 @@ var UnifiedValidator = class extends BaseValidator {
     const checks = [];
     const formatter = this.detectFormatter(projectRoot);
     if (formatter) {
-      const formattableFiles = targetFiles.filter((f) => this.isFormattable(f)).map((f) => f.startsWith("/") ? f : join34(projectRoot, f));
+      const formattableFiles = targetFiles.filter((f) => this.isFormattable(f)).map((f) => f.startsWith("/") ? f : join36(projectRoot, f));
       if (formattableFiles.length > 0) {
         const fileArgs = formattableFiles.join(" ");
         const result = this.execCommand(`${formatter.command} ${fileArgs}`, projectRoot);
@@ -242147,7 +241965,7 @@ var UnifiedValidator = class extends BaseValidator {
     let importOrderOk = true;
     const importIssueFiles = [];
     for (const file of tsJsFiles) {
-      const absPath = file.startsWith("/") ? file : join34(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join36(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (content && !this.checkImportOrder(content)) {
         importOrderOk = false;
@@ -242162,7 +241980,7 @@ var UnifiedValidator = class extends BaseValidator {
         severity: "warning"
       });
     }
-    const configPath = join34(projectRoot, "carpdm-harness.config.json");
+    const configPath = join36(projectRoot, "carpdm-harness.config.json");
     const configContent = this.readFileContent(configPath);
     if (configContent) {
       try {
@@ -242170,10 +241988,10 @@ var UnifiedValidator = class extends BaseValidator {
         const docsDir = config2.options?.docsTemplatesDir;
         const agentDir = config2.options?.agentDir;
         let structureOk = true;
-        if (docsDir && !existsSync30(join34(projectRoot, docsDir))) {
+        if (docsDir && !existsSync31(join36(projectRoot, docsDir))) {
           structureOk = false;
         }
-        if (agentDir && !existsSync30(join34(projectRoot, agentDir))) {
+        if (agentDir && !existsSync31(join36(projectRoot, agentDir))) {
           structureOk = false;
         }
         checks.push({
@@ -242185,8 +242003,8 @@ var UnifiedValidator = class extends BaseValidator {
       } catch {
       }
     }
-    const editorConfigPath = join34(projectRoot, ".editorconfig");
-    if (existsSync30(editorConfigPath)) {
+    const editorConfigPath = join36(projectRoot, ".editorconfig");
+    if (existsSync31(editorConfigPath)) {
       checks.push({
         name: "EditorConfig",
         passed: true,
@@ -242213,10 +242031,10 @@ var UnifiedValidator = class extends BaseValidator {
   }
   /** 포맷터 자동 감지 */
   detectFormatter(projectRoot) {
-    if (existsSync30(join34(projectRoot, "node_modules", ".bin", "prettier"))) {
+    if (existsSync31(join36(projectRoot, "node_modules", ".bin", "prettier"))) {
       return { tool: "prettier", command: "npx prettier --check" };
     }
-    if (existsSync30(join34(projectRoot, "node_modules", ".bin", "biome"))) {
+    if (existsSync31(join36(projectRoot, "node_modules", ".bin", "biome"))) {
       return { tool: "biome", command: "npx biome format --check" };
     }
     return null;
@@ -242255,7 +242073,7 @@ var UnifiedValidator = class extends BaseValidator {
 };
 
 // src/core/quality-gate/validators/secured.ts
-import { join as join35, extname as extname7 } from "path";
+import { join as join37, extname as extname7 } from "path";
 var SecuredValidator = class extends BaseValidator {
   criterion = "secured";
   description = "\uBCF4\uC548 \uD328\uD134 \uBC0F \uC785\uB825 \uAC80\uC99D \uAC80\uC0AC";
@@ -242288,7 +242106,7 @@ var SecuredValidator = class extends BaseValidator {
     const secretFindings = [];
     for (const file of targetFiles) {
       if (this.shouldSkipFile(file)) continue;
-      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join37(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (!content) continue;
       for (const { pattern, label } of this.SECRET_PATTERNS) {
@@ -242316,7 +242134,7 @@ var SecuredValidator = class extends BaseValidator {
     const evalFindings = [];
     for (const file of targetFiles) {
       if (this.shouldSkipFile(file)) continue;
-      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join37(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (!content) continue;
       for (const pattern of this.EVAL_PATTERNS) {
@@ -242344,7 +242162,7 @@ var SecuredValidator = class extends BaseValidator {
     const sqlFindings = [];
     for (const file of targetFiles) {
       if (this.shouldSkipFile(file)) continue;
-      const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
+      const absPath = file.startsWith("/") ? file : join37(projectRoot, file);
       const content = this.readFileContent(absPath);
       if (!content) continue;
       for (const pattern of this.SQL_INJECTION_PATTERNS) {
@@ -242374,7 +242192,7 @@ var SecuredValidator = class extends BaseValidator {
       const validatedFiles = [];
       const unvalidatedFiles = [];
       for (const file of handlerFiles) {
-        const absPath = file.startsWith("/") ? file : join35(projectRoot, file);
+        const absPath = file.startsWith("/") ? file : join37(projectRoot, file);
         const content = this.readFileContent(absPath);
         if (!content) continue;
         const hasValidation = /\b(?:z\.|zod\.|Joi\.|yup\.|Pydantic|BaseModel|validate|validator)\b/.test(content);
@@ -242400,7 +242218,7 @@ var SecuredValidator = class extends BaseValidator {
         });
       }
     }
-    const pkgContent = this.readFileContent(join35(projectRoot, "package.json"));
+    const pkgContent = this.readFileContent(join37(projectRoot, "package.json"));
     if (pkgContent) {
       const result = this.execCommand("npm audit --json 2>/dev/null", projectRoot);
       if (result.stdout) {
@@ -242468,8 +242286,8 @@ var SecuredValidator = class extends BaseValidator {
 };
 
 // src/core/quality-gate/validators/trackable.ts
-import { existsSync as existsSync31 } from "fs";
-import { join as join36 } from "path";
+import { existsSync as existsSync32 } from "fs";
+import { join as join38 } from "path";
 var TrackableValidator = class extends BaseValidator {
   criterion = "trackable";
   description = "\uCEE4\uBC0B \uCEE8\uBCA4\uC158 \uBC0F \uCD94\uC801 \uAC00\uB2A5\uC131 \uAC80\uC99D";
@@ -242537,8 +242355,8 @@ var TrackableValidator = class extends BaseValidator {
         });
       }
     }
-    const changeLogPath = join36(projectRoot, ".harness", "change-log.md");
-    const changeLogExists = existsSync31(changeLogPath);
+    const changeLogPath = join38(projectRoot, ".harness", "change-log.md");
+    const changeLogExists = existsSync32(changeLogPath);
     if (changeLogExists) {
       const content = this.readFileContent(changeLogPath);
       const hasRecentEntry = content ? content.length > 10 : false;
@@ -242592,6 +242410,7 @@ var TrackableValidator = class extends BaseValidator {
 };
 
 // src/core/quality-gate/runner.ts
+var VALIDATOR_TIMEOUT_MS = 3e4;
 var QualityGateRunner = class {
   validators = [
     new TestedValidator(),
@@ -242618,19 +242437,25 @@ var QualityGateRunner = class {
     }
     for (const validator of activeValidators) {
       try {
-        results[validator.criterion] = await validator.validate(context);
+        results[validator.criterion] = await Promise.race([
+          validator.validate(context),
+          new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("VALIDATOR_TIMEOUT")), VALIDATOR_TIMEOUT_MS)
+          )
+        ]);
       } catch (err) {
+        const isTimeout = err instanceof Error && err.message === "VALIDATOR_TIMEOUT";
         results[validator.criterion] = {
           criterion: validator.criterion,
           passed: true,
           score: 0,
           checks: [{
-            name: "\uAC80\uC99D \uC624\uB958",
+            name: isTimeout ? "\uD0C0\uC784\uC544\uC6C3" : "\uAC80\uC99D \uC624\uB958",
             passed: false,
-            message: `\uAC80\uC99D\uAE30 \uC2E4\uD589 \uC2E4\uD328: ${String(err)}`,
+            message: isTimeout ? `\uAC80\uC99D\uAE30 ${validator.criterion} \uC2E4\uD589\uC774 ${VALIDATOR_TIMEOUT_MS / 1e3}\uCD08\uB97C \uCD08\uACFC\uD558\uC5EC \uAC74\uB108\uB700` : `\uAC80\uC99D\uAE30 \uC2E4\uD589 \uC2E4\uD328: ${String(err)}`,
             severity: "warning"
           }],
-          summary: `${validator.criterion}: \uAC80\uC99D \uC2E4\uD328 (\uC624\uB958)`
+          summary: isTimeout ? `${validator.criterion}: \uD0C0\uC784\uC544\uC6C3 (${VALIDATOR_TIMEOUT_MS / 1e3}s \uCD08\uACFC)` : `${validator.criterion}: \uAC80\uC99D \uC2E4\uD328 (\uC624\uB958)`
         };
       }
     }
@@ -242681,6 +242506,67 @@ var QualityGateRunner = class {
     return Math.round(total / TRUST_CRITERIA_ORDER.length);
   }
 };
+
+// src/core/quality-hints.ts
+function buildBar(score) {
+  const filled = Math.round(score / 10);
+  const empty = 10 - filled;
+  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
+}
+var IMPROVEMENT_HINTS = {
+  tested: {
+    "\uD14C\uC2A4\uD2B8 \uD30C\uC77C \uC874\uC7AC": "\uBCC0\uACBD\uB41C \uC18C\uC2A4 \uD30C\uC77C\uC5D0 \uB300\uC751\uD558\uB294 .test.ts/.spec.ts \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC138\uC694",
+    "\uD14C\uC2A4\uD2B8 \uBA85\uB839\uC5B4": 'package.json\uC5D0 test \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uC124\uC815\uD558\uC138\uC694 (\uC608: "test": "vitest run")',
+    "\uCEE4\uBC84\uB9AC\uC9C0 \uD78C\uD2B8": "\uD14C\uC2A4\uD2B8 \uCEE4\uBC84\uB9AC\uC9C0 \uC124\uC815\uC744 \uCD94\uAC00\uD558\uC138\uC694 (vitest.config.ts \u2192 coverage \uC635\uC158)",
+    "TDD \uC21C\uC11C": "\uAD6C\uD604 \uC804\uC5D0 \uD14C\uC2A4\uD2B8\uB97C \uBA3C\uC800 \uCEE4\uBC0B\uD558\uC138\uC694 (Red \u2192 Green \u2192 Refactor)"
+  },
+  readable: {
+    "\uB9B0\uD2B8 \uAC80\uC0AC": "ESLint/Biome \uB4F1 \uB9B0\uD130\uB97C \uC124\uC815\uD558\uACE0 `npm run lint`\uB85C \uD655\uC778\uD558\uC138\uC694",
+    "\uD30C\uC77C \uAE38\uC774": "300\uC904 \uC774\uC0C1 \uD30C\uC77C\uC744 \uBD84\uB9AC\uD558\uC138\uC694 \u2014 \uB2E8\uC77C \uCC45\uC784 \uC6D0\uCE59\uC5D0 \uB530\uB77C \uBAA8\uB4C8 \uCD94\uCD9C",
+    "\uD568\uC218 \uAE38\uC774": "50\uC904 \uC774\uC0C1 \uD568\uC218\uB97C \uC791\uC740 \uD568\uC218\uB85C \uBD84\uB9AC\uD558\uC138\uC694",
+    "TODO/FIXME/HACK": "\uC784\uC2DC \uB9C8\uCEE4\uB97C \uD574\uACB0\uD558\uAC70\uB098 \uC774\uC288\uB85C \uB4F1\uB85D\uD558\uC138\uC694",
+    "\uB124\uC774\uBC0D \uADDC\uCE59": "\uD568\uC218/\uBCC0\uC218 \uB124\uC774\uBC0D \uCEE8\uBCA4\uC158\uC744 \uD1B5\uC77C\uD558\uC138\uC694 (camelCase/PascalCase)"
+  },
+  unified: {
+    "\uD3EC\uB9F7\uD305 \uC77C\uAD00\uC131": "Prettier/Biome \uD3EC\uB9F7\uD130\uB97C \uC124\uC815\uD558\uACE0 \uC804\uCCB4 \uD3EC\uB9F7\uD305\uC744 \uC801\uC6A9\uD558\uC138\uC694",
+    "\uC784\uD3EC\uD2B8 \uC21C\uC11C": "import \uC815\uB82C \uADDC\uCE59\uC744 \uC124\uC815\uD558\uC138\uC694 (eslint-plugin-import \uB4F1)",
+    "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870": "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870 \uCEE8\uBCA4\uC158\uC744 docs/conventions.md\uC5D0 \uBB38\uC11C\uD654\uD558\uC138\uC694",
+    "EditorConfig": ".editorconfig \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC5EC \uB4E4\uC5EC\uC4F0\uAE30/\uC778\uCF54\uB529\uC744 \uD1B5\uC77C\uD558\uC138\uC694"
+  },
+  secured: {
+    "\uC2DC\uD06C\uB9BF \uC2A4\uCE94": "\uD558\uB4DC\uCF54\uB529\uB41C \uC2DC\uD06C\uB9BF\uC744 \uD658\uACBD\uBCC0\uC218\uB85C \uC774\uB3D9\uD558\uC138\uC694 (.env + .gitignore)",
+    "eval/exec \uC0AC\uC6A9": "eval/exec \uD638\uCD9C\uC744 \uC548\uC804\uD55C \uB300\uC548\uC73C\uB85C \uAD50\uCCB4\uD558\uC138\uC694",
+    "SQL \uC778\uC81D\uC158": "\uD30C\uB77C\uBBF8\uD130 \uBC14\uC778\uB529 \uB610\uB294 ORM\uC744 \uC0AC\uC6A9\uD558\uC138\uC694",
+    "\uC785\uB825 \uAC80\uC99D": "\uC0AC\uC6A9\uC790 \uC785\uB825\uC5D0 Zod/joi \uB4F1 \uAC80\uC99D \uB77C\uC774\uBE0C\uB7EC\uB9AC\uB97C \uC801\uC6A9\uD558\uC138\uC694",
+    "\uC758\uC874\uC131 \uBCF4\uC548": "`npm audit`\uB85C \uCDE8\uC57D \uC758\uC874\uC131\uC744 \uD655\uC778\uD558\uACE0 \uC5C5\uB370\uC774\uD2B8\uD558\uC138\uC694"
+  },
+  trackable: {
+    "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uCEE8\uBCA4\uC158": "Conventional Commits \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694: feat(scope): description",
+    "\uC774\uC288 \uCC38\uC870": "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uB610\uB294 \uBE0C\uB79C\uCE58\uC5D0 \uC774\uC288 \uBC88\uD638\uB97C \uD3EC\uD568\uD558\uC138\uC694 (#123)",
+    "fix \uC6D0\uC778 \uD0DC\uADF8": "fix \uCEE4\uBC0B\uC5D0 \uC6D0\uC778 \uC124\uBA85\uC744 \uCD94\uAC00\uD558\uC138\uC694 (root-cause: ...)",
+    "\uBCC0\uACBD \uB85C\uADF8": "CHANGELOG.md\uB97C \uC720\uC9C0\uD558\uAC70\uB098 \uC790\uB3D9 \uC0DD\uC131 \uB3C4\uAD6C\uB97C \uC124\uC815\uD558\uC138\uC694",
+    "\uBE0C\uB79C\uCE58 \uB124\uC774\uBC0D": "feat/fix/chore \uB4F1 \uC811\uB450\uC0AC + \uC774\uC288\uBC88\uD638 \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694"
+  }
+};
+function buildImprovementHints(results) {
+  const hints = [];
+  for (const criterion of TRUST_CRITERIA_ORDER) {
+    const result = results[criterion];
+    if (!result || result.score >= 60) continue;
+    const failedNames = result.checks.filter((c) => !c.passed).map((c) => c.name);
+    const criterionHints = IMPROVEMENT_HINTS[criterion];
+    const matched = [];
+    for (const name of failedNames) {
+      if (criterionHints[name] && !matched.includes(criterionHints[name])) {
+        matched.push(criterionHints[name]);
+      }
+    }
+    if (matched.length > 0) {
+      hints.push(`${criterion} (${result.score}\uC810) \u2192 ${matched.join("; ")}`);
+    }
+  }
+  return hints;
+}
 
 // src/tools/quality-check.ts
 function registerQualityCheckTool(server3) {
@@ -242792,65 +242678,6 @@ function registerQualityCheckTool(server3) {
       }
     }
   );
-}
-function buildBar(score) {
-  const filled = Math.round(score / 10);
-  const empty = 10 - filled;
-  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
-}
-var IMPROVEMENT_HINTS = {
-  tested: {
-    "\uD14C\uC2A4\uD2B8 \uD30C\uC77C \uC874\uC7AC": "\uBCC0\uACBD\uB41C \uC18C\uC2A4 \uD30C\uC77C\uC5D0 \uB300\uC751\uD558\uB294 .test.ts/.spec.ts \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC138\uC694",
-    "\uD14C\uC2A4\uD2B8 \uBA85\uB839\uC5B4": 'package.json\uC5D0 test \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uC124\uC815\uD558\uC138\uC694 (\uC608: "test": "vitest run")',
-    "\uCEE4\uBC84\uB9AC\uC9C0 \uD78C\uD2B8": "\uD14C\uC2A4\uD2B8 \uCEE4\uBC84\uB9AC\uC9C0 \uC124\uC815\uC744 \uCD94\uAC00\uD558\uC138\uC694 (vitest.config.ts \u2192 coverage \uC635\uC158)",
-    "TDD \uC21C\uC11C": "\uAD6C\uD604 \uC804\uC5D0 \uD14C\uC2A4\uD2B8\uB97C \uBA3C\uC800 \uCEE4\uBC0B\uD558\uC138\uC694 (Red \u2192 Green \u2192 Refactor)"
-  },
-  readable: {
-    "\uB9B0\uD2B8 \uAC80\uC0AC": "ESLint/Biome \uB4F1 \uB9B0\uD130\uB97C \uC124\uC815\uD558\uACE0 `npm run lint`\uB85C \uD655\uC778\uD558\uC138\uC694",
-    "\uD30C\uC77C \uAE38\uC774": "300\uC904 \uC774\uC0C1 \uD30C\uC77C\uC744 \uBD84\uB9AC\uD558\uC138\uC694 \u2014 \uB2E8\uC77C \uCC45\uC784 \uC6D0\uCE59\uC5D0 \uB530\uB77C \uBAA8\uB4C8 \uCD94\uCD9C",
-    "\uD568\uC218 \uAE38\uC774": "50\uC904 \uC774\uC0C1 \uD568\uC218\uB97C \uC791\uC740 \uD568\uC218\uB85C \uBD84\uB9AC\uD558\uC138\uC694",
-    "TODO/FIXME/HACK": "\uC784\uC2DC \uB9C8\uCEE4\uB97C \uD574\uACB0\uD558\uAC70\uB098 \uC774\uC288\uB85C \uB4F1\uB85D\uD558\uC138\uC694",
-    "\uB124\uC774\uBC0D \uADDC\uCE59": "\uD568\uC218/\uBCC0\uC218 \uB124\uC774\uBC0D \uCEE8\uBCA4\uC158\uC744 \uD1B5\uC77C\uD558\uC138\uC694 (camelCase/PascalCase)"
-  },
-  unified: {
-    "\uD3EC\uB9F7\uD305 \uC77C\uAD00\uC131": "Prettier/Biome \uD3EC\uB9F7\uD130\uB97C \uC124\uC815\uD558\uACE0 \uC804\uCCB4 \uD3EC\uB9F7\uD305\uC744 \uC801\uC6A9\uD558\uC138\uC694",
-    "\uC784\uD3EC\uD2B8 \uC21C\uC11C": "import \uC815\uB82C \uADDC\uCE59\uC744 \uC124\uC815\uD558\uC138\uC694 (eslint-plugin-import \uB4F1)",
-    "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870": "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870 \uCEE8\uBCA4\uC158\uC744 docs/conventions.md\uC5D0 \uBB38\uC11C\uD654\uD558\uC138\uC694",
-    "EditorConfig": ".editorconfig \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC5EC \uB4E4\uC5EC\uC4F0\uAE30/\uC778\uCF54\uB529\uC744 \uD1B5\uC77C\uD558\uC138\uC694"
-  },
-  secured: {
-    "\uC2DC\uD06C\uB9BF \uC2A4\uCE94": "\uD558\uB4DC\uCF54\uB529\uB41C \uC2DC\uD06C\uB9BF\uC744 \uD658\uACBD\uBCC0\uC218\uB85C \uC774\uB3D9\uD558\uC138\uC694 (.env + .gitignore)",
-    "eval/exec \uC0AC\uC6A9": "eval/exec \uD638\uCD9C\uC744 \uC548\uC804\uD55C \uB300\uC548\uC73C\uB85C \uAD50\uCCB4\uD558\uC138\uC694",
-    "SQL \uC778\uC81D\uC158": "\uD30C\uB77C\uBBF8\uD130 \uBC14\uC778\uB529 \uB610\uB294 ORM\uC744 \uC0AC\uC6A9\uD558\uC138\uC694",
-    "\uC785\uB825 \uAC80\uC99D": "\uC0AC\uC6A9\uC790 \uC785\uB825\uC5D0 Zod/joi \uB4F1 \uAC80\uC99D \uB77C\uC774\uBE0C\uB7EC\uB9AC\uB97C \uC801\uC6A9\uD558\uC138\uC694",
-    "\uC758\uC874\uC131 \uBCF4\uC548": "`npm audit`\uB85C \uCDE8\uC57D \uC758\uC874\uC131\uC744 \uD655\uC778\uD558\uACE0 \uC5C5\uB370\uC774\uD2B8\uD558\uC138\uC694"
-  },
-  trackable: {
-    "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uCEE8\uBCA4\uC158": "Conventional Commits \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694: feat(scope): description",
-    "\uC774\uC288 \uCC38\uC870": "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uB610\uB294 \uBE0C\uB79C\uCE58\uC5D0 \uC774\uC288 \uBC88\uD638\uB97C \uD3EC\uD568\uD558\uC138\uC694 (#123)",
-    "fix \uC6D0\uC778 \uD0DC\uADF8": "fix \uCEE4\uBC0B\uC5D0 \uC6D0\uC778 \uC124\uBA85\uC744 \uCD94\uAC00\uD558\uC138\uC694 (root-cause: ...)",
-    "\uBCC0\uACBD \uB85C\uADF8": "CHANGELOG.md\uB97C \uC720\uC9C0\uD558\uAC70\uB098 \uC790\uB3D9 \uC0DD\uC131 \uB3C4\uAD6C\uB97C \uC124\uC815\uD558\uC138\uC694",
-    "\uBE0C\uB79C\uCE58 \uB124\uC774\uBC0D": "feat/fix/chore \uB4F1 \uC811\uB450\uC0AC + \uC774\uC288\uBC88\uD638 \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694"
-  }
-};
-function buildImprovementHints(results) {
-  const hints = [];
-  for (const criterion of TRUST_CRITERIA_ORDER) {
-    const result = results[criterion];
-    if (result.score >= 60) continue;
-    const failedNames = result.checks.filter((c) => !c.passed).map((c) => c.name);
-    const criterionHints = IMPROVEMENT_HINTS[criterion];
-    const matched = [];
-    for (const name of failedNames) {
-      if (criterionHints[name] && !matched.includes(criterionHints[name])) {
-        matched.push(criterionHints[name]);
-      }
-    }
-    if (matched.length > 0) {
-      hints.push(`${criterion} (${result.score}\uC810) \u2192 ${matched.join("; ")}`);
-    }
-  }
-  return hints;
 }
 
 // src/tools/ontology-annotations.ts
@@ -243109,8 +242936,8 @@ function registerGithubSetupTool(server3) {
 
 // src/core/verify-skill-manager.ts
 import { execSync as execSync5 } from "child_process";
-import { existsSync as existsSync32, mkdirSync as mkdirSync8, readdirSync as readdirSync11, readFileSync as readFileSync21, writeFileSync as writeFileSync8 } from "fs";
-import { join as join37 } from "path";
+import { existsSync as existsSync33, mkdirSync as mkdirSync10, readdirSync as readdirSync11, readFileSync as readFileSync23, writeFileSync as writeFileSync10 } from "fs";
+import { join as join39 } from "path";
 
 // src/types/verify.ts
 var DRIFT_EXEMPT_PATTERNS = [
@@ -243145,14 +242972,14 @@ function globMatch(file, pattern) {
   }
 }
 function scanVerifySkills(projectRoot) {
-  const skillsDir = join37(projectRoot, ".claude", "skills");
-  if (!existsSync32(skillsDir)) return [];
+  const skillsDir = join39(projectRoot, ".claude", "skills");
+  if (!existsSync33(skillsDir)) return [];
   const entries = readdirSync11(skillsDir, { withFileTypes: true });
   const skills = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || !entry.name.startsWith("verify-")) continue;
-    const skillPath = join37(skillsDir, entry.name, "SKILL.md");
-    if (!existsSync32(skillPath)) continue;
+    const skillPath = join39(skillsDir, entry.name, "SKILL.md");
+    if (!existsSync33(skillPath)) continue;
     const meta = parseSkillFrontmatter(skillPath);
     if (meta) skills.push(meta);
   }
@@ -243160,7 +242987,7 @@ function scanVerifySkills(projectRoot) {
 }
 function parseSkillFrontmatter(filePath) {
   try {
-    const content = readFileSync21(filePath, "utf-8");
+    const content = readFileSync23(filePath, "utf-8");
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (!fmMatch) return null;
     const fm = fmMatch[1];
@@ -243284,8 +243111,8 @@ function findStaleReferences(projectRoot, skill) {
   for (const pattern of skill.covers) {
     try {
       const baseDir = pattern.split("*")[0].replace(/\/$/, "") || ".";
-      const fullPath = join37(projectRoot, baseDir);
-      if (!existsSync32(fullPath)) {
+      const fullPath = join39(projectRoot, baseDir);
+      if (!existsSync33(fullPath)) {
         stale.push(pattern);
       }
     } catch {
@@ -243356,8 +243183,8 @@ function generateDefaultChecks(_dir, files) {
   return checks;
 }
 function generateVerifySkill(projectRoot, suggestion) {
-  const skillDir = join37(projectRoot, ".claude", "skills", suggestion.skillName);
-  mkdirSync8(skillDir, { recursive: true });
+  const skillDir = join39(projectRoot, ".claude", "skills", suggestion.skillName);
+  mkdirSync10(skillDir, { recursive: true });
   const checksSection = suggestion.proposedChecks.map((check2, i) => {
     return [
       `### ${i + 1}. ${check2.name} (severity: ${check2.severity})`,
@@ -243385,12 +243212,12 @@ function generateVerifySkill(projectRoot, suggestion) {
     "2. \uC124\uC815 \uD30C\uC77C (`*.config.*`)\uC740 \uAD6C\uC870 \uBCC0\uACBD\uB9CC \uAC80\uC0AC",
     ""
   ].join("\n");
-  const filePath = join37(skillDir, "SKILL.md");
-  writeFileSync8(filePath, content, "utf-8");
+  const filePath = join39(skillDir, "SKILL.md");
+  writeFileSync10(filePath, content, "utf-8");
   return filePath;
 }
 function updateVerifySkillCovers(skillMeta, newCovers) {
-  const content = readFileSync21(skillMeta.filePath, "utf-8");
+  const content = readFileSync23(skillMeta.filePath, "utf-8");
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return;
   const fm = fmMatch[1];
@@ -243409,7 +243236,7 @@ ${newCoversYaml}
 ${updatedFm}
 ---`
   );
-  writeFileSync8(skillMeta.filePath, updatedContent, "utf-8");
+  writeFileSync10(skillMeta.filePath, updatedContent, "utf-8");
 }
 
 // src/tools/manage-verify.ts
@@ -243498,10 +243325,10 @@ import { execSync as execSync7 } from "child_process";
 
 // src/core/verify-runner.ts
 import { execSync as execSync6 } from "child_process";
-import { readFileSync as readFileSync22 } from "fs";
+import { readFileSync as readFileSync24 } from "fs";
 function parseVerifyChecks(skillMeta) {
   try {
-    const content = readFileSync22(skillMeta.filePath, "utf-8");
+    const content = readFileSync24(skillMeta.filePath, "utf-8");
     const bodyMatch = content.match(/^---[\s\S]*?---\n([\s\S]*)$/);
     if (!bodyMatch) return [];
     const body = bodyMatch[1];
@@ -243672,7 +243499,7 @@ function registerVerifyAllTool(server3) {
           for (const criterion of TRUST_CRITERIA_ORDER) {
             const result = report.trustReport.results[criterion];
             if (!result) continue;
-            const bar = buildBar2(result.score);
+            const bar = buildBar(result.score);
             const passInfo = `${result.checks.filter((c) => c.passed).length}/${result.checks.length}`;
             res.line(`  ${criterionLabels[criterion]} ${bar}  ${String(result.score).padStart(3)}  ${passInfo}`);
           }
@@ -243701,7 +243528,7 @@ function registerVerifyAllTool(server3) {
           res.blank();
         }
         if (!skipTrust) {
-          const hints = buildImprovementHints2(report.trustReport.results);
+          const hints = buildImprovementHints(report.trustReport.results);
           if (hints.length > 0) {
             res.subheader("\uAC1C\uC120 \uAC00\uC774\uB4DC");
             for (const hint of hints) {
@@ -243746,94 +243573,21 @@ function getGitChangedFiles(projectRoot) {
     return [];
   }
 }
-function buildBar2(score) {
-  const filled = Math.round(score / 10);
-  const empty = 10 - filled;
-  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
-}
-var IMPROVEMENT_HINTS2 = {
-  tested: {
-    "\uD14C\uC2A4\uD2B8 \uD30C\uC77C \uC874\uC7AC": "\uBCC0\uACBD\uB41C \uC18C\uC2A4 \uD30C\uC77C\uC5D0 \uB300\uC751\uD558\uB294 .test.ts/.spec.ts \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC138\uC694",
-    "\uD14C\uC2A4\uD2B8 \uBA85\uB839\uC5B4": 'package.json\uC5D0 test \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uC124\uC815\uD558\uC138\uC694 (\uC608: "test": "vitest run")',
-    "\uCEE4\uBC84\uB9AC\uC9C0 \uD78C\uD2B8": "\uD14C\uC2A4\uD2B8 \uCEE4\uBC84\uB9AC\uC9C0 \uC124\uC815\uC744 \uCD94\uAC00\uD558\uC138\uC694 (vitest.config.ts \u2192 coverage \uC635\uC158)",
-    "TDD \uC21C\uC11C": "\uAD6C\uD604 \uC804\uC5D0 \uD14C\uC2A4\uD2B8\uB97C \uBA3C\uC800 \uCEE4\uBC0B\uD558\uC138\uC694 (Red \u2192 Green \u2192 Refactor)"
-  },
-  readable: {
-    "\uB9B0\uD2B8 \uAC80\uC0AC": "ESLint/Biome \uB4F1 \uB9B0\uD130\uB97C \uC124\uC815\uD558\uACE0 `npm run lint`\uB85C \uD655\uC778\uD558\uC138\uC694",
-    "\uD30C\uC77C \uAE38\uC774": "300\uC904 \uC774\uC0C1 \uD30C\uC77C\uC744 \uBD84\uB9AC\uD558\uC138\uC694 \u2014 \uB2E8\uC77C \uCC45\uC784 \uC6D0\uCE59\uC5D0 \uB530\uB77C \uBAA8\uB4C8 \uCD94\uCD9C",
-    "\uD568\uC218 \uAE38\uC774": "50\uC904 \uC774\uC0C1 \uD568\uC218\uB97C \uC791\uC740 \uD568\uC218\uB85C \uBD84\uB9AC\uD558\uC138\uC694",
-    "TODO/FIXME/HACK": "\uC784\uC2DC \uB9C8\uCEE4\uB97C \uD574\uACB0\uD558\uAC70\uB098 \uC774\uC288\uB85C \uB4F1\uB85D\uD558\uC138\uC694",
-    "\uB124\uC774\uBC0D \uADDC\uCE59": "\uD568\uC218/\uBCC0\uC218 \uB124\uC774\uBC0D \uCEE8\uBCA4\uC158\uC744 \uD1B5\uC77C\uD558\uC138\uC694 (camelCase/PascalCase)"
-  },
-  unified: {
-    "\uD3EC\uB9F7\uD305 \uC77C\uAD00\uC131": "Prettier/Biome \uD3EC\uB9F7\uD130\uB97C \uC124\uC815\uD558\uACE0 \uC804\uCCB4 \uD3EC\uB9F7\uD305\uC744 \uC801\uC6A9\uD558\uC138\uC694",
-    "\uC784\uD3EC\uD2B8 \uC21C\uC11C": "import \uC815\uB82C \uADDC\uCE59\uC744 \uC124\uC815\uD558\uC138\uC694 (eslint-plugin-import \uB4F1)",
-    "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870": "\uD504\uB85C\uC81D\uD2B8 \uAD6C\uC870 \uCEE8\uBCA4\uC158\uC744 docs/conventions.md\uC5D0 \uBB38\uC11C\uD654\uD558\uC138\uC694",
-    "EditorConfig": ".editorconfig \uD30C\uC77C\uC744 \uCD94\uAC00\uD558\uC5EC \uB4E4\uC5EC\uC4F0\uAE30/\uC778\uCF54\uB529\uC744 \uD1B5\uC77C\uD558\uC138\uC694"
-  },
-  secured: {
-    "\uC2DC\uD06C\uB9BF \uC2A4\uCE94": "\uD558\uB4DC\uCF54\uB529\uB41C \uC2DC\uD06C\uB9BF\uC744 \uD658\uACBD\uBCC0\uC218\uB85C \uC774\uB3D9\uD558\uC138\uC694 (.env + .gitignore)",
-    "eval/exec \uC0AC\uC6A9": "eval/exec \uD638\uCD9C\uC744 \uC548\uC804\uD55C \uB300\uC548\uC73C\uB85C \uAD50\uCCB4\uD558\uC138\uC694",
-    "SQL \uC778\uC81D\uC158": "\uD30C\uB77C\uBBF8\uD130 \uBC14\uC778\uB529 \uB610\uB294 ORM\uC744 \uC0AC\uC6A9\uD558\uC138\uC694",
-    "\uC785\uB825 \uAC80\uC99D": "\uC0AC\uC6A9\uC790 \uC785\uB825\uC5D0 Zod/joi \uB4F1 \uAC80\uC99D \uB77C\uC774\uBE0C\uB7EC\uB9AC\uB97C \uC801\uC6A9\uD558\uC138\uC694",
-    "\uC758\uC874\uC131 \uBCF4\uC548": "`npm audit`\uB85C \uCDE8\uC57D \uC758\uC874\uC131\uC744 \uD655\uC778\uD558\uACE0 \uC5C5\uB370\uC774\uD2B8\uD558\uC138\uC694"
-  },
-  trackable: {
-    "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uCEE8\uBCA4\uC158": "Conventional Commits \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694: feat(scope): description",
-    "\uC774\uC288 \uCC38\uC870": "\uCEE4\uBC0B \uBA54\uC2DC\uC9C0 \uB610\uB294 \uBE0C\uB79C\uCE58\uC5D0 \uC774\uC288 \uBC88\uD638\uB97C \uD3EC\uD568\uD558\uC138\uC694 (#123)",
-    "fix \uC6D0\uC778 \uD0DC\uADF8": "fix \uCEE4\uBC0B\uC5D0 \uC6D0\uC778 \uC124\uBA85\uC744 \uCD94\uAC00\uD558\uC138\uC694 (root-cause: ...)",
-    "\uBCC0\uACBD \uB85C\uADF8": "CHANGELOG.md\uB97C \uC720\uC9C0\uD558\uAC70\uB098 \uC790\uB3D9 \uC0DD\uC131 \uB3C4\uAD6C\uB97C \uC124\uC815\uD558\uC138\uC694",
-    "\uBE0C\uB79C\uCE58 \uB124\uC774\uBC0D": "feat/fix/chore \uB4F1 \uC811\uB450\uC0AC + \uC774\uC288\uBC88\uD638 \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC138\uC694"
-  }
-};
-function buildImprovementHints2(results) {
-  const hints = [];
-  for (const criterion of TRUST_CRITERIA_ORDER) {
-    const result = results[criterion];
-    if (!result || result.score >= 60) continue;
-    const failedNames = result.checks.filter((c) => !c.passed).map((c) => c.name);
-    const criterionHints = IMPROVEMENT_HINTS2[criterion];
-    const matched = [];
-    for (const name of failedNames) {
-      if (criterionHints[name] && !matched.includes(criterionHints[name])) {
-        matched.push(criterionHints[name]);
-      }
-    }
-    if (matched.length > 0) {
-      hints.push(`${criterion} (${result.score}\uC810) \u2192 ${matched.join("; ")}`);
-    }
-  }
-  return hints;
-}
 
 // src/core/plan-archive.ts
-import { readFileSync as readFileSync23, writeFileSync as writeFileSync9, readdirSync as readdirSync12, mkdirSync as mkdirSync9, unlinkSync as unlinkSync3, existsSync as existsSync33 } from "fs";
-import { join as join39 } from "path";
-
-// src/core/project-paths.ts
-import { join as join38 } from "path";
-function agentPlanPath(projectRoot) {
-  return join38(projectRoot, ".agent", "plan.md");
-}
-function agentTodoPath(projectRoot) {
-  return join38(projectRoot, ".agent", "todo.md");
-}
-function agentArchiveDir(projectRoot) {
-  return join38(projectRoot, ".agent", "archive");
-}
-
-// src/core/plan-archive.ts
+import { readFileSync as readFileSync25, writeFileSync as writeFileSync11, readdirSync as readdirSync12, mkdirSync as mkdirSync11, unlinkSync as unlinkSync3, existsSync as existsSync34 } from "fs";
+import { join as join40 } from "path";
 var SEPARATOR = "<!-- ARCHIVE:SEPARATOR -->";
 var DEFAULT_MAX_ARCHIVES = 20;
 var SLUG_MAX_LENGTH = 30;
 function archivePlan(projectRoot) {
   const planPath = agentPlanPath(projectRoot);
-  if (!existsSync33(planPath)) {
+  if (!existsSync34(planPath)) {
     return { success: false, message: "plan.md\uAC00 \uC874\uC7AC\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4" };
   }
   let planContent;
   try {
-    planContent = readFileSync23(planPath, "utf-8");
+    planContent = readFileSync25(planPath, "utf-8");
   } catch {
     return { success: false, message: "plan.md \uC77D\uAE30 \uC2E4\uD328" };
   }
@@ -243843,8 +243597,8 @@ function archivePlan(projectRoot) {
   const todoPath = agentTodoPath(projectRoot);
   let todoContent = "";
   try {
-    if (existsSync33(todoPath)) {
-      todoContent = readFileSync23(todoPath, "utf-8");
+    if (existsSync34(todoPath)) {
+      todoContent = readFileSync25(todoPath, "utf-8");
     }
   } catch {
   }
@@ -243859,13 +243613,13 @@ ${SEPARATOR}
 ${todoContent}` : planContent;
   const archiveDir = agentArchiveDir(projectRoot);
   try {
-    mkdirSync9(archiveDir, { recursive: true });
+    mkdirSync11(archiveDir, { recursive: true });
   } catch {
     return { success: false, message: ".agent/archive/ \uB514\uB809\uD1A0\uB9AC \uC0DD\uC131 \uC2E4\uD328" };
   }
-  const archivePath = join39(archiveDir, filename);
+  const archivePath = join40(archiveDir, filename);
   try {
-    writeFileSync9(archivePath, combined, "utf-8");
+    writeFileSync11(archivePath, combined, "utf-8");
   } catch {
     return { success: false, message: `\uC544\uCE74\uC774\uBE0C \uC800\uC7A5 \uC2E4\uD328: ${filename}` };
   }
@@ -243874,7 +243628,7 @@ ${todoContent}` : planContent;
   } catch {
   }
   try {
-    if (existsSync33(todoPath)) {
+    if (existsSync34(todoPath)) {
       unlinkSync3(todoPath);
     }
   } catch {
@@ -243884,7 +243638,7 @@ ${todoContent}` : planContent;
 }
 function listArchives(projectRoot) {
   const archiveDir = agentArchiveDir(projectRoot);
-  if (!existsSync33(archiveDir)) {
+  if (!existsSync34(archiveDir)) {
     return [];
   }
   let files;
@@ -243905,18 +243659,18 @@ function listArchives(projectRoot) {
 }
 function restoreArchive(projectRoot, filename) {
   const archiveDir = agentArchiveDir(projectRoot);
-  const archivePath = join39(archiveDir, filename);
-  if (!existsSync33(archivePath)) {
+  const archivePath = join40(archiveDir, filename);
+  if (!existsSync34(archivePath)) {
     return { success: false, message: `\uC544\uCE74\uC774\uBE0C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: ${filename}` };
   }
   let content;
   try {
-    content = readFileSync23(archivePath, "utf-8");
+    content = readFileSync25(archivePath, "utf-8");
   } catch {
     return { success: false, message: `\uC544\uCE74\uC774\uBE0C \uC77D\uAE30 \uC2E4\uD328: ${filename}` };
   }
   const planPath = agentPlanPath(projectRoot);
-  if (existsSync33(planPath)) {
+  if (existsSync34(planPath)) {
     const archiveFirst = archivePlan(projectRoot);
     if (!archiveFirst.success) {
       return { success: false, message: `\uAE30\uC874 plan \uC544\uCE74\uC774\uBE0C \uC2E4\uD328: ${archiveFirst.message}` };
@@ -243924,19 +243678,19 @@ function restoreArchive(projectRoot, filename) {
   }
   const { plan, todo } = splitCombined(content);
   try {
-    mkdirSync9(join39(projectRoot, ".agent"), { recursive: true });
+    mkdirSync11(join40(projectRoot, ".agent"), { recursive: true });
   } catch {
     return { success: false, message: ".agent/ \uB514\uB809\uD1A0\uB9AC \uC0DD\uC131 \uC2E4\uD328" };
   }
   try {
-    writeFileSync9(planPath, plan, "utf-8");
+    writeFileSync11(planPath, plan, "utf-8");
   } catch {
     return { success: false, message: "plan.md \uBCF5\uC6D0 \uC2E4\uD328" };
   }
   if (todo) {
     const todoPath = agentTodoPath(projectRoot);
     try {
-      writeFileSync9(todoPath, todo, "utf-8");
+      writeFileSync11(todoPath, todo, "utf-8");
     } catch {
       return { success: true, message: `plan.md \uBCF5\uC6D0 \uC644\uB8CC (todo.md \uBCF5\uC6D0 \uC2E4\uD328): ${filename}`, filename };
     }
@@ -243949,7 +243703,7 @@ function restoreArchive(projectRoot, filename) {
 }
 function enforceArchiveLimit(projectRoot, max = DEFAULT_MAX_ARCHIVES) {
   const archiveDir = agentArchiveDir(projectRoot);
-  if (!existsSync33(archiveDir)) return 0;
+  if (!existsSync34(archiveDir)) return 0;
   let files;
   try {
     files = readdirSync12(archiveDir).filter((f) => f.endsWith(".md")).sort();
@@ -243960,7 +243714,7 @@ function enforceArchiveLimit(projectRoot, max = DEFAULT_MAX_ARCHIVES) {
   while (files.length > max) {
     const oldest = files.shift();
     try {
-      unlinkSync3(join39(archiveDir, oldest));
+      unlinkSync3(join40(archiveDir, oldest));
       deleted++;
     } catch {
     }
@@ -244078,7 +243832,7 @@ function registerAllTools(server3) {
 // src/server.ts
 var server2 = new McpServer({
   name: "carpdm-harness",
-  version: "4.11.0"
+  version: "4.11.1"
 });
 registerAllTools(server2);
 var transport = new StdioServerTransport();

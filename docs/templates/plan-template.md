@@ -52,9 +52,14 @@
 - Route:
 
 ## 4. 변경 파일 목록 (Affected Files)
+
+<!-- harness:scope:start -->
+
 | 파일 | 변경 유형 | 설명 |
 |------|----------|------|
 | | CREATE/MODIFY/DELETE | |
+
+<!-- harness:scope:end -->
 
 ## 5. 구현 계획 (Implementation Plan)
 ### Step 1: [제목]
@@ -93,6 +98,12 @@
   - [ ] Audit Log 구현
   - [ ] 에러 노출 차단 (스택트레이스, 내부 경로)
   - [ ] 의존성 취약점 점검 (npm audit / pip-audit)
+- [ ] 성능 체크 (해당 시)
+  - [ ] N+1 쿼리 패턴 확인
+  - [ ] 메모리 사용량 이슈 확인
+  - [ ] 캐싱 기회 식별
+  - [ ] 고복잡도(O(n²) 이상) 코드 경로 확인
+  - [ ] 번들 사이즈 영향 확인 (프론트엔드)
 
 ## 7. 의존성 (Dependencies)
 - 외부 라이브러리:

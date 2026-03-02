@@ -65,14 +65,14 @@ describe('플러그인 구조 검증', () => {
 
   // ─── skills/ ───
   describe('skills/ 디렉토리', () => {
-    it('14개의 SKILL.md 파일이 존재한다', () => {
+    it('12개의 SKILL.md 파일이 존재한다', () => {
       const skillsDir = join(ROOT, 'skills');
       expect(existsSync(skillsDir)).toBe(true);
       const skillFiles = readdirSync(skillsDir, { withFileTypes: true })
         .filter(d => d.isDirectory())
         .map(d => join(skillsDir, d.name, 'SKILL.md'))
         .filter(p => existsSync(p));
-      expect(skillFiles.length).toBe(14);
+      expect(skillFiles.length).toBe(12);
     });
   });
 
@@ -101,11 +101,11 @@ describe('플러그인 구조 검증', () => {
 
   // ─── agents/ ───
   describe('agents/ 디렉토리', () => {
-    it('10개의 에이전트 파일이 존재한다', () => {
+    it('9개의 에이전트 파일이 존재한다', () => {
       const agentsDir = join(ROOT, 'agents');
       expect(existsSync(agentsDir)).toBe(true);
       const files = readdirSync(agentsDir).filter(f => f.endsWith('.md'));
-      expect(files.length).toBe(10);
+      expect(files.length).toBe(9);
     });
 
     it('workflow-guide.md가 존재한다', () => {
