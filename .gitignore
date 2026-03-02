@@ -17,3 +17,8 @@ dist/**/*.map
 *.key
 *.p12
 credentials.json
+
+# 플러그인 런타임 상태 (배포 불필요)
+.claude/
+skills/.harness/
+skills/.omc/

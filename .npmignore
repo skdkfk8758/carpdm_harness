@@ -1,0 +1,14 @@
+src/
+tests/
+*.ts
+!*.d.ts
+tsconfig.json
+tsup.config.ts
+eslint.config.*
+.github/
+.githooks/
+docs/
+examples/
+scripts/
+.editorconfig
+*.tgz
