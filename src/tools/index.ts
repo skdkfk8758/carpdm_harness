@@ -22,6 +22,7 @@ import { registerGithubSetupTool } from './github-setup.js';
 import { registerManageVerifyTool } from './manage-verify.js';
 import { registerVerifyAllTool } from './verify-all.js';
 import { registerPlanArchiveTool } from './plan-archive.js';
+import { registerRepoAnalyzeTool } from './repo-analyze.js';
 
 export function registerAllTools(server: McpServer): void {
   registerListTool(server);
@@ -47,4 +48,5 @@ export function registerAllTools(server: McpServer): void {
   registerManageVerifyTool(server);
   registerVerifyAllTool(server);
   registerPlanArchiveTool(server);
+  registerRepoAnalyzeTool(server);
 }
