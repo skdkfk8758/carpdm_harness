@@ -13,20 +13,8 @@ import {
   isRufloInstalled,
   detectRufloSwarmStatus,
 } from '../core/omc-compat.js';
-
-interface HookInput {
-  cwd?: string;
-  directory?: string;
-  sessionId?: string;
-  session_id?: string;
-  sessionid?: string;
-  [key: string]: unknown;
-}
-
-interface HookOutput {
-  result: 'continue';
-  additionalContext?: string;
-}
+import { outputResult } from './hook-utils.js';
+import type { HookInput } from './hook-utils.js';
 
 function readJsonFile(path: string): Record<string, unknown> | null {
   try {
@@ -248,10 +236,10 @@ async function shouldRefreshOntology(cwd: string): Promise<{ shouldRefresh: bool
 
   // 조건 2: git 기반 변경 파일 10개+ (빠른 체크)
   try {
-    const { execSync } = await import('node:child_process');
+    const { execFileSync } = await import('node:child_process');
     const since = new Date(builtAtMs).toISOString();
-    const result = execSync(
-      `git log --since="${since}" --name-only --pretty=format:""`,
+    const result = execFileSync(
+      'git', ['log', `--since=${since}`, '--name-only', '--pretty=format:'],
       { cwd, stdio: 'pipe', timeout: 2000 },
     ).toString().trim();
     if (result) {
@@ -271,7 +259,7 @@ async function main(): Promise<void> {
     const raw = readFileSync('/dev/stdin', 'utf-8');
     input = JSON.parse(raw) as HookInput;
   } catch {
-    outputResult();
+    outputResult('continue');
     return;
   }
 
@@ -343,8 +331,8 @@ async function main(): Promise<void> {
 
   // ── 1.5. 브랜치 상태 + /work-start 안내 ─────────────────────────────────────
   try {
-    const { execSync } = await import('node:child_process');
-    const branch = execSync('git branch --show-current', { cwd, stdio: 'pipe' }).toString().trim();
+    const { execFileSync } = await import('node:child_process');
+    const branch = execFileSync('git', ['branch', '--show-current'], { cwd, stdio: 'pipe' }).toString().trim();
     if (branch) {
       const isMain = branch === 'main' || branch === 'master';
       const branchInfo = isMain
@@ -606,7 +594,7 @@ async function main(): Promise<void> {
 
   // 컨텍스트 예산 관리: 4KB 상한 트리밍
   const finalContext = messages.length > 0 ? trimContext(messages, 4096) : undefined;
-  outputResult(finalContext);
+  outputResult('continue', finalContext);
 }
 
 /**
@@ -632,12 +620,4 @@ function trimContext(messages: string[], maxBytes: number): string {
   return result;
 }
 
-function outputResult(additionalContext?: string): void {
-  const output: HookOutput = { result: 'continue' };
-  if (additionalContext) {
-    output.additionalContext = additionalContext;
-  }
-  process.stdout.write(JSON.stringify(output));
-}
-
-main().catch(() => outputResult());
+main().catch(() => outputResult('continue'));

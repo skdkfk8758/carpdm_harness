@@ -249,7 +249,10 @@ function handleStart(
     return errorResult(engineResult.message);
   }
 
-  const instance = engineResult.instance!;
+  if (!engineResult.instance) {
+    return errorResult('워크플로우 인스턴스를 가져올 수 없습니다.');
+  }
+  const instance = engineResult.instance;
   const res = new McpResponseBuilder();
 
   res.header(`워크플로우 시작: ${instance.workflowType} (${WORKFLOW_DEFINITIONS[instance.workflowType]?.description ?? ''})`);
@@ -322,7 +325,10 @@ function handleAdvance(pRoot: string, result: string | undefined, autoDispatch?:
     return errorResult(engineResult.message);
   }
 
-  const instance = engineResult.instance!;
+  if (!engineResult.instance) {
+    return errorResult('워크플로우 인스턴스를 가져올 수 없습니다.');
+  }
+  const instance = engineResult.instance;
   const res = new McpResponseBuilder();
 
   res.header(`워크플로우 진행: ${instance.workflowType} (${instance.id})`);
@@ -442,7 +448,10 @@ function handleApprove(pRoot: string) {
     return errorResult(engineResult.message);
   }
 
-  const instance = engineResult.instance!;
+  if (!engineResult.instance) {
+    return errorResult('워크플로우 인스턴스를 가져올 수 없습니다.');
+  }
+  const instance = engineResult.instance;
   const res = new McpResponseBuilder();
   res.header(`체크포인트 승인: ${instance.workflowType} (${instance.id})`);
   res.blank();
@@ -496,7 +505,10 @@ function handleRetry(pRoot: string) {
     return errorResult(engineResult.message);
   }
 
-  const instance = engineResult.instance!;
+  if (!engineResult.instance) {
+    return errorResult('워크플로우 인스턴스를 가져올 수 없습니다.');
+  }
+  const instance = engineResult.instance;
   const res = new McpResponseBuilder();
   res.header(`단계 재시도: ${instance.workflowType} (${instance.id})`);
   res.blank();
@@ -528,7 +540,10 @@ function handleSkip(pRoot: string, reason: string | undefined) {
     return errorResult(engineResult.message);
   }
 
-  const instance = engineResult.instance!;
+  if (!engineResult.instance) {
+    return errorResult('워크플로우 인스턴스를 가져올 수 없습니다.');
+  }
+  const instance = engineResult.instance;
   const res = new McpResponseBuilder();
   res.header(`단계 건너뛰기: ${instance.workflowType} (${instance.id})`);
   res.blank();

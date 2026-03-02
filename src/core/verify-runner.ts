@@ -1,10 +1,20 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import type { CheckItem, ValidationContext } from '../types/quality-gate.js';
 import { DEFAULT_QUALITY_GATE_CONFIG } from '../types/quality-gate.js';
 import type { VerifySkillMeta, VerifyCheck, VerifySkillResult, IntegratedVerifyReport } from '../types/verify.js';
 import { QualityGateRunner } from './quality-gate/index.js';
 import { scanVerifySkills } from './verify-skill-manager.js';
+
+/** 허용된 명령어 allowlist — SKILL.md에서 파싱한 command가 이 목록에 포함되어야 실행됨 */
+const ALLOWED_COMMANDS = new Set([
+  'grep', 'rg', 'find', 'wc', 'git', 'npm', 'npx', 'node', 'tsc',
+  'eslint', 'prettier', 'vitest', 'jest', 'cat', 'head', 'tail', 'ls', 'test',
+  'echo', 'true', 'false',
+]);
+
+/** 셸 메타문자 차단 패턴 — 명령 주입 방지 */
+const SHELL_META = /[;&|`$(){}!<>\\]/;
 
 // === SKILL.md 파싱 ===
 
@@ -92,10 +102,34 @@ export function runVerifySkill(
   };
 }
 
-/** 단일 검사 항목 실행 */
+/** 단일 검사 항목 실행 (allowlist + execFileSync로 명령 주입 차단) */
 function executeCheck(projectRoot: string, check: VerifyCheck): CheckItem {
+  // 셸 메타문자 차단
+  if (SHELL_META.test(check.command)) {
+    return {
+      name: check.name,
+      passed: false,
+      message: '보안: 셸 메타문자가 포함된 명령은 실행할 수 없습니다.',
+      severity: check.severity,
+    };
+  }
+
+  // allowlist 검사
+  const parts = check.command.trim().split(/\s+/);
+  const cmd = parts[0];
+  if (!cmd || !ALLOWED_COMMANDS.has(cmd)) {
+    return {
+      name: check.name,
+      passed: false,
+      message: `보안: 허용되지 않은 명령입니다 (${cmd ?? '빈 명령'}). 허용 목록: ${[...ALLOWED_COMMANDS].join(', ')}`,
+      severity: check.severity,
+    };
+  }
+
+  const args = parts.slice(1);
+
   try {
-    execSync(check.command, {
+    execFileSync(cmd, args, {
       cwd: projectRoot,
       stdio: 'pipe',
       timeout: 8000,

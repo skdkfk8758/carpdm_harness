@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import type { ValidatorResult, ValidationContext, TrustCriterion, CheckItem } from '../../../types/quality-gate.js';
 
@@ -33,10 +33,14 @@ export abstract class BaseValidator {
     }
   }
 
-  /** 명령어 실행 래퍼 (graceful degradation) */
+  /** 명령어 실행 래퍼 (graceful degradation, execFileSync 기반) */
   protected execCommand(command: string, cwd: string): { stdout: string; exitCode: number } {
     try {
-      const stdout = execSync(command, { cwd, stdio: 'pipe', timeout: 8000 }).toString();
+      const parts = command.trim().split(/\s+/);
+      const cmd = parts[0];
+      const args = parts.slice(1);
+      if (!cmd) return { stdout: '', exitCode: 1 };
+      const stdout = execFileSync(cmd, args, { cwd, stdio: 'pipe', timeout: 8000 }).toString();
       return { stdout, exitCode: 0 };
     } catch (err: unknown) {
       const error = err as { stdout?: Buffer; status?: number };

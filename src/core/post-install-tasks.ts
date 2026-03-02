@@ -13,7 +13,7 @@ import { renderIndexMarkdown } from './ontology/markdown-renderer.js';
 import { loadStore, syncMemoryMd } from './team-memory.js';
 import { initKnowledgeVault, updateKnowledgeIndex, syncOntologyToVault } from './knowledge-vault.js';
 import { syncClaudeMd } from './claudemd-sync.js';
-import { detectLocalMcpConflict, formatMcpConflictWarning, knowledgeDir } from './omc-compat.js';
+import { detectLocalMcpConflict, getMcpConflictWarning, knowledgeDir } from './omc-compat.js';
 import { scanOverlaps } from './overlap-detector.js';
 import { detectCapabilities, cacheCapabilities } from './capability-detector.js';
 import { getPackageVersion } from '../utils/version.js';
@@ -152,7 +152,11 @@ export function checkMcpConflict(
   res: McpResponseBuilder,
 ): void {
   if (detectLocalMcpConflict(projectRoot)) {
-    formatMcpConflictWarning(res);
+    const conflict = getMcpConflictWarning();
+    res.blank();
+    res.warn(conflict.title);
+    for (const line of conflict.lines) res.line(line);
+    res.info(conflict.resolution);
   }
 }
 

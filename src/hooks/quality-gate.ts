@@ -4,18 +4,8 @@ import { execSync } from 'node:child_process';
 import { omcStateDir, OMC_TEAM_MODES } from '../core/omc-compat.js';
 import { detectRedFlags, buildRedFlagContext } from '../core/behavioral-validator.js';
 import { DEFAULT_BEHAVIORAL_GUARD_CONFIG } from '../types/behavioral-guard.js';
-
-interface HookInput {
-  tool_name?: string;
-  tool_input?: { command?: string };
-  cwd?: string;
-  [key: string]: unknown;
-}
-
-interface HookOutput {
-  result: 'continue' | 'block';
-  additionalContext?: string;
-}
+import { outputResult } from './hook-utils.js';
+import type { HookInput } from './hook-utils.js';
 
 function main(): void {
   let input: HookInput;
@@ -207,14 +197,6 @@ function isOmcTeamMode(cwd: string): boolean {
   }
 
   return false;
-}
-
-function outputResult(result: 'continue' | 'block', additionalContext?: string): void {
-  const output: HookOutput = { result };
-  if (additionalContext) {
-    output.additionalContext = additionalContext;
-  }
-  process.stdout.write(JSON.stringify(output));
 }
 
 main();

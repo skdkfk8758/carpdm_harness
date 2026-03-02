@@ -73,7 +73,7 @@ npm install --production && npm run build
 
 ## MCP 도구
 
-24개 MCP 도구를 제공합니다.
+24개 MCP 도구를 제공합니다. (harness_* 네임스페이스)
 
 ### 핵심 도구
 
@@ -300,7 +300,7 @@ flowchart TD
 
 ## 스킬 & 에이전트
 
-### 스킬 (26개)
+### 스킬 (13개)
 
 플러그인 설치 시 `skills/` 디렉토리의 스킬이 자동 등록됩니다. MCP 도구 호출을 안내하는 래퍼 스킬입니다.
 

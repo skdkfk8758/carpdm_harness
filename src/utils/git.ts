@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 
 export function isGitRepo(cwd: string): boolean {
@@ -70,7 +70,7 @@ export function createWorktree(
   baseBranch: string = 'main',
 ): { success: boolean; message: string } {
   try {
-    execSync(`git worktree add -b "${branchName}" "${worktreePath}" "${baseBranch}"`, {
+    execFileSync('git', ['worktree', 'add', '-b', branchName, worktreePath, baseBranch], {
       cwd,
       stdio: 'pipe',
     });
@@ -82,7 +82,7 @@ export function createWorktree(
 
 export function removeWorktree(cwd: string, worktreePath: string): { success: boolean; message: string } {
   try {
-    execSync(`git worktree remove "${worktreePath}"`, { cwd, stdio: 'pipe' });
+    execFileSync('git', ['worktree', 'remove', worktreePath], { cwd, stdio: 'pipe' });
     return { success: true, message: `Worktree removed: ${worktreePath}` };
   } catch (err) {
     return { success: false, message: `Failed to remove worktree: ${String(err)}` };

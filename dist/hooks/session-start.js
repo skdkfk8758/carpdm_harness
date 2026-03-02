@@ -87,7 +87,7 @@ var init_common = __esm({
 });
 
 // src/core/file-ops.ts
-import { readFileSync as readFileSync2, writeFileSync, mkdirSync, copyFileSync, existsSync as existsSync2, chmodSync } from "fs";
+import { readFileSync as readFileSync3, writeFileSync, mkdirSync, copyFileSync, existsSync as existsSync3, chmodSync } from "fs";
 import { dirname } from "path";
 import { createHash } from "crypto";
 function ensureDir(dirPath) {
@@ -211208,15 +211208,15 @@ var init_typescript_plugin = __esm({
 });
 
 // src/core/ontology/structure-builder.ts
-import { readdirSync, readFileSync as readFileSync3, statSync, existsSync as existsSync3 } from "fs";
-import { join as join2, relative, extname as extname2, basename } from "path";
+import { readdirSync as readdirSync2, readFileSync as readFileSync4, statSync, existsSync as existsSync4 } from "fs";
+import { join as join3, relative, extname as extname2, basename } from "path";
 function loadGitignorePatterns(projectRoot) {
-  const gitignorePath = join2(projectRoot, ".gitignore");
-  if (!existsSync3(gitignorePath)) {
+  const gitignorePath = join3(projectRoot, ".gitignore");
+  if (!existsSync4(gitignorePath)) {
     return [];
   }
   try {
-    const content = readFileSync3(gitignorePath, "utf-8");
+    const content = readFileSync4(gitignorePath, "utf-8");
     const patterns = [];
     for (const rawLine of content.split("\n")) {
       const line = rawLine.trim();
@@ -211247,7 +211247,7 @@ function getFileInfo(filePath) {
   try {
     const stat = statSync(filePath);
     sizeBytes = stat.size;
-    const content = readFileSync3(filePath, "utf-8");
+    const content = readFileSync4(filePath, "utf-8");
     lineCount = content.split("\n").length;
   } catch {
   }
@@ -211328,7 +211328,7 @@ function scanDirectory(dirPath, projectRoot, excludePatterns, maxDepth, currentD
   }
   let entries;
   try {
-    entries = readdirSync(dirPath, { withFileTypes: true });
+    entries = readdirSync2(dirPath, { withFileTypes: true });
   } catch {
     logger.warn(`\uB514\uB809\uD1A0\uB9AC \uC77D\uAE30 \uC2E4\uD328: ${dirPath}`);
     return node;
@@ -211337,7 +211337,7 @@ function scanDirectory(dirPath, projectRoot, excludePatterns, maxDepth, currentD
     if (excludePatterns.some((p) => entry.name === p || entry.name.startsWith(p))) {
       continue;
     }
-    const fullPath = join2(dirPath, entry.name);
+    const fullPath = join3(dirPath, entry.name);
     const entryRelative = relative(projectRoot, fullPath);
     if (entry.isDirectory()) {
       const childNode = scanDirectory(
@@ -211361,7 +211361,7 @@ function scanDirectory(dirPath, projectRoot, excludePatterns, maxDepth, currentD
       const lang = fileInfo.language;
       if (lang && ["typescript", "javascript"].includes(lang)) {
         try {
-          const content = readFileSync3(fullPath, "utf-8");
+          const content = readFileSync4(fullPath, "utf-8");
           const relations = extractModuleRelations(fullPath, content, projectRoot);
           allRelations.push(...relations);
         } catch {
@@ -211404,11 +211404,11 @@ function updateStructureIncremental(projectRoot, existing, changes, config) {
   );
   const newRelations = [];
   for (const relPath of changedSet) {
-    const fullPath = join2(projectRoot, relPath);
+    const fullPath = join3(projectRoot, relPath);
     const lang = detectLanguage(fullPath);
     if (lang && ["typescript", "javascript"].includes(lang)) {
       try {
-        const content = readFileSync3(fullPath, "utf-8");
+        const content = readFileSync4(fullPath, "utf-8");
         newRelations.push(...extractModuleRelations(fullPath, content, projectRoot));
       } catch {
       }
@@ -211485,8 +211485,8 @@ var init_structure_builder = __esm({
 });
 
 // src/core/ontology/annotation-analyzer.ts
-import { readFileSync as readFileSync4 } from "fs";
-import { join as join3 } from "path";
+import { readFileSync as readFileSync5 } from "fs";
+import { join as join4 } from "path";
 function analyzeFanIn(semantics, threshold = ANCHOR_FAN_IN_THRESHOLD) {
   const annotations = [];
   for (const [symbolName, entries] of Object.entries(semantics.symbols.byName)) {
@@ -211553,8 +211553,8 @@ function analyzeFileComplexity(files, projectRoot) {
   for (const file of files) {
     let content;
     try {
-      const absPath = file.path.startsWith("/") ? file.path : join3(projectRoot, file.path);
-      content = readFileSync4(absPath, "utf-8");
+      const absPath = file.path.startsWith("/") ? file.path : join4(projectRoot, file.path);
+      content = readFileSync5(absPath, "utf-8");
     } catch {
       continue;
     }
@@ -211622,8 +211622,8 @@ function scanExistingAnnotations(files, projectRoot) {
   for (const file of files) {
     let content;
     try {
-      const absPath = file.path.startsWith("/") ? file.path : join3(projectRoot, file.path);
-      content = readFileSync4(absPath, "utf-8");
+      const absPath = file.path.startsWith("/") ? file.path : join4(projectRoot, file.path);
+      content = readFileSync5(absPath, "utf-8");
     } catch {
       continue;
     }
@@ -211650,8 +211650,8 @@ function scanTodoComments(files, projectRoot) {
   for (const file of files) {
     let content;
     try {
-      const absPath = file.path.startsWith("/") ? file.path : join3(projectRoot, file.path);
-      content = readFileSync4(absPath, "utf-8");
+      const absPath = file.path.startsWith("/") ? file.path : join4(projectRoot, file.path);
+      content = readFileSync5(absPath, "utf-8");
     } catch {
       continue;
     }
@@ -211773,15 +211773,15 @@ var init_annotation_analyzer = __esm({
 });
 
 // src/core/ontology/semantics-builder.ts
-import { readFileSync as readFileSync5 } from "fs";
-import { join as join4, relative as relative2 } from "path";
+import { readFileSync as readFileSync6 } from "fs";
+import { join as join5, relative as relative2 } from "path";
 function collectSourceFiles(node, projectRoot, languages) {
   const results = [];
   function walk(n) {
     if (n.type === "file") {
       const lang = n.fileInfo?.language;
       if (lang && languages.includes(lang)) {
-        results.push(join4(projectRoot, n.path));
+        results.push(join5(projectRoot, n.path));
       }
     } else {
       for (const child of n.children ?? []) {
@@ -211861,7 +211861,7 @@ function buildDependencyGraph(files, modules, projectRoot, pkgExternal) {
 }
 async function analyzeFile(filePath, plugin) {
   if (!plugin.canHandle(filePath)) return null;
-  const content = readFileSync5(filePath, "utf-8");
+  const content = readFileSync6(filePath, "utf-8");
   return plugin.analyzeFile(filePath, content);
 }
 async function buildSemanticsLayer(projectRoot, structureLayer, config, plugin, capabilities) {
@@ -211924,7 +211924,7 @@ async function updateSemanticsIncremental(projectRoot, existing, changes, plugin
   });
   const settled = await Promise.allSettled(
     addedOrModified.map((relPath) => {
-      const fullPath = join4(projectRoot, relPath);
+      const fullPath = join5(projectRoot, relPath);
       return analyzeFile(fullPath, plugin);
     })
   );
@@ -211968,16 +211968,16 @@ var init_semantics_builder = __esm({
 });
 
 // src/core/ontology/domain-builder.ts
-import { readFileSync as readFileSync6, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, existsSync as existsSync4, readdirSync as readdirSync2, statSync as statSync2 } from "fs";
-import { join as join5, extname as extname3, basename as basename2, relative as relative3 } from "path";
+import { readFileSync as readFileSync7, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, existsSync as existsSync5, readdirSync as readdirSync3, statSync as statSync2 } from "fs";
+import { join as join6, extname as extname3, basename as basename2, relative as relative3 } from "path";
 import { createHash as createHash2 } from "crypto";
 function getCachePath(projectRoot) {
-  return join5(projectRoot, ".agent", "ontology", ".cache", "domain-cache.json");
+  return join6(projectRoot, ".agent", "ontology", ".cache", "domain-cache.json");
 }
 function loadDomainCache(projectRoot) {
   try {
     const cachePath = getCachePath(projectRoot);
-    const raw = readFileSync6(cachePath, "utf-8");
+    const raw = readFileSync7(cachePath, "utf-8");
     return JSON.parse(raw);
   } catch {
     return null;
@@ -211986,7 +211986,7 @@ function loadDomainCache(projectRoot) {
 function saveDomainCache(projectRoot, cache) {
   try {
     const cachePath = getCachePath(projectRoot);
-    mkdirSync2(join5(projectRoot, ".agent", "ontology", ".cache"), { recursive: true });
+    mkdirSync2(join6(projectRoot, ".agent", "ontology", ".cache"), { recursive: true });
     writeFileSync2(cachePath, JSON.stringify(cache, null, 2), "utf-8");
   } catch (err) {
     logger.warn(`\uB3C4\uBA54\uC778 \uCE90\uC2DC \uC800\uC7A5 \uC2E4\uD328: ${String(err)}`);
@@ -212092,7 +212092,7 @@ function summarizeDirectoryTree(structureLayer) {
 }
 function readPackageJson(projectRoot) {
   try {
-    return readFileSync6(join5(projectRoot, "package.json"), "utf-8");
+    return readFileSync7(join6(projectRoot, "package.json"), "utf-8");
   } catch {
     return "{}";
   }
@@ -212408,8 +212408,8 @@ ${externalDeps || "(\uC5C6\uC74C)"}`;
 }
 function scanDocFiles(projectRoot) {
   for (const dir of DOC_DIRS) {
-    const absDir = join5(projectRoot, dir);
-    if (existsSync4(absDir) && statSync2(absDir).isDirectory()) {
+    const absDir = join6(projectRoot, dir);
+    if (existsSync5(absDir) && statSync2(absDir).isDirectory()) {
       const files = collectDocFilesRecursive(absDir, 0);
       return { docsRoot: dir, files: files.map((f) => relative3(projectRoot, f)) };
     }
@@ -212420,9 +212420,9 @@ function collectDocFilesRecursive(dir, depth) {
   if (depth > MAX_DOC_DEPTH) return [];
   const results = [];
   try {
-    const entries = readdirSync2(dir, { withFileTypes: true });
+    const entries = readdirSync3(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = join5(dir, entry.name);
+      const fullPath = join6(dir, entry.name);
       if (entry.isDirectory() && !entry.name.startsWith(".")) {
         results.push(...collectDocFilesRecursive(fullPath, depth + 1));
       } else if (entry.isFile() && DOC_EXTENSIONS.has(extname3(entry.name).toLowerCase())) {
@@ -212466,10 +212466,10 @@ function inferDocType(content, filePath) {
   return "other";
 }
 function parseDocLocally(projectRoot, relPath) {
-  const absPath = join5(projectRoot, relPath);
+  const absPath = join6(projectRoot, relPath);
   let content = "";
   try {
-    content = readFileSync6(absPath, "utf-8");
+    content = readFileSync7(absPath, "utf-8");
   } catch {
   }
   return {
@@ -212496,7 +212496,7 @@ function buildCrossReferences(projectRoot, docFiles, semanticsLayer) {
   for (const docPath of docFiles) {
     let content = "";
     try {
-      content = readFileSync6(join5(projectRoot, docPath), "utf-8");
+      content = readFileSync7(join6(projectRoot, docPath), "utf-8");
     } catch {
       continue;
     }
@@ -212524,7 +212524,7 @@ async function runStep8DocIndexing(projectRoot, semanticsLayer, aiConfig) {
   for (const doc of documents) {
     let content = "";
     try {
-      content = readFileSync6(join5(projectRoot, doc.path), "utf-8");
+      content = readFileSync7(join6(projectRoot, doc.path), "utf-8");
     } catch {
       continue;
     }
@@ -213268,35 +213268,35 @@ var init_markdown_renderer = __esm({
 });
 
 // src/core/ontology/incremental-updater.ts
-import { readFileSync as readFileSync7, writeFileSync as writeFileSync3, mkdirSync as mkdirSync3, readdirSync as readdirSync3 } from "fs";
-import { join as join6, relative as relative4 } from "path";
+import { readFileSync as readFileSync8, writeFileSync as writeFileSync3, mkdirSync as mkdirSync3, readdirSync as readdirSync4 } from "fs";
+import { join as join7, relative as relative4 } from "path";
 import { createHash as createHash3 } from "crypto";
 function getCachePath2(outputDir) {
-  return join6(outputDir, ".cache", "ontology-cache.json");
+  return join7(outputDir, ".cache", "ontology-cache.json");
 }
 function computeFileHash(filePath) {
   try {
-    const content = readFileSync7(filePath);
+    const content = readFileSync8(filePath);
     return createHash3("sha256").update(content).digest("hex");
   } catch {
     return "";
   }
 }
 function loadOntologyCache(projectRoot, outputDir) {
-  const absOutputDir = join6(projectRoot, outputDir);
+  const absOutputDir = join7(projectRoot, outputDir);
   const cachePath = getCachePath2(absOutputDir);
   try {
-    const raw = readFileSync7(cachePath, "utf-8");
+    const raw = readFileSync8(cachePath, "utf-8");
     return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 function saveOntologyCache(projectRoot, outputDir, cache) {
-  const absOutputDir = join6(projectRoot, outputDir);
+  const absOutputDir = join7(projectRoot, outputDir);
   const cachePath = getCachePath2(absOutputDir);
   try {
-    mkdirSync3(join6(absOutputDir, ".cache"), { recursive: true });
+    mkdirSync3(join7(absOutputDir, ".cache"), { recursive: true });
     writeFileSync3(cachePath, JSON.stringify(cache, null, 2), "utf-8");
   } catch (err) {
     logger.warn(`\uC628\uD1A8\uB85C\uC9C0 \uCE90\uC2DC \uC800\uC7A5 \uC2E4\uD328: ${String(err)}`);
@@ -213307,7 +213307,7 @@ function computeAllFileHashes(projectRoot, excludePatterns) {
   function walkDir(dirPath) {
     let entries;
     try {
-      entries = readdirSync3(dirPath, { withFileTypes: true });
+      entries = readdirSync4(dirPath, { withFileTypes: true });
     } catch {
       return;
     }
@@ -213315,7 +213315,7 @@ function computeAllFileHashes(projectRoot, excludePatterns) {
       if (excludePatterns.some((p) => entry.name === p || entry.name.startsWith(p))) {
         continue;
       }
-      const fullPath = join6(dirPath, entry.name);
+      const fullPath = join7(dirPath, entry.name);
       const relPath = relative4(projectRoot, fullPath);
       if (entry.isDirectory()) {
         walkDir(fullPath);
@@ -213483,11 +213483,11 @@ __export(ontology_exports, {
   refreshOntology: () => refreshOntology,
   writeOntologyFiles: () => writeOntologyFiles
 });
-import { join as join7 } from "path";
-import { readFileSync as readFileSync8, existsSync as existsSync5 } from "fs";
+import { join as join8 } from "path";
+import { readFileSync as readFileSync9, existsSync as existsSync6 } from "fs";
 function readHarnessVersion(projectRoot) {
   try {
-    const raw = readFileSync8(join7(projectRoot, "package.json"), "utf-8");
+    const raw = readFileSync9(join8(projectRoot, "package.json"), "utf-8");
     const pkg = JSON.parse(raw);
     return pkg.version ?? "0.0.0";
   } catch {
@@ -213722,7 +213722,7 @@ function getOntologyStatus(projectRoot, config) {
 }
 function collectIndexData(projectRoot, version) {
   const checkStatus = (relPath) => {
-    return existsSync5(join7(projectRoot, relPath)) ? "exists" : "missing";
+    return existsSync6(join8(projectRoot, relPath)) ? "exists" : "missing";
   };
   const agentFiles = [
     { path: ".agent/plan.md", status: checkStatus(".agent/plan.md"), description: "\uC791\uC5C5 \uACC4\uD68D (SDD \uAE30\uBC18)", managed: "manual" },
@@ -213744,13 +213744,13 @@ function collectIndexData(projectRoot, version) {
   };
 }
 async function writeOntologyFiles(projectRoot, data, outputDir) {
-  const absOutputDir = join7(projectRoot, outputDir);
+  const absOutputDir = join8(projectRoot, outputDir);
   const { structure, semantics, domain } = renderOntologyMarkdown(data);
   const filePaths = [];
   const files = [
-    [join7(absOutputDir, "ONTOLOGY-STRUCTURE.md"), structure],
-    [join7(absOutputDir, "ONTOLOGY-SEMANTICS.md"), semantics],
-    [join7(absOutputDir, "ONTOLOGY-DOMAIN.md"), domain]
+    [join8(absOutputDir, "ONTOLOGY-STRUCTURE.md"), structure],
+    [join8(absOutputDir, "ONTOLOGY-SEMANTICS.md"), semantics],
+    [join8(absOutputDir, "ONTOLOGY-DOMAIN.md"), domain]
   ];
   for (const [filePath, content] of files) {
     try {
@@ -213765,7 +213765,7 @@ async function writeOntologyFiles(projectRoot, data, outputDir) {
     const version = data.metadata.harnessVersion;
     const indexData = collectIndexData(projectRoot, version);
     const indexContent = renderIndexMarkdown(indexData);
-    const indexPath = join7(absOutputDir, "ONTOLOGY-INDEX.md");
+    const indexPath = join8(absOutputDir, "ONTOLOGY-INDEX.md");
     safeWriteFile(indexPath, indexContent);
     filePaths.push(indexPath);
     logger.fileAction("create", indexPath);
@@ -213892,13 +213892,115 @@ var init_ontology2 = __esm({
 });
 
 // src/hooks/session-start.ts
-import { readFileSync as readFileSync9, existsSync as existsSync6, writeFileSync as writeFileSync4, mkdirSync as mkdirSync4, readdirSync as readdirSync4, statSync as statSync3 } from "fs";
-import { join as join8, dirname as dirname2 } from "path";
+import { readFileSync as readFileSync10, existsSync as existsSync7, writeFileSync as writeFileSync4, mkdirSync as mkdirSync4, readdirSync as readdirSync5, statSync as statSync3 } from "fs";
+import { join as join9, dirname as dirname2 } from "path";
 
 // src/core/omc-compat.ts
 import { join } from "path";
 import { homedir } from "os";
 import { existsSync, readFileSync } from "fs";
+
+// src/types/workflow.ts
+var OMC_SKILLS = {
+  analyze: "/oh-my-claudecode:analyze",
+  plan: "/oh-my-claudecode:plan",
+  autopilot: "/oh-my-claudecode:autopilot",
+  tdd: "/oh-my-claudecode:tdd",
+  "git-master": "/oh-my-claudecode:git-master",
+  deepsearch: "/oh-my-claudecode:deepsearch",
+  "code-review": "/oh-my-claudecode:code-review",
+  "security-review": "/oh-my-claudecode:security-review",
+  cancel: "/oh-my-claudecode:cancel",
+  ralph: "/oh-my-claudecode:ralph"
+};
+var AGENT_SKILL_MAP = {
+  analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
+  planner: { skill: OMC_SKILLS.plan, model: "opus" },
+  architect: { skill: void 0, model: "opus" },
+  executor: { skill: OMC_SKILLS.autopilot, model: "sonnet" },
+  "deep-executor": { skill: OMC_SKILLS.autopilot, model: "opus" },
+  "test-engineer": { skill: OMC_SKILLS.tdd, model: "sonnet" },
+  verifier: { skill: void 0, model: "sonnet" },
+  "git-master": { skill: OMC_SKILLS["git-master"], model: "sonnet" },
+  explore: { skill: OMC_SKILLS.deepsearch, model: "haiku" },
+  debugger: { skill: OMC_SKILLS.analyze, model: "sonnet" },
+  "quality-reviewer": { skill: OMC_SKILLS["code-review"], model: "sonnet" },
+  "security-reviewer": { skill: OMC_SKILLS["security-review"], model: "sonnet" },
+  "qa-tester": { skill: void 0, model: "sonnet" }
+};
+var WORKFLOW_DEFINITIONS = {
+  feature: {
+    name: "feature",
+    description: "\uAE30\uB2A5 \uAC1C\uBC1C \uC6CC\uD06C\uD50C\uB85C\uC6B0",
+    requiredModules: ["core", "quality"],
+    pipeline: [
+      { order: 1, agent: "analyst", action: "\uC694\uAD6C\uC0AC\uD56D \uBD84\uC11D", omcSkill: OMC_SKILLS.analyze },
+      { order: 2, agent: "planner", action: "\uAD6C\uD604 \uACC4\uD68D \uC218\uB9BD", checkpoint: "\uACC4\uD68D \uC2B9\uC778", omcSkill: OMC_SKILLS.plan },
+      { order: 3, agent: "architect", action: "\uC544\uD0A4\uD14D\uCC98 \uAC80\uC99D", optional: true },
+      { order: 4, agent: "executor", action: "\uAD6C\uD604", checkpoint: "\uAD6C\uD604 \uC644\uB8CC", omcSkill: OMC_SKILLS.autopilot },
+      { order: 5, agent: "quality-reviewer", action: "\uD488\uC9C8 \uAC80\uD1A0", optional: true, omcSkill: OMC_SKILLS["code-review"] },
+      { order: 6, agent: "test-engineer", action: "\uD14C\uC2A4\uD2B8 \uC791\uC131/\uC2E4\uD589", omcSkill: OMC_SKILLS.tdd },
+      { order: 7, agent: "verifier", action: "\uAC80\uC99D", checkpoint: "\uAC80\uC99D \uD1B5\uACFC", harnessTool: "harness_verify_all" },
+      { order: 8, agent: "git-master", action: "\uCEE4\uBC0B/PR", optional: true, omcSkill: OMC_SKILLS["git-master"] }
+    ],
+    recommendedCapabilities: ["serena", "context7"],
+    teamMode: "ralph"
+  },
+  bugfix: {
+    name: "bugfix",
+    description: "\uBC84\uADF8 \uC218\uC815 \uC6CC\uD06C\uD50C\uB85C\uC6B0",
+    requiredModules: ["core"],
+    pipeline: [
+      { order: 1, agent: "explore", action: "\uCF54\uB4DC\uBCA0\uC774\uC2A4 \uD0D0\uC0C9", omcSkill: OMC_SKILLS.deepsearch },
+      { order: 2, agent: "debugger", action: "\uC6D0\uC778 \uBD84\uC11D", checkpoint: "\uADFC\uBCF8 \uC6D0\uC778 \uD655\uC778", omcSkill: OMC_SKILLS.analyze },
+      { order: 3, agent: "executor", action: "\uC218\uC815 \uAD6C\uD604", omcSkill: OMC_SKILLS.autopilot },
+      { order: 4, agent: "quality-reviewer", action: "\uC218\uC815 \uAC80\uD1A0", optional: true, omcSkill: OMC_SKILLS["code-review"] },
+      { order: 5, agent: "test-engineer", action: "\uD68C\uADC0 \uD14C\uC2A4\uD2B8", omcSkill: OMC_SKILLS.tdd },
+      { order: 6, agent: "verifier", action: "\uC218\uC815 \uAC80\uC99D", checkpoint: "\uAC80\uC99D \uD1B5\uACFC", harnessTool: "harness_verify_all" }
+    ]
+  },
+  refactor: {
+    name: "refactor",
+    description: "\uB9AC\uD329\uD1A0\uB9C1 \uC6CC\uD06C\uD50C\uB85C\uC6B0",
+    requiredModules: ["core", "quality"],
+    pipeline: [
+      { order: 1, agent: "planner", action: "\uB9AC\uD329\uD1A0\uB9C1 \uACC4\uD68D", checkpoint: "\uACC4\uD68D \uC2B9\uC778", omcSkill: OMC_SKILLS.plan },
+      { order: 2, agent: "architect", action: "\uC544\uD0A4\uD14D\uCC98 \uB9AC\uBDF0" },
+      { order: 3, agent: "executor", action: "\uB9AC\uD329\uD1A0\uB9C1 \uC2E4\uD589", omcSkill: OMC_SKILLS.autopilot },
+      { order: 4, agent: "quality-reviewer", action: "\uD488\uC9C8 \uAC80\uD1A0", omcSkill: OMC_SKILLS["code-review"] },
+      { order: 5, agent: "verifier", action: "\uAC80\uC99D", checkpoint: "\uAC80\uC99D \uD1B5\uACFC", harnessTool: "harness_verify_all" }
+    ],
+    recommendedCapabilities: ["serena"],
+    teamMode: "autopilot"
+  },
+  release: {
+    name: "release",
+    description: "\uB9B4\uB9AC\uC2A4 \uC6CC\uD06C\uD50C\uB85C\uC6B0",
+    requiredModules: ["core", "quality", "ship"],
+    pipeline: [
+      { order: 1, agent: "security-reviewer", action: "\uBCF4\uC548 \uAC80\uD1A0", optional: true, omcSkill: OMC_SKILLS["security-review"] },
+      { order: 2, agent: "quality-reviewer", action: "\uB9B4\uB9AC\uC2A4 \uD488\uC9C8 \uAC80\uD1A0", omcSkill: OMC_SKILLS["code-review"] },
+      { order: 3, agent: "verifier", action: "\uB9B4\uB9AC\uC2A4 \uC900\uBE44 \uAC80\uC99D", checkpoint: "\uB9B4\uB9AC\uC2A4 \uC900\uBE44 \uC644\uB8CC", harnessTool: "harness_verify_all" },
+      { order: 4, agent: "qa-tester", action: "QA \uD14C\uC2A4\uD2B8" },
+      { order: 5, agent: "git-master", action: "\uB9B4\uB9AC\uC2A4 \uD0DC\uAE45/\uBC30\uD3EC", omcSkill: OMC_SKILLS["git-master"] }
+    ],
+    recommendedCapabilities: ["codex"]
+  },
+  security: {
+    name: "security",
+    description: "\uBCF4\uC548 \uAC15\uD654 \uC6CC\uD06C\uD50C\uB85C\uC6B0",
+    requiredModules: ["core", "security"],
+    pipeline: [
+      { order: 1, agent: "security-reviewer", action: "\uCDE8\uC57D\uC810 \uC2A4\uCE94", checkpoint: "\uCDE8\uC57D\uC810 \uBAA9\uB85D \uD655\uC815", omcSkill: OMC_SKILLS["security-review"] },
+      { order: 2, agent: "executor", action: "\uBCF4\uC548 \uD328\uCE58 \uAD6C\uD604", omcSkill: OMC_SKILLS.autopilot },
+      { order: 3, agent: "test-engineer", action: "\uBCF4\uC548 \uD14C\uC2A4\uD2B8", omcSkill: OMC_SKILLS.tdd },
+      { order: 4, agent: "verifier", action: "\uBCF4\uC548 \uAC80\uC99D", checkpoint: "\uAC80\uC99D \uD1B5\uACFC", harnessTool: "harness_verify_all" }
+    ],
+    recommendedCapabilities: ["serena", "codex"]
+  }
+};
+
+// src/core/omc-compat.ts
 function omcStatePath(projectRoot, mode) {
   return join(projectRoot, ".omc", "state", `${mode}-state.json`);
 }
@@ -213946,51 +214048,35 @@ function detectRufloSwarmStatus(projectRoot) {
 function isRufloInstalled(projectRoot) {
   return existsSync(rufloConfigPath(projectRoot));
 }
-var OMC_SKILLS = {
-  analyze: "/oh-my-claudecode:analyze",
-  plan: "/oh-my-claudecode:plan",
-  autopilot: "/oh-my-claudecode:autopilot",
-  tdd: "/oh-my-claudecode:tdd",
-  "git-master": "/oh-my-claudecode:git-master",
-  deepsearch: "/oh-my-claudecode:deepsearch",
-  "code-review": "/oh-my-claudecode:code-review",
-  "security-review": "/oh-my-claudecode:security-review",
-  cancel: "/oh-my-claudecode:cancel",
-  ralph: "/oh-my-claudecode:ralph"
-};
-var AGENT_SKILL_MAP = {
-  analyst: { skill: OMC_SKILLS.analyze, model: "opus" },
-  planner: { skill: OMC_SKILLS.plan, model: "opus" },
-  architect: { skill: void 0, model: "opus" },
-  executor: { skill: OMC_SKILLS.autopilot, model: "sonnet" },
-  "deep-executor": { skill: OMC_SKILLS.autopilot, model: "opus" },
-  "test-engineer": { skill: OMC_SKILLS.tdd, model: "sonnet" },
-  verifier: { skill: void 0, model: "sonnet" },
-  "git-master": { skill: OMC_SKILLS["git-master"], model: "sonnet" },
-  explore: { skill: OMC_SKILLS.deepsearch, model: "haiku" },
-  debugger: { skill: OMC_SKILLS.analyze, model: "sonnet" },
-  "quality-reviewer": { skill: OMC_SKILLS["code-review"], model: "sonnet" },
-  "security-reviewer": { skill: OMC_SKILLS["security-review"], model: "sonnet" },
-  "qa-tester": { skill: void 0, model: "sonnet" }
-};
 var OMC_NPM_PACKAGE = "oh-my-claude-sisyphus";
 var OMC_REGISTRY_URL = `https://registry.npmjs.org/${OMC_NPM_PACKAGE}/latest`;
 var HARNESS_NPM_PACKAGE = "carpdm-harness";
 var HARNESS_REGISTRY_URL = `https://registry.npmjs.org/${HARNESS_NPM_PACKAGE}/latest`;
 
+// src/hooks/hook-utils.ts
+import { readFileSync as readFileSync2, existsSync as existsSync2, readdirSync } from "fs";
+import { join as join2 } from "path";
+function outputResult(result, additionalContext) {
+  const output = { result };
+  if (additionalContext) {
+    output.additionalContext = additionalContext;
+  }
+  process.stdout.write(JSON.stringify(output));
+}
+
 // src/hooks/session-start.ts
 function readJsonFile(path) {
   try {
-    if (!existsSync6(path)) return null;
-    return JSON.parse(readFileSync9(path, "utf-8"));
+    if (!existsSync7(path)) return null;
+    return JSON.parse(readFileSync10(path, "utf-8"));
   } catch {
     return null;
   }
 }
 function writeJsonFile(path, data) {
   try {
-    const dir = join8(path, "..");
-    if (!existsSync6(dir)) {
+    const dir = join9(path, "..");
+    if (!existsSync7(dir)) {
       mkdirSync4(dir, { recursive: true });
     }
     writeFileSync4(path, JSON.stringify(data, null, 2), "utf-8");
@@ -214042,23 +214128,23 @@ function refreshNpmCacheInBackground(registryUrl, currentVersion, cacheKey) {
   })();
 }
 function getOntologySummaryCached(cwd) {
-  const ontologyDir = join8(cwd, ".agent", "ontology");
+  const ontologyDir = join9(cwd, ".agent", "ontology");
   const files = ["ONTOLOGY-STRUCTURE.md", "ONTOLOGY-SEMANTICS.md", "ONTOLOGY-DOMAIN.md"];
-  const paths = files.map((f) => join8(ontologyDir, f));
+  const paths = files.map((f) => join9(ontologyDir, f));
   const mtimes = [];
   for (const p of paths) {
     try {
-      if (!existsSync6(p)) return null;
+      if (!existsSync7(p)) return null;
       mtimes.push(statSync3(p).mtimeMs);
     } catch {
       return null;
     }
   }
-  const cachePath = join8(cwd, ".harness", "cache", "ontology-summary.json");
+  const cachePath = join9(cwd, ".harness", "cache", "ontology-summary.json");
   const mtimeKey = mtimes.join(",");
   try {
-    if (existsSync6(cachePath)) {
-      const cached = JSON.parse(readFileSync9(cachePath, "utf-8"));
+    if (existsSync7(cachePath)) {
+      const cached = JSON.parse(readFileSync10(cachePath, "utf-8"));
       if (cached.mtimeKey === mtimeKey && Array.isArray(cached.parts)) {
         return cached.parts;
       }
@@ -214067,7 +214153,7 @@ function getOntologySummaryCached(cwd) {
   }
   const summaryParts = [];
   try {
-    const structContent = readFileSync9(paths[0], "utf-8");
+    const structContent = readFileSync10(paths[0], "utf-8");
     const filesMatch = structContent.match(/전체 파일 수\s*\|\s*([^\n|]+)/);
     const dirsMatch = structContent.match(/전체 디렉토리 수\s*\|\s*([^\n|]+)/);
     if (filesMatch || dirsMatch) {
@@ -214081,7 +214167,7 @@ function getOntologySummaryCached(cwd) {
   } catch {
   }
   try {
-    const domainContent = readFileSync9(paths[2], "utf-8");
+    const domainContent = readFileSync10(paths[2], "utf-8");
     const summaryMatch = domainContent.match(/## Project Summary\n\n(.+)/);
     if (summaryMatch && !summaryMatch[1].includes("_(\uC694\uC57D \uC5C6\uC74C)_")) {
       summaryParts.push(`- \uC694\uC57D: ${summaryMatch[1].trim().slice(0, 200)}`);
@@ -214089,7 +214175,7 @@ function getOntologySummaryCached(cwd) {
   } catch {
   }
   try {
-    const semContent = readFileSync9(paths[1], "utf-8");
+    const semContent = readFileSync10(paths[1], "utf-8");
     const anchorSection = semContent.indexOf("@MX:ANCHOR");
     if (anchorSection !== -1) {
       const sectionText = semContent.slice(anchorSection, semContent.indexOf("\n### ", anchorSection + 1));
@@ -214103,8 +214189,8 @@ function getOntologySummaryCached(cwd) {
   }
   if (summaryParts.length > 0) {
     try {
-      const cacheDir = join8(cwd, ".harness", "cache");
-      if (!existsSync6(cacheDir)) mkdirSync4(cacheDir, { recursive: true });
+      const cacheDir = join9(cwd, ".harness", "cache");
+      if (!existsSync7(cacheDir)) mkdirSync4(cacheDir, { recursive: true });
       writeFileSync4(cachePath, JSON.stringify({ mtimeKey, parts: summaryParts }), "utf-8");
     } catch {
     }
@@ -214113,17 +214199,17 @@ function getOntologySummaryCached(cwd) {
 }
 function countFiles(dir, ext) {
   try {
-    if (!existsSync6(dir)) return 0;
-    return readdirSync4(dir).filter((f) => f.endsWith(ext)).length;
+    if (!existsSync7(dir)) return 0;
+    return readdirSync5(dir).filter((f) => f.endsWith(ext)).length;
   } catch {
     return 0;
   }
 }
 function extractNotepadPriorityContext(directory) {
   const notepadPath = omcNotepadPath(directory);
-  if (!existsSync6(notepadPath)) return null;
+  if (!existsSync7(notepadPath)) return null;
   try {
-    const content = readFileSync9(notepadPath, "utf-8");
+    const content = readFileSync10(notepadPath, "utf-8");
     const PRIORITY_HEADER = "## Priority Context";
     const WORKING_HEADER = "## Working Memory";
     const regex = new RegExp(`${PRIORITY_HEADER}\\n([\\s\\S]*?)(?=\\n## [^#]|$)`);
@@ -214139,11 +214225,11 @@ function extractNotepadPriorityContext(directory) {
   }
 }
 async function shouldRefreshOntology(cwd) {
-  const cachePath = join8(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
-  if (!existsSync6(cachePath)) return { shouldRefresh: false };
+  const cachePath = join9(cwd, ".agent", "ontology", ".cache", "domain-cache.json");
+  if (!existsSync7(cachePath)) return { shouldRefresh: false };
   let builtAtMs;
   try {
-    const raw = readFileSync9(cachePath, "utf-8");
+    const raw = readFileSync10(cachePath, "utf-8");
     const cache = JSON.parse(raw);
     if (!cache.builtAt) return { shouldRefresh: false };
     builtAtMs = new Date(cache.builtAt).getTime();
@@ -214154,10 +214240,11 @@ async function shouldRefreshOntology(cwd) {
     return { shouldRefresh: true, reason: "stale" };
   }
   try {
-    const { execSync } = await import("child_process");
+    const { execFileSync } = await import("child_process");
     const since = new Date(builtAtMs).toISOString();
-    const result = execSync(
-      `git log --since="${since}" --name-only --pretty=format:""`,
+    const result = execFileSync(
+      "git",
+      ["log", `--since=${since}`, "--name-only", "--pretty=format:"],
       { cwd, stdio: "pipe", timeout: 2e3 }
     ).toString().trim();
     if (result) {
@@ -214171,37 +214258,37 @@ async function shouldRefreshOntology(cwd) {
 async function main() {
   let input = {};
   try {
-    const raw = readFileSync9("/dev/stdin", "utf-8");
+    const raw = readFileSync10("/dev/stdin", "utf-8");
     input = JSON.parse(raw);
   } catch {
-    outputResult();
+    outputResult("continue");
     return;
   }
   const cwd = input.cwd || input.directory || process.cwd();
   const sessionId = input.sessionId || input.session_id || input.sessionid || "";
   const messages = [];
-  const configPath = join8(cwd, "carpdm-harness.config.json");
-  if (existsSync6(configPath)) {
+  const configPath = join9(cwd, "carpdm-harness.config.json");
+  if (existsSync7(configPath)) {
     try {
-      const config = JSON.parse(readFileSync9(configPath, "utf-8"));
+      const config = JSON.parse(readFileSync10(configPath, "utf-8"));
       const infoLines = [
         `[carpdm-harness v4] preset: ${config.preset || "unknown"}`,
         `\uBAA8\uB4C8: ${(config.modules || []).join(", ")}`,
         config.updatedAt ? `\uB9C8\uC9C0\uB9C9 \uC5C5\uB370\uC774\uD2B8: ${config.updatedAt}` : ""
       ];
       const omcCfgPath = omcConfigPath();
-      if (existsSync6(omcCfgPath)) {
+      if (existsSync7(omcCfgPath)) {
         try {
-          const omcConfig = JSON.parse(readFileSync9(omcCfgPath, "utf-8"));
+          const omcConfig = JSON.parse(readFileSync10(omcCfgPath, "utf-8"));
           infoLines.push(`OMC: v${omcConfig.version || "unknown"}`);
         } catch {
           infoLines.push("OMC: \uAC10\uC9C0\uB428");
         }
       }
       const capabilitiesPath = harnessCapabilitiesPath(cwd);
-      if (existsSync6(capabilitiesPath)) {
+      if (existsSync7(capabilitiesPath)) {
         try {
-          const caps = JSON.parse(readFileSync9(capabilitiesPath, "utf-8"));
+          const caps = JSON.parse(readFileSync10(capabilitiesPath, "utf-8"));
           const tools = caps.tools || {};
           const detected = Object.entries(tools).filter(([, v]) => v.detected).map(([k]) => k);
           if (detected.length > 0) {
@@ -214211,7 +214298,7 @@ async function main() {
         }
       }
       const onboardedMarker = harnessOnboardedMarkerPath(cwd);
-      if (!existsSync6(onboardedMarker)) {
+      if (!existsSync7(onboardedMarker)) {
         infoLines.push(
           "[AGENT SUGGEST] \uCCAB \uC138\uC158 \uAC10\uC9C0! agents/onboarding-guide.md\uB97C \uCC38\uC870\uD558\uC5EC \uC628\uBCF4\uB529 \uC808\uCC28\uB97C \uC9C4\uD589\uD558\uC138\uC694."
         );
@@ -214237,8 +214324,8 @@ ${infoText}
     }
   }
   try {
-    const { execSync } = await import("child_process");
-    const branch = execSync("git branch --show-current", { cwd, stdio: "pipe" }).toString().trim();
+    const { execFileSync } = await import("child_process");
+    const branch = execFileSync("git", ["branch", "--show-current"], { cwd, stdio: "pipe" }).toString().trim();
     if (branch) {
       const isMain = branch === "main" || branch === "master";
       const branchInfo = isMain ? `\uBE0C\uB79C\uCE58: ${branch} (\uAE30\uBCF8) \u2014 \uC0C8 \uC791\uC5C5 \uC2DC\uC791: /work-start "<\uC791\uC5C5 \uC124\uBA85>"` : `\uBE0C\uB79C\uCE58: ${branch} \u2014 \uC791\uC5C5 \uC644\uB8CC: /work-finish`;
@@ -214255,9 +214342,9 @@ ${infoText}
   } catch {
   }
   try {
-    const lessonsPath = existsSync6(join8(cwd, ".agent", "lessons.md")) ? join8(cwd, ".agent", "lessons.md") : existsSync6(join8(cwd, "lessons.md")) ? join8(cwd, "lessons.md") : null;
+    const lessonsPath = existsSync7(join9(cwd, ".agent", "lessons.md")) ? join9(cwd, ".agent", "lessons.md") : existsSync7(join9(cwd, "lessons.md")) ? join9(cwd, "lessons.md") : null;
     if (lessonsPath) {
-      const lessonsContent = readFileSync9(lessonsPath, "utf-8");
+      const lessonsContent = readFileSync10(lessonsPath, "utf-8");
       const lessonEntries = [];
       const lines = lessonsContent.split("\n");
       for (let i = 0; i < lines.length; i++) {
@@ -214291,9 +214378,9 @@ ${recent.join("\n")}
   } catch {
   }
   try {
-    const handoffPath = join8(cwd, ".agent", "handoff.md");
-    if (existsSync6(handoffPath)) {
-      const handoffContent = readFileSync9(handoffPath, "utf-8");
+    const handoffPath = join9(cwd, ".agent", "handoff.md");
+    if (existsSync7(handoffPath)) {
+      const handoffContent = readFileSync10(handoffPath, "utf-8");
       const trimmed = handoffContent.replace(/^#.*\n/gm, "").replace(/^>.*\n/gm, "").trim();
       if (trimmed.length > 50) {
         messages.push(
@@ -214315,7 +214402,7 @@ ${handoffContent}
   try {
     const refreshCheck = await shouldRefreshOntology(cwd);
     if (refreshCheck.shouldRefresh) {
-      const harnessConfig = existsSync6(configPath) ? JSON.parse(readFileSync9(configPath, "utf-8")) : null;
+      const harnessConfig = existsSync7(configPath) ? JSON.parse(readFileSync10(configPath, "utf-8")) : null;
       const ontologyRaw = harnessConfig?.ontology;
       if (ontologyRaw?.enabled) {
         const { refreshOntology: refreshOntology2 } = await Promise.resolve().then(() => (init_ontology(), ontology_exports));
@@ -214349,10 +214436,10 @@ ${summaryParts.join("\n")}
   const updateLines = [];
   let harnessInstalledVersion = "0.0.0";
   try {
-    const harnessConfig = existsSync6(configPath) ? JSON.parse(readFileSync9(configPath, "utf-8")) : null;
+    const harnessConfig = existsSync7(configPath) ? JSON.parse(readFileSync10(configPath, "utf-8")) : null;
     const harnessVersion = harnessConfig?.version || "0.0.0";
-    const pkgPath = join8(cwd, "node_modules", "carpdm-harness", "package.json");
-    harnessInstalledVersion = existsSync6(pkgPath) ? JSON.parse(readFileSync9(pkgPath, "utf-8")).version || "0.0.0" : harnessVersion;
+    const pkgPath = join9(cwd, "node_modules", "carpdm-harness", "package.json");
+    harnessInstalledVersion = existsSync7(pkgPath) ? JSON.parse(readFileSync10(pkgPath, "utf-8")).version || "0.0.0" : harnessVersion;
     const harnessUpdate = readCachedUpdate("harness");
     if (harnessUpdate) {
       updateLines.push(`  harness: v${harnessUpdate.currentVersion} \u2192 v${harnessUpdate.latestVersion}`);
@@ -214394,16 +214481,16 @@ ${updateLines.join("\n")}
   }
   try {
     const componentLines = [];
-    const commandsDir = join8(cwd, ".claude", "commands");
-    const hooksDir = join8(cwd, ".claude", "hooks");
+    const commandsDir = join9(cwd, ".claude", "commands");
+    const hooksDir = join9(cwd, ".claude", "hooks");
     const skillCount = countFiles(commandsDir, ".md");
     const hookCount = countFiles(hooksDir, ".sh");
     if (skillCount > 0) componentLines.push(`Skills: ${skillCount}\uAC1C`);
     if (hookCount > 0) componentLines.push(`Hooks: ${hookCount}\uAC1C`);
-    const pluginJsonPath = join8(cwd, ".claude-plugin", "plugin.json");
-    if (existsSync6(pluginJsonPath)) {
+    const pluginJsonPath = join9(cwd, ".claude-plugin", "plugin.json");
+    if (existsSync7(pluginJsonPath)) {
       try {
-        const plugin = JSON.parse(readFileSync9(pluginJsonPath, "utf-8"));
+        const plugin = JSON.parse(readFileSync10(pluginJsonPath, "utf-8"));
         const servers = plugin.mcpServers;
         if (servers && typeof servers === "object") {
           componentLines.push(`MCP: ${Object.keys(servers).join(", ")}`);
@@ -214501,7 +214588,7 @@ If ToolSearch returns no results, MCP servers are not configured -- use Claude a
 `
   );
   const finalContext = messages.length > 0 ? trimContext(messages, 4096) : void 0;
-  outputResult(finalContext);
+  outputResult("continue", finalContext);
 }
 function trimContext(messages, maxBytes) {
   const joined = messages.join("\n");
@@ -214518,14 +214605,7 @@ function trimContext(messages, maxBytes) {
   }
   return result;
 }
-function outputResult(additionalContext) {
-  const output = { result: "continue" };
-  if (additionalContext) {
-    output.additionalContext = additionalContext;
-  }
-  process.stdout.write(JSON.stringify(output));
-}
-main().catch(() => outputResult());
+main().catch(() => outputResult("continue"));
 /*! Bundled license information:
 
 typescript/lib/typescript.js:

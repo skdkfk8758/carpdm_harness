@@ -13,7 +13,6 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync, readFileSync } from 'node:fs';
 
-import type { McpResponseBuilder } from '../types/mcp.js';
 
 // ============================================================
 // OMC 모드 상수
@@ -271,36 +270,8 @@ export const OMC_SKILL_PREFIX = '/oh-my-claudecode:' as const;
 /** OMC cancel 스킬 전체 이름 */
 export const OMC_CANCEL_SKILL = '/oh-my-claudecode:cancel' as const;
 
-/** 에이전트 역할별 스킬 이름 */
-export const OMC_SKILLS = {
-  analyze: '/oh-my-claudecode:analyze',
-  plan: '/oh-my-claudecode:plan',
-  autopilot: '/oh-my-claudecode:autopilot',
-  tdd: '/oh-my-claudecode:tdd',
-  'git-master': '/oh-my-claudecode:git-master',
-  deepsearch: '/oh-my-claudecode:deepsearch',
-  'code-review': '/oh-my-claudecode:code-review',
-  'security-review': '/oh-my-claudecode:security-review',
-  cancel: '/oh-my-claudecode:cancel',
-  ralph: '/oh-my-claudecode:ralph',
-} as const;
-
-/** 에이전트 → 스킬 + 모델 매핑 */
-export const AGENT_SKILL_MAP: Record<string, { skill?: string; model: string }> = {
-  analyst:             { skill: OMC_SKILLS.analyze,              model: 'opus' },
-  planner:             { skill: OMC_SKILLS.plan,                 model: 'opus' },
-  architect:           { skill: undefined,                       model: 'opus' },
-  executor:            { skill: OMC_SKILLS.autopilot,            model: 'sonnet' },
-  'deep-executor':     { skill: OMC_SKILLS.autopilot,            model: 'opus' },
-  'test-engineer':     { skill: OMC_SKILLS.tdd,                  model: 'sonnet' },
-  verifier:            { skill: undefined,                       model: 'sonnet' },
-  'git-master':        { skill: OMC_SKILLS['git-master'],        model: 'sonnet' },
-  explore:             { skill: OMC_SKILLS.deepsearch,            model: 'haiku' },
-  debugger:            { skill: OMC_SKILLS.analyze,              model: 'sonnet' },
-  'quality-reviewer':  { skill: OMC_SKILLS['code-review'],       model: 'sonnet' },
-  'security-reviewer': { skill: OMC_SKILLS['security-review'],   model: 'sonnet' },
-  'qa-tester':         { skill: undefined,                       model: 'sonnet' },
-};
+// OMC_SKILLS, AGENT_SKILL_MAP은 types/workflow.ts로 이동 (역방향 import 해소)
+export { OMC_SKILLS, AGENT_SKILL_MAP } from '../types/workflow.js';
 
 /** MCP 위임 프로바이더 키워드 */
 export const MCP_DELEGATION_KEYWORDS = ['codex', 'gemini'] as const;
@@ -356,11 +327,14 @@ export function detectLocalMcpConflict(projectRoot: string): boolean {
   }
 }
 
-/** 충돌 감지 시 경고 메시지를 응답에 추가한다 */
-export function formatMcpConflictWarning(res: McpResponseBuilder): void {
-  res.blank();
-  res.warn('Local MCP 충돌 감지');
-  res.line('`.mcp.json`에 `carpdm-harness`가 Local MCP로 등록되어 있습니다.');
-  res.line('플러그인이 MCP 서버를 자동 제공하므로 수동 등록은 불필요합니다.');
-  res.info('해결: `.mcp.json`의 mcpServers에서 `carpdm-harness` 항목을 제거하세요.');
+/** 충돌 감지 시 경고 정보를 반환한다 (core 레이어는 McpResponseBuilder에 의존하지 않음) */
+export function getMcpConflictWarning(): { title: string; lines: string[]; resolution: string } {
+  return {
+    title: 'Local MCP 충돌 감지',
+    lines: [
+      '`.mcp.json`에 `carpdm-harness`가 Local MCP로 등록되어 있습니다.',
+      '플러그인이 MCP 서버를 자동 제공하므로 수동 등록은 불필요합니다.',
+    ],
+    resolution: '해결: `.mcp.json`의 mcpServers에서 `carpdm-harness` 항목을 제거하세요.',
+  };
 }

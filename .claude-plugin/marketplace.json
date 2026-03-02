@@ -1,7 +1,9 @@
 {
   "$schema": "https://cdn.jsdelivr.net/gh/anthropics/claude-code-plugins@main/marketplace.schema.json",
   "name": "carpdm",
+  "version": "4.12.0",
   "description": "AI 협업 워크플로우 플러그인 — Plan-First + DDD + SPARC + TRUST 5 + Ontology + Team Memory",
+  "homepage": "https://github.com/skdkfk8758/carpdm_harness",
   "owner": {
     "name": "carpdm",
     "email": "carpdm@users.noreply.github.com"
@@ -10,8 +12,10 @@
     {
       "name": "carpdm-harness",
       "source": "./",
-      "description": "OMC 통합 AI 협업 워크플로우 — 9개 모듈, 22개 MCP 도구, 26개 스킬, 10개 에이전트",
+      "description": "OMC 통합 AI 협업 워크플로우 — 7개 모듈, 24개 MCP 도구, 13개 스킬, 10개 에이전트",
       "version": "4.12.0",
+      "homepage": "https://github.com/skdkfk8758/carpdm_harness",
+      "author": "carpdm",
       "category": "productivity",
       "tags": [
         "ai-workflow",
